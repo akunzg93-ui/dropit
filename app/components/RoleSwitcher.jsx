@@ -23,6 +23,11 @@ const ROLES = [
 ];
 
 export default function RoleSwitcher() {
+  // 🔒 OCULTAR COMPLETAMENTE EN PRODUCCIÓN
+  if (process.env.NODE_ENV === "production") {
+    return null;
+  }
+
   const [role, setRole] = useState(null);
   const [allowed, setAllowed] = useState(false);
   const [loading, setLoading] = useState(true);
