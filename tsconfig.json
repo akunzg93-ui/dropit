@@ -39,7 +39,7 @@
     "**/*.mjs",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
-, "app/api/orders/route.ts.bak"  ],
+, "app/api/orders/route.ts"  ],
   "exclude": [
     "node_modules"
   ]
