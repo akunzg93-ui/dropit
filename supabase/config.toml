@@ -1,0 +1,22 @@
+
+[functions.pedido-confirmado]
+enabled = true
+verify_jwt = true
+import_map = "./functions/pedido-confirmado/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/pedido-confirmado/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/pedido-confirmado/*.html" ]
+
+[functions.expirar-coins]
+enabled = true
+verify_jwt = true
+import_map = "./functions/expirar-coins/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/expirar-coins/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/expirar-coins/*.html" ]
