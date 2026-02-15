@@ -27,7 +27,7 @@ export default function RegisterVendedor() {
       password,
       options: {
         data: { role: "vendor" },
-        emailRedirectTo: `${window.location.origin}/login`,
+        emailRedirectTo: `${window.location.origin}/vendedor/login`,
       },
     });
 

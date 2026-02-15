@@ -28,7 +28,7 @@ export default function RegisterEstablecimiento() {
       password,
       options: {
         data: { role: "establishment" },
-        emailRedirectTo: `${window.location.origin}/login`,
+        emailRedirectTo: `${window.location.origin}/establecimiento/login`,
       },
     });
 
