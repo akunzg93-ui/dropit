@@ -27,7 +27,7 @@ export default function RegisterEstablecimiento() {
       email,
       password,
       options: {
-        data: { role: "establishment" }, // 👈 ROL CORRECTO EN INGLÉS
+        data: { role: "establishment" },
         emailRedirectTo: `${window.location.origin}/login`,
       },
     });
@@ -42,20 +42,37 @@ export default function RegisterEstablecimiento() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-muted/30">
-      <div className="w-full max-w-md bg-white shadow-md rounded-lg p-6">
+      <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-8">
 
-        <h1 className="text-2xl font-bold text-blue-600 mb-4">
+        {/* Badge de modo */}
+        <div className="mb-4">
+          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-700">
+            Modo Establecimiento
+          </span>
+        </div>
+
+        {/* Título */}
+        <h1 className="text-2xl font-bold text-blue-600 mb-2">
           Registro Establecimiento
         </h1>
 
-        <label className="font-medium">Nombre del establecimiento</label>
+        {/* Subtítulo */}
+        <p className="text-sm text-gray-600 mb-6">
+          Recibe paquetes de emprendedores y genera ingresos adicionales desde tu punto físico.
+        </p>
+
+        <label className="font-medium text-sm">
+          Nombre del establecimiento
+        </label>
         <Input
           className="mb-4"
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
         />
 
-        <label className="font-medium">Correo electrónico</label>
+        <label className="font-medium text-sm">
+          Correo electrónico
+        </label>
         <Input
           className="mb-4"
           type="email"
@@ -63,7 +80,9 @@ export default function RegisterEstablecimiento() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        <label className="font-medium">Contraseña</label>
+        <label className="font-medium text-sm">
+          Contraseña
+        </label>
         <Input
           className="mb-4"
           type="password"
@@ -71,7 +90,9 @@ export default function RegisterEstablecimiento() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <label className="font-medium">Confirmar contraseña</label>
+        <label className="font-medium text-sm">
+          Confirmar contraseña
+        </label>
         <Input
           className="mb-4"
           type="password"
@@ -84,15 +105,22 @@ export default function RegisterEstablecimiento() {
         )}
 
         <Button className="w-full" onClick={handleRegister}>
-          Crear cuenta
+          Crear cuenta de establecimiento
         </Button>
 
+        {/* Legal */}
+        <p className="text-xs text-gray-500 mt-6 text-center">
+          Al registrarte aceptas nuestros Términos y Política de privacidad.
+        </p>
+
+        {/* Login link */}
         <p className="text-sm text-center mt-4">
           ¿Ya tienes cuenta?{" "}
-          <a href="/login" className="text-blue-600 font-medium">
+          <a href="/login" className="text-blue-600 font-medium hover:underline">
             Inicia sesión
           </a>
         </p>
+
       </div>
     </div>
   );

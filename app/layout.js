@@ -22,8 +22,19 @@ const geistMono = Geist_Mono({
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body
+        className={`
+          ${geistSans.variable} 
+          ${geistMono.variable} 
+          min-h-screen 
+          bg-gradient-to-br 
+          from-blue-50/70 
+          via-white 
+          to-sky-100/60
+        `}
+      >
         <Navbar />
+
         <main className="pt-20 px-4 max-w-7xl mx-auto">
           {children}
         </main>
