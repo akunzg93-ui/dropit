@@ -18,45 +18,52 @@ export default function RegisterEstablecimiento() {
   async function handleRegister() {
     setMensaje("");
 
+    if (!email || !password || !confirm) {
+      setMensaje("Completa todos los campos.");
+      return;
+    }
+
     if (password !== confirm) {
       setMensaje("Las contraseñas no coinciden.");
       return;
     }
+
+    // 🔴 IMPORTANTE: cerrar sesión si hay usuario activo
+    await supabase.auth.signOut();
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { role: "establishment" },
-        emailRedirectTo: `${window.location.origin}/establecimiento/login`,
+        emailRedirectTo: `${window.location.origin}/login`,
       },
     });
+
+    console.log("DATA SIGNUP:", data);
 
     if (error) {
       setMensaje("Hubo un error al registrarte: " + error.message);
       return;
     }
 
-    router.push("/login");
+    router.push("/establecimiento/verificar");
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-muted/30">
       <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-8">
 
-        {/* Badge de modo */}
         <div className="mb-4">
           <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-700">
             Modo Establecimiento
           </span>
         </div>
 
-        {/* Título */}
         <h1 className="text-2xl font-bold text-blue-600 mb-2">
           Registro Establecimiento
         </h1>
 
-        {/* Subtítulo */}
         <p className="text-sm text-gray-600 mb-6">
           Recibe paquetes de emprendedores y genera ingresos adicionales desde tu punto físico.
         </p>
@@ -107,19 +114,6 @@ export default function RegisterEstablecimiento() {
         <Button className="w-full" onClick={handleRegister}>
           Crear cuenta de establecimiento
         </Button>
-
-        {/* Legal */}
-        <p className="text-xs text-gray-500 mt-6 text-center">
-          Al registrarte aceptas nuestros Términos y Política de privacidad.
-        </p>
-
-        {/* Login link */}
-        <p className="text-sm text-center mt-4">
-          ¿Ya tienes cuenta?{" "}
-          <a href="/login" className="text-blue-600 font-medium hover:underline">
-            Inicia sesión
-          </a>
-        </p>
 
       </div>
     </div>

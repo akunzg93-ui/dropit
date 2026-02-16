@@ -22,7 +22,7 @@ export default function Login() {
     });
 
     if (error) {
-      setMensaje("Correo o contraseña incorrectos.");
+      setMensaje("Correo o contraseña incorrectos (verifica tu perfil).");
       return;
     }
 

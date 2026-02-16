@@ -17,10 +17,18 @@ export default function RegisterVendedor() {
   async function handleRegister() {
     setMensaje("");
 
+    if (!email || !password || !confirm) {
+      setMensaje("Completa todos los campos.");
+      return;
+    }
+
     if (password !== confirm) {
       setMensaje("Las contraseñas no coinciden.");
       return;
     }
+
+    // 🔴 IMPORTANTE: cerrar sesión si existe usuario activo
+    await supabase.auth.signOut();
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -38,7 +46,7 @@ export default function RegisterVendedor() {
       return;
     }
 
-    router.push("/login?msg=verifica");
+    router.push("/vendedor/verificar");
   }
 
   return (

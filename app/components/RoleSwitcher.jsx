@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-// 🔑 ROLES OFICIALES DEL SISTEMA (INGLÉS)
 const ROLES = [
   { value: "buyer", label: "Comprador" },
   { value: "vendor", label: "Vendedor" },
@@ -23,11 +22,6 @@ const ROLES = [
 ];
 
 export default function RoleSwitcher() {
-  // 🔒 OCULTAR COMPLETAMENTE EN PRODUCCIÓN
-  if (process.env.NODE_ENV === "production") {
-    return null;
-  }
-
   const [role, setRole] = useState(null);
   const [allowed, setAllowed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -49,20 +43,19 @@ export default function RoleSwitcher() {
       return;
     }
 
-    const { data: profile, error } = await supabase
+    const { data: profile } = await supabase
       .from("profiles")
       .select("role, debug")
       .eq("id", user.id)
-      .single();
+      .maybeSingle(); // 👈 CAMBIO IMPORTANTE
 
-    if (error) {
-      console.error("Error loading profile:", error);
+    // Si aún no existe profile no rompemos nada
+    if (!profile) {
       setLoading(false);
       return;
     }
 
-    // 🔓 Solo permitir switch en modo debug
-    if (profile?.debug) {
+    if (profile.debug) {
       setAllowed(true);
       setRole(profile.role);
     }
@@ -71,7 +64,6 @@ export default function RoleSwitcher() {
   }
 
   async function cambiarRol(nuevoRol) {
-    // 🧹 Limpiar pedido activo al cambiar de rol
     sessionStorage.removeItem("pedido_id");
 
     setRole(nuevoRol);
@@ -82,17 +74,11 @@ export default function RoleSwitcher() {
 
     if (!user) return;
 
-    const { error } = await supabase
+    await supabase
       .from("profiles")
       .update({ role: nuevoRol })
       .eq("id", user.id);
 
-    if (error) {
-      console.error("Error changing role:", error);
-      return;
-    }
-
-    // 🔄 Recargar para que navbar, guards y rutas reaccionen
     window.location.reload();
   }
 
@@ -109,7 +95,6 @@ export default function RoleSwitcher() {
         DEV
       </span>
 
-      {/* SWITCH DE ROL */}
       <Select value={role ?? undefined} onValueChange={cambiarRol}>
         <SelectTrigger className="h-7 w-[140px] text-xs">
           <SelectValue placeholder="Change role" />
@@ -123,7 +108,6 @@ export default function RoleSwitcher() {
         </SelectContent>
       </Select>
 
-      {/* TRACKING RÁPIDO */}
       <div className="flex items-center gap-1">
         <Input
           placeholder="EW-XXXXXXX"
