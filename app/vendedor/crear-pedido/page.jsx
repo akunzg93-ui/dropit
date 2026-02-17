@@ -166,7 +166,7 @@ export default function CrearPedido() {
           email_comprador: correoComprador,
           comprador_id: null,
           producto,
-          tamano,
+          tipo_paquete: tamano,
           estado: "creado",
           folio,
         })

@@ -9,8 +9,8 @@ import CheckoutForm from "./checkout-form";
 const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
-const PRECIO_SMALL = 30;
-const PRECIO_MEDIUM = 45;
+const PRECIO_SMALL = 60;
+const PRECIO_MEDIUM = 90;
 
 export default function ComprarCoinsPage() {
   const [small, setSmall] = useState(0);
@@ -151,7 +151,7 @@ export default function ComprarCoinsPage() {
       <div className="border rounded-xl p-4 flex justify-between">
         <div>
           <p className="font-semibold">Coin Small</p>
-          <p className="text-sm">$30 MXN</p>
+          <p className="text-sm">$60 MXN</p>
         </div>
         <div className="flex gap-3 items-center">
           <button onClick={() => setSmall(Math.max(0, small - 1))}>−</button>
@@ -163,7 +163,7 @@ export default function ComprarCoinsPage() {
       <div className="border rounded-xl p-4 flex justify-between">
         <div>
           <p className="font-semibold">Coin Medium</p>
-          <p className="text-sm">$45 MXN</p>
+          <p className="text-sm">$90 MXN</p>
         </div>
         <div className="flex gap-3 items-center">
           <button onClick={() => setMedium(Math.max(0, medium - 1))}>−</button>

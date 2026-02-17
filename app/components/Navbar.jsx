@@ -130,6 +130,13 @@ export default function Navbar() {
                 <Link href="/establecimiento/entregar" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
                   Entregar pedido
                 </Link>
+                <Link
+  href="/establecimiento/balance"
+  className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+>
+  Balance financiero
+</Link>
+
               </div>
             </div>
           )}
