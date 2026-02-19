@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+
 
 // --------------------
 // Mapa sin SSR
@@ -44,6 +46,8 @@ export default function CompradorPage() {
   const [seleccion, setSeleccion] = useState(null);
   const [ubicacion, setUbicacion] = useState(null);
   const [mensaje, setMensaje] = useState("");
+  const router = useRouter();
+
 
   // --------------------
   // Usuario + pedido
@@ -146,7 +150,9 @@ export default function CompradorPage() {
         return;
       }
 
-      setMensaje("✅ Punto de entrega confirmado, se notificará al vendedor por correo");
+      router.push(`/track/${pedido.folio}?confirmed=1`);
+
+
     } catch (err) {
       console.error("Error confirmando pedido:", err);
       setMensaje("❌ Error al confirmar el pedido");

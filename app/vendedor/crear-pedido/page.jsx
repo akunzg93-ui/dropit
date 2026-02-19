@@ -200,10 +200,15 @@ export default function CrearPedido() {
         establecimiento_id: e.id,
       }));
 
-      await supabase
-        .from("pedido_establecimientos")
-        .insert(relaciones);
+const { error: relError } = await supabase
+  .from("pedido_establecimientos")
+  .insert(relaciones);
 
+if (relError) {
+  console.error("Error insertando relaciones:", relError);
+  setMensaje("❌ Error guardando establecimientos");
+  return;
+}
 
 
       setMensaje(`✅ Pedido creado correctamente. Folio: ${folio}`);

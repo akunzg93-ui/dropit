@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function ValidarPedidoPage() {
@@ -8,21 +8,10 @@ export default function ValidarPedidoPage() {
   const [validando, setValidando] = useState(false);
   const [mensaje, setMensaje] = useState("");
 
-  // 🔒 candado real (no depende de render)
   const validandoRef = useRef(false);
 
   // -----------------------------------------------------
-  // 🔹 Si ya hay pedido validado → salir de aquí
-  // -----------------------------------------------------
-  useEffect(() => {
-    const pid = sessionStorage.getItem("pedido_id");
-    if (pid) {
-      window.location.replace("/comprador");
-    }
-  }, []);
-
-  // -----------------------------------------------------
-  // 🔹 Validar pedido
+  // 🔹 Validar pedido (VERSIÓN SEGURA CON RPC)
   // -----------------------------------------------------
   async function validarPedido() {
     if (validandoRef.current) return;
@@ -37,37 +26,45 @@ export default function ValidarPedidoPage() {
     setMensaje("");
 
     try {
-      const { data, error } = await supabase
-        .from("pedidos")
-        .select("id, estado")
-        .eq("folio", folio.trim().toUpperCase())
-        .maybeSingle();
+      // 🔥 AHORA usamos RPC pública (ignora RLS)
+      const { data, error } = await supabase.rpc(
+        "get_pedido_by_folio_public",
+        { folio_param: folio.trim().toUpperCase() }
+      );
 
-      if (error || !data) {
+      const pedido = Array.isArray(data) ? data[0] : data;
+
+      if (error || !pedido) {
         setMensaje("Pedido no encontrado");
         return;
       }
 
-      if (data.estado !== "creado") {
-        setMensaje("Este pedido ya fue procesado");
+      // -------------------------------------------------
+      // 🔥 LÓGICA PROFESIONAL
+      // -------------------------------------------------
+
+      // Si ya tiene establecimiento → ir a track
+      if (pedido.establecimiento_uuid) {
+        sessionStorage.removeItem("pedido_id");
+        window.location.replace(`/track/${pedido.folio}`);
         return;
       }
 
-      // ✅ guardar pedido
-      sessionStorage.setItem("pedido_id", data.id);
+      // Si ya no está en creado → también ir a track
+      if (pedido.estado !== "creado") {
+        sessionStorage.removeItem("pedido_id");
+        window.location.replace(`/track/${pedido.folio}`);
+        return;
+      }
 
-      // 🔥 FORZAR navegación (no interceptable por Next)
+      // ✅ Pedido nuevo → flujo normal
+      sessionStorage.setItem("pedido_id", pedido.id);
       window.location.replace("/comprador");
 
-      // 🧯 Fallback absoluto (por si el browser se pone raro)
-      setTimeout(() => {
-        window.location.replace("/comprador");
-      }, 300);
     } catch (e) {
       console.error(e);
       setMensaje("Error validando pedido");
     } finally {
-      // esto solo corre si NO navegó
       validandoRef.current = false;
       setValidando(false);
     }

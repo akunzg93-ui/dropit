@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
@@ -21,7 +21,12 @@ const ESTADOS_LABEL: Record<string, string> = {
 };
 
 export default function TrackPedidoPage() {
-  const { folio } = useParams();
+  const params = useParams();
+  const searchParams = useSearchParams();
+
+  const folio = params?.folio as string;
+  const confirmed = searchParams.get("confirmed");
+
   const [pedido, setPedido] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -67,6 +72,7 @@ export default function TrackPedidoPage() {
   if (!pedido) return null;
 
   const estadoIndex = ESTADOS.indexOf(pedido.estado);
+
   const fechaCreacion = pedido.created_at
     ? new Date(pedido.created_at).toLocaleString()
     : "—";
@@ -77,6 +83,16 @@ export default function TrackPedidoPage() {
 
   return (
     <div className="max-w-3xl mx-auto mt-10 px-4 space-y-6">
+
+      {/* ✅ MENSAJE DE CONFIRMACIÓN */}
+      {confirmed && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl">
+          ✅ Confirmaste correctamente tu punto de entrega.
+          <br />
+          Aquí podrás dar seguimiento en tiempo real a tu pedido.
+        </div>
+      )}
+
       {/* HEADER */}
       <Card>
         <CardContent className="p-4">
@@ -147,10 +163,7 @@ export default function TrackPedidoPage() {
           ) : (
             <ul className="space-y-2 text-sm">
               {eventos.map((e: any, idx: number) => (
-                <li
-                  key={idx}
-                  className="flex justify-between"
-                >
+                <li key={idx} className="flex justify-between">
                   <span>
                     {ESTADOS_LABEL[e.estado] ?? e.estado}
                   </span>
