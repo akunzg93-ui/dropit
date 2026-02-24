@@ -31,6 +31,25 @@ export default function TrackPedidoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // 🔥 NUEVO: disparar notificación al confirmar
+  useEffect(() => {
+    if (!folio || confirmed !== "1") return;
+
+    const notificar = async () => {
+      try {
+        await fetch("/api/orders/notificar-vendedor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folio }),
+        });
+      } catch (err) {
+        console.error("Error notificando vendedor:", err);
+      }
+    };
+
+    notificar();
+  }, [folio, confirmed]);
+
   useEffect(() => {
     if (!folio) return;
 
@@ -84,7 +103,6 @@ export default function TrackPedidoPage() {
   return (
     <div className="max-w-3xl mx-auto mt-10 px-4 space-y-6">
 
-      {/* ✅ MENSAJE DE CONFIRMACIÓN */}
       {confirmed && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl">
           ✅ Confirmaste correctamente tu punto de entrega.
@@ -93,7 +111,6 @@ export default function TrackPedidoPage() {
         </div>
       )}
 
-      {/* HEADER */}
       <Card>
         <CardContent className="p-4">
           <h1 className="text-xl font-semibold">
@@ -109,7 +126,6 @@ export default function TrackPedidoPage() {
         </CardContent>
       </Card>
 
-      {/* STEPPER */}
       <Card>
         <CardContent className="p-4">
           <div className="flex justify-between">
@@ -137,7 +153,6 @@ export default function TrackPedidoPage() {
         </CardContent>
       </Card>
 
-      {/* ESTADO ACTUAL */}
       <Card>
         <CardContent className="p-4 space-y-1">
           <p className="font-medium">
@@ -149,7 +164,6 @@ export default function TrackPedidoPage() {
         </CardContent>
       </Card>
 
-      {/* HISTORIAL */}
       <Card>
         <CardContent className="p-4">
           <h3 className="font-semibold mb-3">
