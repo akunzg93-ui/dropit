@@ -4,10 +4,9 @@ console.log("🔥 API /orders/recibido CARGADA");
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import nodemailer from "nodemailer";
 import QRCode from "qrcode";
+import { sendEmail } from "@/lib/email"; // ✅ usamos helper central
 
-// 🔐 Generar código de entrega (6 dígitos)
 function generarCodigoEntrega() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -27,13 +26,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔐 Supabase SERVICE ROLE
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 1️⃣ Obtener pedido + establecimiento
     const { data: pedido, error } = await supabase
       .from("pedidos")
       .select(`
@@ -65,7 +62,6 @@ export async function POST(req: Request) {
 
     const pedidoAny = pedido as any;
 
-    // 2️⃣ Validaciones
     if (pedidoAny.codigo_vendedor !== codigo_vendedor) {
       return NextResponse.json(
         { error: "Código del vendedor incorrecto" },
@@ -80,7 +76,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3️⃣ Código de entrega (si no existe)
     let codigoEntrega = pedidoAny.codigo_entrega;
 
     if (!codigoEntrega) {
@@ -92,7 +87,6 @@ export async function POST(req: Request) {
         .eq("id", pedidoAny.id);
     }
 
-    // 4️⃣ Cambiar estado
     await supabase
       .from("pedidos")
       .update({
@@ -101,25 +95,11 @@ export async function POST(req: Request) {
       })
       .eq("id", pedidoAny.id);
 
-    // ❌ SE ELIMINA el insert manual a pedido_eventos
-    // El historial ahora lo maneja exclusivamente el trigger en la BD
-
-    // 5️⃣ Generar QR (folio|codigo_entrega)
     const qrPayload = `${pedidoAny.folio}|${codigoEntrega}`;
 
     const qrBase64 = await QRCode.toDataURL(qrPayload, {
       margin: 1,
       width: 260,
-    });
-
-    // 6️⃣ Mailtrap
-    const transporter = nodemailer.createTransport({
-      host: process.env.MAILTRAP_HOST!,
-      port: Number(process.env.MAILTRAP_PORT),
-      auth: {
-        user: process.env.MAILTRAP_USER!,
-        pass: process.env.MAILTRAP_PASS!,
-      },
     });
 
     const establecimiento =
@@ -129,10 +109,9 @@ export async function POST(req: Request) {
     const direccionEstablecimiento = establecimiento?.direccion ?? "—";
 
     if (!pedidoAny.correo_comprador_enviado) {
-      await transporter.sendMail({
-        from: process.env.MAILTRAP_FROM!,
+      await sendEmail({
         to: pedidoAny.email_comprador,
-        subject: "📦 Tu pedido ya está listo para recoger [DEV]",
+        subject: "📦 Tu pedido ya está listo para recoger",
         html: `
           <div style="
             font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
@@ -236,9 +215,7 @@ export async function POST(req: Request) {
 
       await supabase
         .from("pedidos")
-        .update({
-          correo_comprador_enviado: true,
-        })
+        .update({ correo_comprador_enviado: true })
         .eq("id", pedidoAny.id);
     }
 

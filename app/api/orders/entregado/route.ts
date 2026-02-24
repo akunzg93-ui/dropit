@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import nodemailer from "nodemailer";
+import { sendEmail } from "@/lib/email"; // ✅ usamos helper central
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     }
 
     const supabase = createClient(
-      process.env.SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
@@ -61,27 +61,9 @@ export async function POST(req: Request) {
       .update({ estado: "entregado" })
       .eq("id", pedido.id);
 
-    // 3️⃣ Obtener email del vendedor
-    const { data: vendedor } = await supabase
-      .from("profiles")
-      .select("email")
-      .eq("id", pedido.vendedor_id)
-      .maybeSingle();
-
-    // 4️⃣ Mailtrap transporter
-    const transporter = nodemailer.createTransport({
-      host: process.env.MAILTRAP_HOST!,
-      port: Number(process.env.MAILTRAP_PORT),
-      auth: {
-        user: process.env.MAILTRAP_USER!,
-        pass: process.env.MAILTRAP_PASS!,
-      },
-    });
-
-    // 📧 Correo al comprador (BONITO ✨)
+    // 📧 Correo al comprador
     try {
-      await transporter.sendMail({
-        from: process.env.MAILTRAP_FROM!,
+      await sendEmail({
         to: pedido.email_comprador,
         subject: "✅ Tu pedido fue entregado",
         html: `
@@ -106,7 +88,7 @@ export async function POST(req: Request) {
               </div>
 
               <p style="font-size:14px;color:#555;">
-                Gracias por usar <strong>Entregas Web</strong>.  
+                Gracias por usar <strong>Dropit</strong>.  
                 Esperamos verte pronto de nuevo 🙌
               </p>
 
@@ -120,14 +102,19 @@ export async function POST(req: Request) {
         `,
       });
     } catch (mailErr) {
-      console.error("⚠️ Mail comprador falló (DEV):", mailErr);
+      console.error("⚠️ Mail comprador falló:", mailErr);
     }
 
-    // 📧 Correo al vendedor (simple, sin romper flujo)
+    // 📧 Correo al vendedor
+    const { data: vendedor } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", pedido.vendedor_id)
+      .maybeSingle();
+
     if (vendedor?.email) {
       try {
-        await transporter.sendMail({
-          from: process.env.MAILTRAP_FROM!,
+        await sendEmail({
           to: vendedor.email,
           subject: "📦 Pedido entregado al comprador",
           html: `
@@ -136,7 +123,7 @@ export async function POST(req: Request) {
           `,
         });
       } catch (mailErr) {
-        console.error("⚠️ Mail vendedor falló (DEV):", mailErr);
+        console.error("⚠️ Mail vendedor falló:", mailErr);
       }
     }
 

@@ -4,8 +4,8 @@ console.log("🔥 API /orders/notificar-vendedor CARGADA");
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import nodemailer from "nodemailer";
 import QRCode from "qrcode";
+import { Resend } from "resend"; // ✅ NUEVO (en vez de nodemailer)
 
 // 🔐 Generar código de vendedor (6 dígitos)
 function generarCodigoVendedor() {
@@ -20,10 +20,7 @@ export async function POST(req: Request) {
     const { folio } = body;
 
     if (!folio) {
-      return NextResponse.json(
-        { error: "folio requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "folio requerido" }, { status: 400 });
     }
 
     // 🔐 Supabase SERVICE ROLE
@@ -55,17 +52,13 @@ export async function POST(req: Request) {
     console.log("📦 Pedido:", pedido, error);
 
     if (error || !pedido) {
-      return NextResponse.json(
-        { error: "Pedido no encontrado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
     }
 
     const pedidoAny = pedido as any;
 
     // 2️⃣ Validaciones
     if (!["creado", "en_transito"].includes(pedidoAny.estado)) {
-
       return NextResponse.json(
         { error: "El pedido no está en estado creado" },
         { status: 409 }
@@ -106,27 +99,18 @@ export async function POST(req: Request) {
       width: 260,
     });
 
-    // 5️⃣ Mailtrap
-    const transporter = nodemailer.createTransport({
-      host: process.env.MAILTRAP_HOST!,
-      port: Number(process.env.MAILTRAP_PORT),
-      auth: {
-        user: process.env.MAILTRAP_USER!,
-        pass: process.env.MAILTRAP_PASS!,
-      },
-    });
-
     const establecimiento =
       pedidoAny.pedido_establecimientos?.[0]?.establecimientos;
 
     const establecimientoNombre = establecimiento?.nombre ?? "—";
     const direccionEstablecimiento = establecimiento?.direccion ?? "—";
 
-    await transporter.sendMail({
-      from: process.env.MAILTRAP_FROM!,
-      to: pedidoAny.email_vendedor,
-      subject: "📦 Pedido confirmado – Llévalo al establecimiento [DEV]",
-      html: `
+    // ✅ Resend (reemplazo de Mailtrap / nodemailer)
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    const subject = "📦 Pedido confirmado – Llévalo al establecimiento"; // (si quieres deja [DEV])
+
+    const html = `
         <div style="
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
           background-color:#f4f6f8;
@@ -228,8 +212,24 @@ export async function POST(req: Request) {
             </div>
           </div>
         </div>
-      `,
+      `;
+
+    const { data, error: resendError } = await resend.emails.send({
+      from: "Dropit <no-reply@drop-itt.com>",
+      to: pedidoAny.email_vendedor,
+      subject,
+      html,
     });
+
+    if (resendError) {
+      console.error("❌ RESEND ERROR:", resendError);
+      return NextResponse.json(
+        { error: "Error enviando correo", detalle: resendError },
+        { status: 500 }
+      );
+    }
+
+    console.log("✅ Resend enviado:", data);
 
     // 6️⃣ Marcar correo enviado
     await supabase
