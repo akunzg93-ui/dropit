@@ -124,7 +124,7 @@ export default function CompradorPage() {
   // Confirmar selección
   // --------------------
   async function confirmarSeleccion() {
-    if (!buyerId || !pedidoId || !seleccion) return;
+    if (!pedidoId || !seleccion) return;
 
     try {
       const res = await fetch("/api/orders/confirmado", {
