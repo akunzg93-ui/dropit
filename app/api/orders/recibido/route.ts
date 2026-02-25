@@ -95,12 +95,36 @@ export async function POST(req: Request) {
       })
       .eq("id", pedidoAny.id);
 
+    // ✅ QR (folio|codigo_entrega) → PNG → Storage
     const qrPayload = `${pedidoAny.folio}|${codigoEntrega}`;
 
-    const qrBase64 = await QRCode.toDataURL(qrPayload, {
+    const qrBuffer = await QRCode.toBuffer(qrPayload, {
       margin: 1,
       width: 260,
     });
+
+    const fileName = `qr-recoleccion-${pedidoAny.folio}.png`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("qr-codes")
+      .upload(fileName, qrBuffer, {
+        contentType: "image/png",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("❌ Storage upload error:", uploadError);
+      return NextResponse.json(
+        { error: "Error subiendo QR a storage" },
+        { status: 500 }
+      );
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("qr-codes")
+      .getPublicUrl(fileName);
+
+    const qrUrl = publicUrlData.publicUrl;
 
     const establecimiento =
       pedidoAny.pedido_establecimientos?.[0]?.establecimientos;
@@ -185,18 +209,18 @@ export async function POST(req: Request) {
                     Presenta este código o escanea el QR
                   </p>
 
-              <img
-  src="${qrBase64}"
-  alt="QR del pedido"
-  style="
-    display:block;
-    margin:0 auto;
-    width:160px;
-    height:160px;
-    border:8px solid #eef2ff;
-    border-radius:16px;
-  "
-/>
+                  <img
+                    src="${qrUrl}"
+                    alt="QR del pedido"
+                    style="
+                      display:block;
+                      margin:0 auto;
+                      width:160px;
+                      height:160px;
+                      border:8px solid #eef2ff;
+                      border-radius:16px;
+                    "
+                  />
                 </div>
               </div>
 
