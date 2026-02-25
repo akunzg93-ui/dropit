@@ -189,8 +189,8 @@ export async function POST(req: Request) {
                     src="${qrBase64}"
                     alt="QR de recolección"
                     style="
-                      width:200px;
-                      height:200px;
+                      width:160px;
+                      height:160px;
                       border:8px solid #eef2ff;
                       border-radius:16px;
                     "
