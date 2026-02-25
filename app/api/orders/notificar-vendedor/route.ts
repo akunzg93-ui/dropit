@@ -5,7 +5,7 @@ console.log("🔥 API /orders/notificar-vendedor CARGADA");
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
-import { Resend } from "resend"; // ✅ NUEVO (en vez de nodemailer)
+import { Resend } from "resend";
 
 // 🔐 Generar código de vendedor (6 dígitos)
 function generarCodigoVendedor() {
@@ -91,13 +91,37 @@ export async function POST(req: Request) {
         .eq("id", pedidoAny.id);
     }
 
-    // 4️⃣ Generar QR (folio|codigo_vendedor)
+    // 4️⃣ Generar QR (folio|codigo_vendedor) → PNG → Storage
     const qrPayload = `${pedidoAny.folio}|${codigoVendedor}`;
 
-    const qrBase64 = await QRCode.toDataURL(qrPayload, {
+    const qrBuffer = await QRCode.toBuffer(qrPayload, {
       margin: 1,
       width: 260,
     });
+
+    // subir a storage
+    const fileName = `qr-vendedor-${pedidoAny.folio}.png`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("qr-codes")
+      .upload(fileName, qrBuffer, {
+        contentType: "image/png",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("❌ Storage upload error:", uploadError);
+      return NextResponse.json(
+        { error: "Error subiendo QR a storage" },
+        { status: 500 }
+      );
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("qr-codes")
+      .getPublicUrl(fileName);
+
+    const qrUrl = publicUrlData.publicUrl;
 
     const establecimiento =
       pedidoAny.pedido_establecimientos?.[0]?.establecimientos;
@@ -105,116 +129,112 @@ export async function POST(req: Request) {
     const establecimientoNombre = establecimiento?.nombre ?? "—";
     const direccionEstablecimiento = establecimiento?.direccion ?? "—";
 
-    // ✅ Resend (reemplazo de Mailtrap / nodemailer)
+    // ✅ Resend
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    const subject = "📦 Pedido confirmado – Llévalo al establecimiento"; // (si quieres deja [DEV])
+    const subject = "📦 Pedido confirmado – Llévalo al establecimiento";
 
     const html = `
+      <div style="
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        background-color:#f4f6f8;
+        padding:40px 0;
+      ">
         <div style="
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-          background-color:#f4f6f8;
-          padding:40px 0;
+          max-width:560px;
+          margin:0 auto;
+          background:#ffffff;
+          border-radius:16px;
+          overflow:hidden;
+          box-shadow:0 12px 32px rgba(0,0,0,0.08);
         ">
           <div style="
-            max-width:560px;
-            margin:0 auto;
-            background:#ffffff;
-            border-radius:16px;
-            overflow:hidden;
-            box-shadow:0 12px 32px rgba(0,0,0,0.08);
+            background:linear-gradient(135deg, #2563eb, #1e40af);
+            color:#ffffff;
+            padding:28px;
           ">
-            <!-- HEADER -->
-            <div style="
-              background:linear-gradient(135deg, #2563eb, #1e40af);
-              color:#ffffff;
-              padding:28px;
-            ">
-              <h1 style="margin:0;font-size:22px;font-weight:600;">
-                📦 Pedido creado correctamente
-              </h1>
-              <p style="margin:8px 0 0 0;font-size:14px;opacity:0.9;">
-                Lleva tu paquete al establecimiento
+            <h1 style="margin:0;font-size:22px;font-weight:600;">
+              📦 Pedido creado correctamente
+            </h1>
+            <p style="margin:8px 0 0 0;font-size:14px;opacity:0.9;">
+              Lleva tu paquete al establecimiento
+            </p>
+          </div>
+
+          <div style="padding:28px;">
+            <table style="width:100%; font-size:14px;">
+              <tr>
+                <td style="padding:6px 0; color:#6b7280;">Pedido</td>
+                <td style="padding:6px 0; font-weight:600; text-align:right;">
+                  ${pedidoAny.folio}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0; color:#6b7280;">Establecimiento</td>
+                <td style="padding:6px 0; text-align:right;">
+                  ${establecimientoNombre}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0; color:#6b7280;">Dirección</td>
+                <td style="padding:6px 0; text-align:right;">
+                  ${direccionEstablecimiento}
+                </td>
+              </tr>
+            </table>
+
+            <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0;" />
+
+            <div style="text-align:center;">
+              <p style="margin-bottom:8px;color:#6b7280;font-size:13px;">
+                Código para entregar en el establecimiento
               </p>
-            </div>
 
-            <!-- BODY -->
-            <div style="padding:28px;">
-              <table style="width:100%; font-size:14px;">
-                <tr>
-                  <td style="padding:6px 0; color:#6b7280;">Pedido</td>
-                  <td style="padding:6px 0; font-weight:600; text-align:right;">
-                    ${pedidoAny.folio}
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:6px 0; color:#6b7280;">Establecimiento</td>
-                  <td style="padding:6px 0; text-align:right;">
-                    ${establecimientoNombre}
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:6px 0; color:#6b7280;">Dirección</td>
-                  <td style="padding:6px 0; text-align:right;">
-                    ${direccionEstablecimiento}
-                  </td>
-                </tr>
-              </table>
-
-              <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0;" />
-
-              <!-- CÓDIGO -->
-              <div style="text-align:center;">
-                <p style="margin-bottom:8px;color:#6b7280;font-size:13px;">
-                  Código para entregar en el establecimiento
-                </p>
-
-                <div style="
-                  font-size:32px;
-                  letter-spacing:6px;
-                  font-weight:700;
-                  color:#1e40af;
-                  background:#eef2ff;
-                  padding:18px 24px;
-                  border-radius:12px;
-                  display:inline-block;
-                ">
-                  ${codigoVendedor}
-                </div>
-
-                <p style="margin:22px 0 12px 0;font-size:14px;">
-                  Escanea el QR o presenta este código
-                </p>
-
-                <img
-  src="${qrBase64}"
-  alt="QR del pedido"
-  style="
-    display:block;
-    margin:0 auto;
-    width:160px;
-    height:160px;
-    border:8px solid #eef2ff;
-    border-radius:16px;
-  "
-/>
+              <div style="
+                font-size:32px;
+                letter-spacing:6px;
+                font-weight:700;
+                color:#1e40af;
+                background:#eef2ff;
+                padding:18px 24px;
+                border-radius:12px;
+                display:inline-block;
+              ">
+                ${codigoVendedor}
               </div>
-            </div>
 
-            <!-- FOOTER -->
-            <div style="
-              background:#f9fafb;
-              padding:18px;
-              text-align:center;
-              font-size:12px;
-              color:#6b7280;
-            ">
-              <strong style="color:#2563eb;">DROPIT</strong><br />
-              Este código se valida al recibir el paquete
+              <p style="margin:22px 0 12px 0;font-size:14px;">
+                Escanea el QR o presenta este código
+              </p>
+
+              <img
+                src="${qrUrl}"
+                alt="QR del pedido"
+                style="
+                  width:200px;
+                  height:200px;
+                  border:8px solid #eef2ff;
+                  border-radius:16px;
+                  display:block;
+                  margin:0 auto;
+                "
+              />
             </div>
           </div>
+
+          <div style="
+            background:#f9fafb;
+            padding:18px;
+            text-align:center;
+            font-size:12px;
+            color:#6b7280;
+          ">
+            <strong style="color:#2563eb;">DROPIT</strong><br />
+            Este código se valida al recibir el paquete
+          </div>
         </div>
-      `;
+      </div>
+    `;
 
     const { data, error: resendError } = await resend.emails.send({
       from: "Dropit <no-reply@drop-itt.com>",
@@ -242,7 +262,7 @@ export async function POST(req: Request) {
       })
       .eq("id", pedidoAny.id);
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, qrUrl });
   } catch (err) {
     console.error("❌ ERROR NOTIFICAR VENDEDOR:", err);
     return NextResponse.json(
