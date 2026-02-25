@@ -187,15 +187,17 @@ export async function POST(req: Request) {
                 </p>
 
                 <img
-                  src="${qrBase64}"
-                  alt="QR del pedido"
-                  style="
-                    width:160px;
-                    height:160px;
-                    border:8px solid #eef2ff;
-                    border-radius:16px;
-                  "
-                />
+  src="${qrBase64}"
+  alt="QR del pedido"
+  style="
+    display:block;
+    margin:0 auto;
+    width:160px;
+    height:160px;
+    border:8px solid #eef2ff;
+    border-radius:16px;
+  "
+/>
               </div>
             </div>
 

@@ -185,16 +185,18 @@ export async function POST(req: Request) {
                     Presenta este código o escanea el QR
                   </p>
 
-                  <img
-                    src="${qrBase64}"
-                    alt="QR de recolección"
-                    style="
-                      width:160px;
-                      height:160px;
-                      border:8px solid #eef2ff;
-                      border-radius:16px;
-                    "
-                  />
+              <img
+  src="${qrBase64}"
+  alt="QR del pedido"
+  style="
+    display:block;
+    margin:0 auto;
+    width:160px;
+    height:160px;
+    border:8px solid #eef2ff;
+    border-radius:16px;
+  "
+/>
                 </div>
               </div>
 
