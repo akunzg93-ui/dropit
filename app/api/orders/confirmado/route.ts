@@ -38,10 +38,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2️⃣ Establecimiento
+    // 2️⃣ Establecimiento (AHORA traemos uuid también)
     const { data: establecimiento } = await supabase
       .from("establecimientos")
-      .select("nombre")
+      .select("id, nombre, uuid")
       .eq("id", establecimiento_id)
       .single();
 
@@ -52,12 +52,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3️⃣ Update pedido (ESTADO + ESTABLECIMIENTO)
+    // 3️⃣ Update pedido (ESTADO + ESTABLECIMIENTO + UUID)
     const { error: updateError } = await supabase
       .from("pedidos")
       .update({
         estado: "en_transito",
         establecimiento_nombre: establecimiento.nombre,
+        establecimiento_uuid: establecimiento.uuid, // 🔥 CLAVE
       })
       .eq("id", pedido_id);
 
@@ -68,9 +69,6 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
-
-    // ❌ SE ELIMINA el insert manual a pedido_eventos
-    // El historial ahora lo maneja el trigger en la BD
 
     return NextResponse.json({ ok: true });
   } catch (err) {
