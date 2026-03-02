@@ -14,11 +14,12 @@ export default function RegisterEstablecimiento() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [mensaje, setMensaje] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleRegister() {
     setMensaje("");
 
-    if (!email || !password || !confirm) {
+    if (!email || !password || !confirm || !nombre) {
       setMensaje("Completa todos los campos.");
       return;
     }
@@ -28,22 +29,25 @@ export default function RegisterEstablecimiento() {
       return;
     }
 
-    // 🔴 IMPORTANTE: cerrar sesión si hay usuario activo
+    setLoading(true);
+
     await supabase.auth.signOut();
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { role: "establishment" },
+        data: {
+          role: "establishment",
+          nombre_responsable: nombre,
+        },
         emailRedirectTo: `${window.location.origin}/login`,
       },
     });
 
-    console.log("DATA SIGNUP:", data);
-
     if (error) {
       setMensaje("Hubo un error al registrarte: " + error.message);
+      setLoading(false);
       return;
     }
 
@@ -51,70 +55,98 @@ export default function RegisterEstablecimiento() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-muted/30">
-      <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-8">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-6 py-12">
+      <div className="w-full max-w-md space-y-8">
 
-        <div className="mb-4">
-          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-700">
+        {/* HEADER PREMIUM */}
+        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-3xl p-6 shadow-xl space-y-3">
+          <span className="text-xs font-semibold bg-white/20 px-3 py-1 rounded-full">
             Modo Establecimiento
           </span>
+
+          <h1 className="text-2xl font-bold">
+            Crea tu cuenta
+          </h1>
+
+          <p className="text-sm text-white/90">
+            Recibe paquetes de emprendedores y genera ingresos adicionales desde tu punto físico.
+          </p>
         </div>
 
-        <h1 className="text-2xl font-bold text-blue-600 mb-2">
-          Registro Establecimiento
-        </h1>
+        {/* CARD FORM */}
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 space-y-5">
 
-        <p className="text-sm text-gray-600 mb-6">
-          Recibe paquetes de emprendedores y genera ingresos adicionales desde tu punto físico.
+          <div>
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Nombre del responsable
+            </label>
+            <Input
+              className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              placeholder="Ej. Adolfo Kunz"
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Este será el titular de la cuenta.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Correo electrónico
+            </label>
+            <Input
+              className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="correo@ejemplo.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Contraseña
+            </label>
+            <Input
+              className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Mínimo 6 caracteres"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Confirmar contraseña
+            </label>
+            <Input
+              className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+            />
+          </div>
+
+          {mensaje && (
+            <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 text-sm">
+              {mensaje}
+            </div>
+          )}
+
+          <Button
+            disabled={loading}
+            onClick={handleRegister}
+            className="w-full py-4 text-lg font-semibold rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.02] transition-all shadow-lg disabled:opacity-50"
+          >
+            {loading ? "Creando cuenta..." : "Crear cuenta de establecimiento"}
+          </Button>
+        </div>
+
+        <p className="text-center text-xs text-slate-500">
+          Al registrarte aceptas nuestros términos y condiciones.
         </p>
-
-        <label className="font-medium text-sm">
-          Nombre del establecimiento
-        </label>
-        <Input
-          className="mb-4"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-        />
-
-        <label className="font-medium text-sm">
-          Correo electrónico
-        </label>
-        <Input
-          className="mb-4"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <label className="font-medium text-sm">
-          Contraseña
-        </label>
-        <Input
-          className="mb-4"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <label className="font-medium text-sm">
-          Confirmar contraseña
-        </label>
-        <Input
-          className="mb-4"
-          type="password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-        />
-
-        {mensaje && (
-          <p className="text-red-500 text-sm mb-4">{mensaje}</p>
-        )}
-
-        <Button className="w-full" onClick={handleRegister}>
-          Crear cuenta de establecimiento
-        </Button>
-
       </div>
     </div>
   );
