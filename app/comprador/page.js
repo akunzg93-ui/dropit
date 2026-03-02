@@ -6,18 +6,11 @@ import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
-
-// --------------------
-// Mapa sin SSR
-// --------------------
 const MapaEstablecimientos = dynamic(
   () => import("../components/MapaEstablecimientos"),
   { ssr: false }
 );
 
-// --------------------
-// Haversine
-// --------------------
 function calcularDistanciaKm(p1, p2) {
   if (!p1 || !p2) return null;
 
@@ -40,7 +33,6 @@ function calcularDistanciaKm(p1, p2) {
 
 export default function CompradorPage() {
   const [pedidoId, setPedidoId] = useState(null);
-  const [buyerId, setBuyerId] = useState(null);
   const [pedido, setPedido] = useState(null);
   const [establecimientos, setEstablecimientos] = useState([]);
   const [seleccion, setSeleccion] = useState(null);
@@ -48,22 +40,11 @@ export default function CompradorPage() {
   const [mensaje, setMensaje] = useState("");
   const router = useRouter();
 
-
-  // --------------------
-  // Usuario + pedido
-  // --------------------
   useEffect(() => {
-    supabase.auth.getUser().then((r) => {
-      setBuyerId(r.data.user?.id || null);
-    });
-
     const pid = sessionStorage.getItem("pedido_id");
     if (pid) setPedidoId(Number(pid));
   }, []);
 
-  // --------------------
-  // Pedido
-  // --------------------
   useEffect(() => {
     if (!pedidoId) return;
 
@@ -75,9 +56,6 @@ export default function CompradorPage() {
       .then(({ data }) => setPedido(data));
   }, [pedidoId]);
 
-  // --------------------
-  // Establecimientos permitidos (YA FUNCIONA, NO TOCAR)
-  // --------------------
   useEffect(() => {
     if (!pedidoId) return;
 
@@ -94,12 +72,7 @@ export default function CompradorPage() {
         )
       `)
       .eq("pedido_id", pedidoId)
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Error cargando establecimientos:", error);
-          return;
-        }
-
+      .then(({ data }) => {
         const ests = (data || [])
           .map((r) => r.establecimientos)
           .filter(Boolean);
@@ -108,9 +81,6 @@ export default function CompradorPage() {
       });
   }, [pedidoId]);
 
-  // --------------------
-  // Ordenar por distancia
-  // --------------------
   const listaOrdenada = establecimientos
     .map((e) => ({
       ...e,
@@ -120,113 +90,154 @@ export default function CompradorPage() {
     }))
     .sort((a, b) => (a.distancia ?? 999) - (b.distancia ?? 999));
 
-  // --------------------
-  // Confirmar selección
-  // --------------------
   async function confirmarSeleccion() {
     if (!pedidoId || !seleccion) return;
 
-    try {
-      const res = await fetch("/api/orders/confirmado", {
-  method: "POST",
-  credentials: "include",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    pedido_id: pedidoId,
-    establecimiento_id: seleccion, // 👈 ESTE ERA EL FALTANTE
-  }),
-});
-      const data = await res.json();
+    const res = await fetch("/api/orders/confirmado", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pedido_id: pedidoId,
+        establecimiento_id: seleccion,
+      }),
+    });
 
-      // 🔎 DEBUG TEMPORAL
-      console.log("DEBUG status:", res.status);
-      console.log("DEBUG response:", data);
-      console.log("DEBUG pedido_id:", pedidoId);
-      console.log("DEBUG seleccion:", seleccion);
-
-      if (!res.ok) {
-        console.error("Error API:", data);
-        setMensaje("❌ Error al confirmar el pedido");
-        return;
-      }
-
-      router.push(`/track/${pedido.folio}?confirmed=1`);
-
-
-    } catch (err) {
-      console.error("Error confirmando pedido:", err);
+    if (!res.ok) {
       setMensaje("❌ Error al confirmar el pedido");
+      return;
     }
+
+    router.push(`/track/${pedido.folio}?confirmed=1`);
   }
 
-  // --------------------
-  // UI
-  // --------------------
   if (!pedidoId) {
     return (
-      <p className="text-center mt-10 text-gray-500">
+      <p className="text-center mt-10 text-slate-500">
         No hay pedido validado
       </p>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8">
-      <div>
-        <p className="text-sm text-blue-600 font-medium">
-          Paso 2 de 3 · Selección de entrega
-        </p>
-        <h1 className="text-3xl font-bold">
-          Selecciona tu punto de entrega
-        </h1>
-        {pedido && (
-          <p className="text-gray-600">
-            Pedido <strong>{pedido.folio}</strong> — {pedido.producto}
+    <div className="min-h-screen bg-slate-50 py-12 px-6">
+      <div className="max-w-6xl mx-auto space-y-10">
+
+        {/* HEADER PREMIUM + PROGRESO */}
+        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-3xl p-8 shadow-lg space-y-4">
+          
+          <div className="flex items-center justify-between text-sm opacity-90">
+            <span>Paso 2 de 3</span>
+            <span>Selección de entrega</span>
+          </div>
+
+          <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+            <div className="h-full w-2/3 bg-white rounded-full transition-all"></div>
+          </div>
+
+          <h1 className="text-3xl font-bold">
+            Selecciona tu punto de entrega
+          </h1>
+
+          {pedido && (
+            <p className="text-white/90">
+              Pedido <strong>{pedido.folio}</strong> — {pedido.producto}
+            </p>
+          )}
+        </div>
+
+        {/* MAPA */}
+        <div className="rounded-3xl overflow-hidden shadow-xl border border-slate-200">
+          <div className="h-96">
+            <MapaEstablecimientos
+              establecimientos={establecimientos}
+              selectedPoint={ubicacion}
+              onLocationSelected={setUbicacion}
+            />
+          </div>
+        </div>
+
+        {/* CONTADOR SELECCIÓN */}
+        {seleccion && (
+          <div className="text-sm text-indigo-600 font-semibold">
+            1 punto seleccionado
+          </div>
+        )}
+
+        {/* LISTA */}
+        <div className="grid gap-5">
+          {listaOrdenada.map((e, index) => {
+            const esMasCercano = index === 0 && e.distancia;
+
+            return (
+              <div
+                key={e.id}
+                onClick={() => setSeleccion(e.id)}
+                className={`rounded-2xl p-6 cursor-pointer transition-all duration-300 border transform ${
+                  seleccion === e.id
+                    ? "bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500 shadow-lg scale-[1.01]"
+                    : "bg-white border-slate-200 hover:bg-slate-50 hover:shadow-md"
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-lg text-slate-900">
+                      {e.nombre}
+                    </h3>
+
+                    <p className="text-sm text-slate-600 mt-1">
+                      {e.direccion}
+                    </p>
+
+                    <p className="text-xs text-slate-500 mt-2">
+                      Horario: {e.horario || "Horario no especificado"}
+                    </p>
+
+                    {e.distancia && (
+                      <p className="text-xs text-slate-500 mt-2">
+                        {e.distancia.toFixed(2)} km de distancia
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2 items-end">
+                    {esMasCercano && (
+                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
+                        Más cercano
+                      </span>
+                    )}
+
+                    {seleccion === e.id && (
+                      <span className="text-xs bg-indigo-600 text-white px-2 py-1 rounded-full font-medium">
+                        Seleccionado
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* BOTÓN */}
+        <Button
+          disabled={!seleccion}
+          onClick={confirmarSeleccion}
+          className={`w-full py-6 text-lg rounded-2xl transition-all duration-300 ${
+            seleccion
+              ? "bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.02] shadow-xl"
+              : "bg-slate-300 cursor-not-allowed"
+          }`}
+        >
+          Confirmar punto de entrega
+        </Button>
+
+        {mensaje && (
+          <p className="text-center text-red-600 mt-4 font-medium">
+            {mensaje}
           </p>
         )}
       </div>
-
-      <div className="h-96 rounded-xl shadow overflow-hidden">
-        <MapaEstablecimientos
-          establecimientos={establecimientos}
-          selectedPoint={ubicacion}
-          onLocationSelected={setUbicacion}
-        />
-      </div>
-
-      <div className="grid gap-4">
-        {listaOrdenada.map((e) => (
-          <div
-            key={e.id}
-            onClick={() => setSeleccion(e.id)}
-            className={`border rounded-xl p-5 cursor-pointer transition ${
-              seleccion === e.id
-                ? "border-blue-600 bg-blue-50"
-                : "hover:border-gray-400"
-            }`}
-          >
-            <h3 className="font-semibold text-lg">{e.nombre}</h3>
-            <p className="text-sm text-gray-600">{e.direccion}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              Horario: {e.horario || "Horario no especificado"}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <Button
-        disabled={!seleccion}
-        onClick={confirmarSeleccion}
-        className="w-full py-6 text-lg"
-      >
-        Confirmar punto de entrega
-      </Button>
-
-      {mensaje && (
-        <p className="text-center text-green-600 mt-2">
-          {mensaje}
-        </p>
-      )}
     </div>
   );
 }

@@ -47,7 +47,6 @@ export default function CheckoutForm({ items, total, onSuccess }) {
 
       // 3️⃣ Pago exitoso
       if (result.paymentIntent?.status === "succeeded") {
-        // 🔐 Usuario actual
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -56,7 +55,6 @@ export default function CheckoutForm({ items, total, onSuccess }) {
           throw new Error("Usuario no autenticado");
         }
 
-        // 4️⃣ Confirmar pago (lo que ya tenías)
         await fetch("/api/orders/payments/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -65,7 +63,6 @@ export default function CheckoutForm({ items, total, onSuccess }) {
           }),
         });
 
-        // 5️⃣ 🚀 CREAR COINS (ESTO FALTABA)
         const coinsRes = await fetch("/api/orders/coins/comprar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -90,7 +87,25 @@ export default function CheckoutForm({ items, total, onSuccess }) {
 
   return (
     <div className="space-y-4">
-      <CardElement className="p-3 border rounded" />
+
+      {/* 🔥 ÚNICO CAMBIO AQUÍ */}
+      <CardElement
+        className="p-3 border rounded"
+        options={{
+          style: {
+            base: {
+              fontSize: "16px",
+              color: "#ffffff",
+              "::placeholder": {
+                color: "rgba(255,255,255,0.6)",
+              },
+            },
+            invalid: {
+              color: "#ff6b6b",
+            },
+          },
+        }}
+      />
 
       <button
         onClick={handlePay}

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
 const ESTADOS = [
@@ -31,23 +30,15 @@ export default function TrackPedidoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // 🔥 NUEVO: disparar notificación al confirmar
+  // 🔔 Notificación vendedor
   useEffect(() => {
     if (!folio || confirmed !== "1") return;
 
-    const notificar = async () => {
-      try {
-        await fetch("/api/orders/notificar-vendedor", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ folio }),
-        });
-      } catch (err) {
-        console.error("Error notificando vendedor:", err);
-      }
-    };
-
-    notificar();
+    fetch("/api/orders/notificar-vendedor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folio }),
+    }).catch(console.error);
   }, [folio, confirmed]);
 
   useEffect(() => {
@@ -75,7 +66,7 @@ export default function TrackPedidoPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
-        <Loader2 className="animate-spin w-6 h-6" />
+        <Loader2 className="animate-spin w-8 h-8 text-indigo-600" />
       </div>
     );
   }
@@ -101,97 +92,130 @@ export default function TrackPedidoPage() {
     : [];
 
   return (
-    <div className="max-w-3xl mx-auto mt-10 px-4 space-y-6">
+    <div className="min-h-screen bg-slate-50 py-12 px-6">
+      <div className="max-w-4xl mx-auto space-y-8">
 
-      {confirmed && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl">
-          ✅ Confirmaste correctamente tu punto de entrega.
-          <br />
-          Aquí podrás dar seguimiento en tiempo real a tu pedido.
-        </div>
-      )}
+        {/* BANNER ÉXITO PREMIUM */}
+        {confirmed && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 shadow-sm text-emerald-800">
+            <p className="font-semibold text-lg">
+              ✅ Punto de entrega confirmado
+            </p>
+            <p className="text-sm mt-1">
+              Ahora puedes dar seguimiento en tiempo real a tu pedido.
+            </p>
+          </div>
+        )}
 
-      <Card>
-        <CardContent className="p-4">
-          <h1 className="text-xl font-semibold">
+        {/* HEADER PEDIDO */}
+        <div className="bg-white rounded-3xl shadow-lg border border-slate-200 p-6">
+          <h1 className="text-2xl font-bold text-indigo-900">
             Pedido {pedido.folio}
           </h1>
-          <p className="text-gray-600">
-            Producto: {pedido.producto}
-          </p>
-          <p className="text-gray-600">
-            Establecimiento:{" "}
-            {pedido.establecimiento_nombre || "Por definir"}
-          </p>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex justify-between">
+          <div className="mt-3 space-y-1 text-slate-600">
+            <p>
+              <span className="font-medium text-slate-800">Producto:</span>{" "}
+              {pedido.producto}
+            </p>
+            <p>
+              <span className="font-medium text-slate-800">
+                Establecimiento:
+              </span>{" "}
+              {pedido.establecimiento_nombre || "Por definir"}
+            </p>
+          </div>
+        </div>
+
+        {/* STEPPER PROFESIONAL */}
+        <div className="bg-white rounded-3xl shadow-lg border border-slate-200 p-8 relative">
+          <div className="absolute top-12 left-12 right-12 h-1 bg-slate-200 rounded-full" />
+
+          <div className="relative flex justify-between">
             {ESTADOS.map((estado, index) => {
-              const activo = index <= estadoIndex;
+              const completado = index < estadoIndex;
               const actual = index === estadoIndex;
 
               return (
-                <div key={estado} className="flex-1 text-center">
+                <div key={estado} className="flex flex-col items-center w-1/4">
                   <div
-                    className={`mx-auto w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold
-                      ${activo ? "bg-blue-600 text-white" : "bg-gray-300"}
-                      ${actual ? "ring-4 ring-blue-200" : ""}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all
+                      ${
+                        completado
+                          ? "bg-emerald-500 text-white"
+                          : actual
+                          ? "bg-indigo-600 text-white ring-4 ring-indigo-200"
+                          : "bg-slate-300 text-slate-700"
+                      }
                     `}
                   >
                     {index + 1}
                   </div>
-                  <p className="text-xs mt-2">
+
+                  <p className="text-xs mt-3 text-center">
                     {ESTADOS_LABEL[estado]}
                   </p>
                 </div>
               );
             })}
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card>
-        <CardContent className="p-4 space-y-1">
-          <p className="font-medium">
-            Estado actual: {ESTADOS_LABEL[pedido.estado]}
-          </p>
-          <p className="text-sm text-gray-600">
+        {/* ESTADO ACTUAL */}
+        <div className="bg-indigo-50 border border-indigo-200 rounded-3xl p-6 shadow-sm">
+          <div className="flex justify-between items-center">
+            <p className="font-semibold text-indigo-900">
+              Estado actual
+            </p>
+
+            <span className="bg-indigo-600 text-white text-sm px-3 py-1 rounded-full">
+              {ESTADOS_LABEL[pedido.estado]}
+            </span>
+          </div>
+
+          <p className="text-sm text-indigo-800 mt-2">
             Fecha de creación: {fechaCreacion}
           </p>
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <h3 className="font-semibold mb-3">
+        {/* HISTORIAL TIMELINE */}
+        <div className="bg-white rounded-3xl shadow-lg border border-slate-200 p-6">
+          <h3 className="font-semibold text-slate-800 mb-6">
             Historial del pedido
           </h3>
 
           {eventos.length === 0 ? (
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-slate-600">
               Aún no hay eventos registrados.
             </p>
           ) : (
-            <ul className="space-y-2 text-sm">
-              {eventos.map((e: any, idx: number) => (
-                <li key={idx} className="flex justify-between">
-                  <span>
-                    {ESTADOS_LABEL[e.estado] ?? e.estado}
-                  </span>
-                  <span className="text-gray-500">
-                    {e.fecha
-                      ? new Date(e.fecha).toLocaleString()
-                      : "—"}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <div className="relative pl-8 space-y-8">
+  <div className="absolute left-3 top-0 bottom-0 w-[2px] bg-slate-200 rounded-full" />
+
+  {eventos.map((e: any, idx: number) => (
+    <div key={idx} className="relative">
+      <div className="absolute left-1 top-1 w-4 h-4 bg-indigo-600 rounded-full ring-4 ring-white shadow" />
+
+      <div className="flex justify-between items-start ml-8">
+        <div>
+          <p className="font-medium text-slate-800">
+            {ESTADOS_LABEL[e.estado] ?? e.estado}
+          </p>
+        </div>
+
+        <p className="text-sm text-slate-500 whitespace-nowrap">
+          {e.fecha
+            ? new Date(e.fecha).toLocaleString()
+            : "—"}
+        </p>
+      </div>
+    </div>
+  ))}
+</div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+      </div>
     </div>
   );
 }

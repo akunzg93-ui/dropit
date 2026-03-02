@@ -165,7 +165,7 @@ export default function EstablecimientoPage() {
     setSelectedPoint(punto);
   };
 
-  // 📝 Guardar o actualizar establecimiento (FIX + DEBUG REAL)
+  // 📝 Guardar o actualizar establecimiento (NO TOCAR LÓGICA)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMensaje("");
@@ -183,15 +183,8 @@ export default function EstablecimientoPage() {
     setCargando(true);
 
     try {
-      console.log("🟦 handleSubmit start");
-      console.log("🧾 payload:", { nombre, direccion, cp, horario, capSmall, capMedium });
-      console.log("📍 selectedPoint:", selectedPoint);
-      console.log("✏️ editandoId:", editandoId);
-
-      // ✅ Usuario autenticado (para usuario_id)
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError) {
-        console.error("❌ auth.getUser error:", authError);
         setMensaje("Error de sesión: " + authError.message);
         return;
       }
@@ -200,14 +193,11 @@ export default function EstablecimientoPage() {
         setMensaje("No hay sesión activa. Vuelve a iniciar sesión.");
         return;
       }
-      console.log("👤 user.id:", user.id);
 
       let coords = selectedPoint;
 
       if (!coords) {
         const texto = `${direccion}, ${cp}, México`;
-        console.log("🧭 Geocodificando:", texto);
-
         coords = await withTimeout(
           geocodificarDireccion(texto),
           15000,
@@ -220,8 +210,6 @@ export default function EstablecimientoPage() {
         return;
       }
 
-      console.log("✅ coords:", coords);
-
       const payload = {
         nombre,
         direccion,
@@ -231,15 +219,10 @@ export default function EstablecimientoPage() {
         lng: coords.lng,
         capacidad_small: Number(capSmall),
         capacidad_medium: Number(capMedium),
-
-        // ✅ CLAVE: tu tabla tiene usuario_id y estaba NULL.
         usuario_id: user.id,
       };
 
-      // ⭐ SI ESTAMOS EDITANDO → UPDATE
       if (editandoId) {
-        console.log("🟨 UPDATE establecimientos", { id: editandoId, payload });
-
         const { data, error } = await withTimeout(
           supabase
             .from("establecimientos")
@@ -252,7 +235,6 @@ export default function EstablecimientoPage() {
         );
 
         if (error) {
-          console.error("❌ Supabase UPDATE error:", error);
           setMensaje("Error al actualizar en Supabase: " + (error.message || "desconocido"));
           return;
         }
@@ -264,9 +246,6 @@ export default function EstablecimientoPage() {
         setMensaje("✅ Establecimiento actualizado.");
         setEditandoId(null);
       } else {
-        // ⭐ INSERTAR NUEVO
-        console.log("🟩 INSERT establecimientos", payload);
-
         const { data, error } = await withTimeout(
           supabase
             .from("establecimientos")
@@ -278,7 +257,6 @@ export default function EstablecimientoPage() {
         );
 
         if (error) {
-          console.error("❌ Supabase INSERT error:", error);
           setMensaje("Error al guardar en Supabase: " + (error.message || "desconocido"));
           return;
         }
@@ -287,7 +265,6 @@ export default function EstablecimientoPage() {
         setMensaje("✅ Establecimiento guardado.");
       }
 
-      // limpiar
       setNombre("");
       setDireccion("");
       setCp("");
@@ -295,10 +272,9 @@ export default function EstablecimientoPage() {
       setCapSmall("");
       setCapMedium("");
       setSelectedPoint(null);
-
-      console.log("🟦 handleSubmit end ✅");
+      setBusqueda("");
+      setSugerencias([]);
     } catch (err) {
-      console.error("💥 handleSubmit catch:", err);
       setMensaje("Ocurrió un error: " + (err?.message || "desconocido"));
     } finally {
       setCargando(false);
@@ -319,15 +295,13 @@ export default function EstablecimientoPage() {
     setMensaje(`Editando: ${est.nombre}`);
   };
 
-  // 🗑️ ELIMINAR (con spinner por fila)
+  // 🗑️ ELIMINAR (NO TOCAR LÓGICA)
   const eliminarEstablecimiento = async (id) => {
-    if (eliminandoId) return; // evita doble click mientras elimina algo
+    if (eliminandoId) return;
     setEliminandoId(id);
     setMensaje("");
 
     try {
-      console.log("🗑️ Intentando borrar id:", id);
-
       const { data, error } = await supabase
         .from("establecimientos")
         .delete()
@@ -335,12 +309,9 @@ export default function EstablecimientoPage() {
         .select();
 
       if (error) {
-        console.error("❌ delete error:", error);
         setMensaje("Error al eliminar: " + error.message);
         return;
       }
-
-      console.log("🧾 Filas eliminadas:", data);
 
       if (!data || data.length === 0) {
         setMensaje("⚠️ No se eliminó nada en Supabase.");
@@ -369,232 +340,303 @@ export default function EstablecimientoPage() {
       return a.distanciaKm - b.distanciaKm;
     });
 
+  // -------------------------
+  // UI PREMIUM (CON MAPA)
+  // -------------------------
   return (
-    <div className="max-w-5xl mx-auto p-4 space-y-8">
-      <h1 className="text-2xl font-bold">Establecimiento – Registro (estilo Uber)</h1>
+    <div className="min-h-screen bg-slate-50 py-12 px-6">
+      <div className="max-w-6xl mx-auto space-y-10">
 
-      {/* FORMULARIO */}
-      <form onSubmit={handleSubmit} className="bg-white p-4 rounded-lg shadow space-y-4">
-        {/* AUTOCOMPLETE */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Buscar dirección (autocomplete Mapbox)
-          </label>
+        {/* HEADER PREMIUM */}
+        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-3xl p-8 shadow-xl space-y-4">
+          <div className="flex items-center justify-between text-sm opacity-90">
+            <span>Proceso operativo</span>
+            <span>Registro de establecimiento</span>
+          </div>
 
-          <div className="flex gap-2">
-            <div className="relative flex-1">
+          <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+            <div className="h-full w-1/2 bg-white rounded-full transition-all"></div>
+          </div>
+
+          <h1 className="text-3xl font-bold">Registro de establecimientos</h1>
+          <p className="text-white/90">
+            Configura ubicaciones, horarios y capacidades de recepción.
+          </p>
+        </div>
+
+        {/* MENSAJE */}
+        {mensaje && (
+          <div
+            className={`rounded-2xl border p-4 text-sm shadow-sm ${
+              mensaje.includes("✅")
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                : mensaje.includes("⚠️")
+                ? "bg-amber-50 border-amber-200 text-amber-800"
+                : "bg-slate-50 border-slate-200 text-slate-700"
+            }`}
+          >
+            {mensaje}
+          </div>
+        )}
+
+        {/* FORMULARIO */}
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 space-y-6"
+        >
+          <h2 className="text-xl font-semibold text-slate-800">
+            Datos del establecimiento
+          </h2>
+
+          {/* AUTOCOMPLETE */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Buscar dirección
+            </label>
+
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <input
+                  className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+                  placeholder="Ej. Calle, colonia, ciudad..."
+                  value={busqueda}
+                  onChange={(e) => manejarCambioBusqueda(e.target.value)}
+                />
+
+                {cargandoSugerencias && (
+                  <div className="absolute right-3 top-3 text-xs text-slate-400">...</div>
+                )}
+
+                {sugerencias.length > 0 && (
+                  <ul className="absolute z-20 mt-2 w-full bg-white border rounded-xl shadow-lg text-sm max-h-48 overflow-auto">
+                    {sugerencias.map((sug) => (
+                      <li
+                        key={sug.id}
+                        className="px-4 py-2 hover:bg-indigo-50 cursor-pointer"
+                        onClick={() => seleccionarSugerencia(sug)}
+                      >
+                        {sug.label}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={usarUbicacionActual}
+                className="px-4 py-3 rounded-xl bg-slate-800 text-white text-sm font-medium hover:bg-black transition whitespace-nowrap"
+              >
+                Usar ubicación
+              </button>
+            </div>
+          </div>
+
+          {/* CAMPOS */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-slate-700">
+                Nombre
+              </label>
               <input
-                className="w-full border rounded px-3 py-2 text-sm"
-                placeholder="Ej. Calle, colonia, ciudad..."
-                value={busqueda}
-                onChange={(e) => manejarCambioBusqueda(e.target.value)}
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
               />
-
-              {cargandoSugerencias && (
-                <div className="absolute right-2 top-2 text-xs text-gray-400">...</div>
-              )}
-
-              {sugerencias.length > 0 && (
-                <ul className="absolute z-10 mt-1 w-full bg-white border rounded shadow text-sm max-h-48 overflow-auto">
-                  {sugerencias.map((sug) => (
-                    <li
-                      key={sug.id}
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => seleccionarSugerencia(sug)}
-                    >
-                      {sug.label}
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
 
-            <button
-              type="button"
-              onClick={usarUbicacionActual}
-              className="px-3 py-2 text-xs sm:text-sm rounded bg-gray-800 text-white hover:bg-black whitespace-nowrap"
-            >
-              Usar mi ubicación
-            </button>
-          </div>
-        </div>
-
-        {/* CAMPOS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">Nombre del establecimiento</label>
-            <input
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-            />
+            <div>
+              <label className="block text-sm font-medium mb-2 text-slate-700">
+                Código Postal
+              </label>
+              <input
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                value={cp}
+                onChange={(e) => setCp(e.target.value)}
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Código Postal</label>
-            <input
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={cp}
-              onChange={(e) => setCp(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Dirección (puedes ajustar texto)</label>
-          <input
-            className="w-full border rounded px-3 py-2 text-sm"
-            value={direccion}
-            onChange={(e) => setDireccion(e.target.value)}
-          />
-        </div>
-
-        {/* ⭐ HORARIO (SELECT) */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Horario (opcional)</label>
-
-          <Select value={horario} onValueChange={setHorario}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecciona un horario" />
-            </SelectTrigger>
-            <SelectContent>
-              {HORARIOS.map((h) => (
-                <SelectItem key={h} value={h}>
-                  {h}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* ⭐ CAPACIDADES */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Capacidad SMALL (máx. paquetes simultáneos)
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Dirección
             </label>
             <input
-              type="number"
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={capSmall}
-              onChange={(e) => setCapSmall(e.target.value)}
+              className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              value={direccion}
+              onChange={(e) => setDireccion(e.target.value)}
             />
           </div>
 
+          {/* HORARIO */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Capacidad MEDIUM (máx. paquetes simultáneos)
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Horario
             </label>
-            <input
-              type="number"
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={capMedium}
-              onChange={(e) => setCapMedium(e.target.value)}
-            />
+
+            <Select value={horario} onValueChange={setHorario}>
+              <SelectTrigger className="rounded-xl border-slate-300">
+                <SelectValue placeholder="Selecciona un horario" />
+              </SelectTrigger>
+              <SelectContent>
+                {HORARIOS.map((h) => (
+                  <SelectItem key={h} value={h}>
+                    {h}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
 
-        {/* BOTÓN (con spinner) */}
-        <button
-          type="submit"
-          disabled={cargando}
-          className="w-full sm:w-auto px-4 py-2 rounded bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {cargando && (
-            <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          )}
+          {/* CAPACIDADES */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-slate-700">
+                Capacidad SMALL
+              </label>
+              <input
+                type="number"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                value={capSmall}
+                onChange={(e) => setCapSmall(e.target.value)}
+              />
+            </div>
 
-          <span>
-            {cargando
-              ? "Guardando..."
-              : editandoId
-              ? "Actualizar establecimiento"
-              : "Guardar establecimiento"}
-          </span>
-        </button>
-      </form>
+            <div>
+              <label className="block text-sm font-medium mb-2 text-slate-700">
+                Capacidad MEDIUM
+              </label>
+              <input
+                type="number"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                value={capMedium}
+                onChange={(e) => setCapMedium(e.target.value)}
+              />
+            </div>
+          </div>
 
-      {mensaje && <p className="text-sm text-gray-800">{mensaje}</p>}
+          {/* BOTÓN */}
+          <button
+            type="submit"
+            disabled={cargando}
+            className="w-full py-4 rounded-2xl text-white font-semibold text-lg bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.01] transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {cargando && (
+              <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            )}
+            {editandoId ? "Actualizar establecimiento" : "Guardar establecimiento"}
+          </button>
+        </form>
 
-      {/* MAPA */}
-      <div>
-        <h2 className="text-lg font-semibold mb-2">Mapa – selecciona o ajusta el punto</h2>
+        {/* MAPA CARD (DE VUELTA) */}
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-800">
+                Mapa
+              </h2>
+              <p className="text-sm text-slate-600">
+                Selecciona o ajusta el punto del establecimiento.
+              </p>
+            </div>
 
-        <div className="h-80 rounded-lg overflow-hidden shadow">
-          <MapaEstablecimientos
-            establecimientos={establecimientos}
-            selectedPoint={selectedPoint}
-            onLocationSelected={manejarClickMapa}
-          />
-        </div>
-      </div>
-
-      {/* TABLA */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Establecimientos registrados</h2>
-
-        <div className="overflow-x-auto border rounded-lg shadow-sm">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-100">
-              <tr className="text-left">
-                <th className="px-4 py-2">Nombre</th>
-                <th className="px-4 py-2">Dirección</th>
-                <th className="px-4 py-2">CP</th>
-                <th className="px-4 py-2">Horario</th>
-                <th className="px-4 py-2">Cap. SMALL</th>
-                <th className="px-4 py-2">Cap. MEDIUM</th>
-                <th className="px-4 py-2">Distancia (km)</th>
-                <th className="px-4 py-2">Acciones</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {establecimientosOrdenados.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="text-center py-4 text-gray-500">
-                    No hay establecimientos registrados aún.
-                  </td>
-                </tr>
+            <div className="text-xs text-slate-500 text-right">
+              {selectedPoint ? (
+                <div>
+                  <div className="font-medium text-slate-700">Punto seleccionado</div>
+                  <div>
+                    {selectedPoint.lat.toFixed(5)}, {selectedPoint.lng.toFixed(5)}
+                  </div>
+                </div>
+              ) : (
+                <div>Sin punto seleccionado</div>
               )}
+            </div>
+          </div>
 
-              {establecimientosOrdenados.map((est) => (
-                <tr key={est.id} className="border-t hover:bg-gray-50">
-                  <td className="px-4 py-2">{est.nombre}</td>
-                  <td className="px-4 py-2">{est.direccion}</td>
-                  <td className="px-4 py-2">{est.cp}</td>
-                  <td className="px-4 py-2">{est.horario || "—"}</td>
-                  <td className="px-4 py-2">{est.capacidad_small ?? "—"}</td>
-                  <td className="px-4 py-2">{est.capacidad_medium ?? "—"}</td>
-                  <td className="px-4 py-2">
-                    {est.distanciaKm != null ? est.distanciaKm.toFixed(2) : "—"}
-                  </td>
-
-                  <td className="px-4 py-2 flex gap-2">
-                    <button
-                      onClick={() => editarEstablecimiento(est)}
-                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
-                    >
-                      Editar
-                    </button>
-
-                    {/* ELIMINAR (con spinner por fila) */}
-                    <button
-                      onClick={() => eliminarEstablecimiento(est.id)}
-                      disabled={eliminandoId === est.id}
-                      className="px-3 py-1 bg-gray-300 text-black rounded hover:bg-gray-400 text-xs disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {eliminandoId === est.id && (
-                        <span className="h-3 w-3 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                      )}
-                      {eliminandoId === est.id ? "Eliminando..." : "Eliminar"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-
-          </table>
+          <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+            <div className="h-96">
+              <MapaEstablecimientos
+                establecimientos={establecimientos}
+                selectedPoint={selectedPoint}
+                onLocationSelected={manejarClickMapa}
+              />
+            </div>
+          </div>
         </div>
+
+        {/* TABLA MODERNA */}
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 space-y-6">
+          <h2 className="text-xl font-semibold text-slate-800">
+            Establecimientos registrados
+          </h2>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-slate-500 border-b">
+                  <th className="pb-3">Nombre</th>
+                  <th className="pb-3">Dirección</th>
+                  <th className="pb-3">CP</th>
+                  <th className="pb-3">Horario</th>
+                  <th className="pb-3">Capacidades</th>
+                  <th className="pb-3">Distancia</th>
+                  <th className="pb-3">Acciones</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y">
+                {establecimientosOrdenados.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="py-6 text-center text-slate-500">
+                      No hay establecimientos registrados aún.
+                    </td>
+                  </tr>
+                )}
+
+                {establecimientosOrdenados.map((est) => (
+                  <tr key={est.id} className="hover:bg-slate-50 transition">
+                    <td className="py-4 font-medium text-slate-800">{est.nombre}</td>
+                    <td className="text-slate-700">{est.direccion}</td>
+                    <td className="text-slate-700">{est.cp}</td>
+                    <td className="text-slate-700">{est.horario || "—"}</td>
+                    <td>
+                      <div className="text-xs text-slate-600">
+                        S: {est.capacidad_small ?? "—"} <br />
+                        M: {est.capacidad_medium ?? "—"}
+                      </div>
+                    </td>
+                    <td className="text-slate-700">
+                      {est.distanciaKm != null ? `${est.distanciaKm.toFixed(2)} km` : "—"}
+                    </td>
+
+                    <td className="py-4 flex gap-2">
+                      <button
+                        onClick={() => editarEstablecimiento(est)}
+                        className="px-3 py-1 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                      >
+                        Editar
+                      </button>
+
+                      <button
+                        onClick={() => eliminarEstablecimiento(est.id)}
+                        disabled={eliminandoId === est.id}
+                        className="px-3 py-1 text-xs bg-slate-200 rounded-lg hover:bg-slate-300 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {eliminandoId === est.id && (
+                          <span className="h-3 w-3 border-2 border-slate-700 border-t-transparent rounded-full animate-spin" />
+                        )}
+                        {eliminandoId === est.id ? "Eliminando..." : "Eliminar"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+
+            </table>
+          </div>
+        </div>
+
       </div>
     </div>
   );

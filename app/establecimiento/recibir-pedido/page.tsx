@@ -173,45 +173,76 @@ export default function RecibirPedidoPage() {
   // --------------------------------------------------
   // 🖥 UI
   // --------------------------------------------------
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6 space-y-5">
+return (
+  <div className="min-h-screen bg-slate-50 py-12 px-6">
+    <div className="max-w-3xl mx-auto space-y-10">
 
-        <h1 className="text-2xl font-bold text-center text-blue-700">
+      {/* HEADER PREMIUM */}
+      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-3xl p-8 shadow-lg space-y-4">
+
+        <div className="flex items-center justify-between text-sm opacity-90">
+          <span>Proceso operativo</span>
+          <span>Recepción en establecimiento</span>
+        </div>
+
+        <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+          <div className="h-full w-2/3 bg-white rounded-full"></div>
+        </div>
+
+        <h1 className="text-3xl font-bold">
           Recepción de pedido
         </h1>
 
-        <p className="text-center text-sm text-gray-500">
-          Esta pantalla se utiliza cuando un vendedor entrega un paquete
-          en el establecimiento.
+        <p className="text-white/90 text-sm">
+          Valida el paquete escaneando el QR del vendedor o ingresando los datos manualmente.
         </p>
+      </div>
+
+      {/* CARD */}
+      <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 space-y-6 transition-all duration-300">
 
         {!pedido && (
           <>
+            {/* BOTÓN QR CON INDICADOR ACTIVO */}
             <button
               onClick={scannerActivo ? detenerScanner : iniciarScanner}
-              className={`w-full py-2 rounded font-semibold ${
+              className={`w-full py-4 rounded-2xl font-semibold text-lg transition-all duration-300 ${
                 scannerActivo
-                  ? "bg-gray-300 text-black"
-                  : "bg-gray-900 text-white"
+                  ? "bg-emerald-100 text-emerald-700 border border-emerald-300 animate-pulse"
+                  : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.02] text-white shadow-lg"
               }`}
             >
-              {scannerActivo ? "Detener cámara" : "📷 Escanear QR del vendedor"}
+              {scannerActivo
+                ? "📡 Cámara activa"
+                : "📷 Escanear QR del vendedor"}
             </button>
 
-            <div id="qr-reader" className="w-full" />
+            <div
+              id="qr-reader"
+              className="w-full rounded-2xl overflow-hidden border border-slate-200"
+            />
 
-            <div className="space-y-2">
+            {/* DIVISOR */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-slate-200" />
+              <span className="text-xs text-slate-400 font-medium">
+                o ingreso manual
+              </span>
+              <div className="flex-1 h-px bg-slate-200" />
+            </div>
+
+            {/* INPUTS */}
+            <div className="space-y-4">
               <input
-                className="border rounded px-3 py-2 w-full"
-                placeholder="Folio"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+                placeholder="EW-XXXXXXX"
                 value={folio}
-                onChange={(e) => setFolio(e.target.value)}
+                onChange={(e) => setFolio(e.target.value.toUpperCase())}
               />
 
               <input
-                className="border rounded px-3 py-2 w-full"
-                placeholder="Código de entrega del vendedor"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+                placeholder="Código de 6 dígitos"
                 value={codigo}
                 onChange={(e) => setCodigo(e.target.value)}
               />
@@ -220,7 +251,7 @@ export default function RecibirPedidoPage() {
             <button
               onClick={consultarPedido}
               disabled={loading}
-              className="w-full py-2 bg-blue-600 text-white rounded"
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium disabled:opacity-50 transition"
             >
               {loading ? "Validando..." : "Ver resumen del pedido"}
             </button>
@@ -228,43 +259,71 @@ export default function RecibirPedidoPage() {
         )}
 
         {pedido && (
-          <div className="space-y-4">
-            <div className="bg-gray-100 rounded-lg p-4">
-              <p className="text-sm text-gray-500">Pedido</p>
-              <p className="font-semibold">{pedido.folio}</p>
+          <div className="space-y-6 animate-fade-in transition-all duration-300">
 
-              <p className="text-sm text-gray-500 mt-2">Producto</p>
-              <p className="font-medium">{pedido.producto}</p>
+            {/* RESUMEN */}
+            <div className="rounded-2xl p-6 border border-slate-200 bg-slate-50 transition-all duration-300 shadow-sm">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                Resumen del pedido
+              </h3>
 
-              <p className="text-sm text-gray-500 mt-2">Establecimiento</p>
-              <p className="font-medium">
-                {pedido.establecimiento_nombre}
-              </p>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="text-slate-500">Folio:</span>{" "}
+                  <span className="font-medium">{pedido.folio}</span>
+                </div>
+
+                <div>
+                  <span className="text-slate-500">Producto:</span>{" "}
+                  <span className="font-medium">{pedido.producto}</span>
+                </div>
+
+                <div>
+                  <span className="text-slate-500">Establecimiento:</span>{" "}
+                  <span className="font-medium">
+                    {pedido.establecimiento_nombre}
+                  </span>
+                </div>
+              </div>
             </div>
 
+            {/* CONFIRMAR */}
             <button
               onClick={confirmarRecepcion}
               disabled={loading}
-              className="w-full py-2 bg-green-600 text-white rounded font-semibold"
+              className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-semibold transition-all duration-300 shadow-md hover:scale-[1.02] active:scale-[0.98]"
             >
-              {loading ? "Confirmando..." : "✅ Confirmar recepción del paquete"}
+              {loading
+                ? "Confirmando..."
+                : "Confirmar recepción del paquete"}
             </button>
 
             <button
               onClick={() => setPedido(null)}
-              className="w-full py-2 bg-gray-200 text-black rounded"
+              className="w-full py-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 transition"
             >
               Cancelar
             </button>
           </div>
         )}
 
+        {/* MENSAJE CON CHECK VISUAL */}
         {mensaje && (
-          <p className="text-center text-sm text-red-600">
+          <div className={`mt-4 text-center font-medium transition-all duration-300 ${
+            mensaje.startsWith("✅")
+              ? "text-green-600"
+              : "text-red-600"
+          }`}>
+            {mensaje.startsWith("✅") && (
+              <div className="text-4xl mb-2 animate-bounce">
+                ✔
+              </div>
+            )}
             {mensaje}
-          </p>
+          </div>
         )}
       </div>
     </div>
-  );
+  </div>
+);
 }

@@ -5,8 +5,6 @@ export async function POST(req: Request) {
   try {
     const { folio, codigo_entrega } = await req.json();
 
-    console.log("🔵 PREVIEW body:", { folio, codigo_entrega });
-
     if (!folio || !codigo_entrega) {
       return NextResponse.json(
         { error: "Folio y código requeridos" },
@@ -15,10 +13,11 @@ export async function POST(req: Request) {
     }
 
     const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
+    // 1️⃣ Traer pedido
     const { data: pedido, error } = await supabase
       .from("pedidos")
       .select(`
@@ -26,12 +25,11 @@ export async function POST(req: Request) {
         folio,
         estado,
         codigo_entrega,
-        producto
+        producto,
+        establecimiento_uuid
       `)
       .eq("folio", folio)
       .single();
-
-    console.log("🔵 PREVIEW pedido:", pedido, error);
 
     if (error || !pedido) {
       return NextResponse.json(
@@ -47,7 +45,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔧 CAMBIO CLAVE: ahora validamos pendiente_recoleccion
     if (pedido.estado !== "pendiente_recoleccion") {
       return NextResponse.json(
         { error: "El pedido no está listo para entrega" },
@@ -55,14 +52,30 @@ export async function POST(req: Request) {
       );
     }
 
+    // 2️⃣ Buscar establecimiento por ID (NO por uuid)
+    let establecimientoNombre = "—";
+
+    if (pedido.establecimiento_uuid) {
+      const { data: est } = await supabase
+        .from("establecimientos")
+        .select("nombre")
+        .eq("id", pedido.establecimiento_uuid)
+        .single();
+
+      if (est?.nombre) {
+        establecimientoNombre = est.nombre;
+      }
+    }
+
     return NextResponse.json({
       pedido: {
         id: pedido.id,
         folio: pedido.folio,
         producto: pedido.producto,
-        establecimiento_nombre: "—",
+        establecimiento_nombre: establecimientoNombre,
       },
     });
+
   } catch (err) {
     console.error("❌ ERROR PREVIEW:", err);
     return NextResponse.json(

@@ -24,7 +24,6 @@ export default function Navbar() {
   const pathname = usePathname();
   const toggleMenu = () => setOpen(!open);
 
-  // 🔥 Obtener usuario y rol
   useEffect(() => {
     const cargar = async () => {
       const { data } = await supabase.auth.getUser();
@@ -71,14 +70,13 @@ export default function Navbar() {
     window.location.href = "/login";
   };
 
-  // ✅ FIX: sin TypeScript
   const active = (path) =>
     pathname.startsWith(path)
       ? "text-[#2d6cdf] font-semibold"
-      : "text-gray-700 dark:text-gray-200";
+      : "text-gray-700";
 
   return (
-    <nav className="w-full bg-white dark:bg-gray-900 border-b dark:border-gray-700 shadow-sm fixed top-0 z-50">
+    <nav className="w-full bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
 
         {/* LOGO */}
@@ -86,7 +84,7 @@ export default function Navbar() {
           <img
             src="/brand/logo-dropit.png"
             alt="DROPIT"
-            className="h-20 w-auto max-h-none"
+            className="h-16 w-auto"
           />
         </Link>
 
@@ -100,11 +98,11 @@ export default function Navbar() {
               <button className={`flex items-center gap-1 ${active("/admin")}`}>
                 <Shield size={16} /> Admin ▾
               </button>
-              <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-xl rounded-md py-2 w-60 z-50">
-                <Link href="/admin/usuarios" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
+                <Link href="/admin/usuarios" className="px-4 py-2 hover:bg-gray-100">
                   Gestión de usuarios
                 </Link>
-                <Link href="/admin/reportes" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <Link href="/admin/reportes" className="px-4 py-2 hover:bg-gray-100">
                   Reportes del sistema
                 </Link>
               </div>
@@ -117,45 +115,38 @@ export default function Navbar() {
               <button className={`flex items-center gap-1 ${active("/establecimiento")}`}>
                 <Store size={16} /> Establecimiento ▾
               </button>
-              <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-xl rounded-md py-2 w-60 z-50">
-                <Link href="/establecimiento" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
+                <Link href="/establecimiento" className="px-4 py-2 hover:bg-gray-100">
                   Registrar punto
                 </Link>
-                <Link href="/establecimiento/estado" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <Link href="/establecimiento/estado" className="px-4 py-2 hover:bg-gray-100">
                   Panel de operación
                 </Link>
-                <Link href="/establecimiento/recibir-pedido" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <Link href="/establecimiento/recibir-pedido" className="px-4 py-2 hover:bg-gray-100">
                   Recepción de pedido
                 </Link>
-                <Link href="/establecimiento/entregar" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <Link href="/establecimiento/entregar" className="px-4 py-2 hover:bg-gray-100">
                   Entregar pedido
                 </Link>
-                <Link
-  href="/establecimiento/balance"
-  className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
->
-  Balance financiero
-</Link>
-
+                <Link href="/establecimiento/balance" className="px-4 py-2 hover:bg-gray-100">
+                  Balance financiero
+                </Link>
               </div>
             </div>
           )}
 
-          {/* VENDEDOR */}
+          {/* VENDEDOR SIMPLIFICADO */}
           {["vendor", "admin"].includes(role) && (
             <div className="relative group">
               <button className={`flex items-center gap-1 ${active("/vendedor")}`}>
                 <User size={16} /> Vendedor ▾
               </button>
-              <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-xl rounded-md py-2 w-60 z-50">
-                <Link href="/vendedor/dashboard" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
+                <Link href="/vendedor/dashboard" className="px-4 py-2 hover:bg-gray-100">
                   Dashboard
                 </Link>
-                <Link href="/vendedor/crear-pedido" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <Link href="/vendedor/crear-pedido" className="px-4 py-2 hover:bg-gray-100">
                   Crear pedido
-                </Link>
-                <Link href="/vendedor/estado" className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
-                  Estado
                 </Link>
               </div>
             </div>
@@ -167,10 +158,10 @@ export default function Navbar() {
               <button className={`flex items-center gap-1 ${active("/comprador")}`}>
                 <Package size={16} /> Comprador ▾
               </button>
-              <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-xl rounded-md py-2 w-60 z-50">
+              <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
                 <Link
                   href="/comprador/validar-pedido"
-                  className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="px-4 py-2 hover:bg-gray-100"
                 >
                   Validar pedido
                 </Link>
@@ -183,16 +174,16 @@ export default function Navbar() {
             <div className="relative">
               <button
                 onClick={() => setUserMenu(!userMenu)}
-                className="flex items-center gap-2 px-3 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="flex items-center gap-2 px-3 py-1 rounded hover:bg-gray-100"
               >
                 <User size={18} />
                 {user.email}
               </button>
               {userMenu && (
-                <div className="absolute right-0 mt-2 bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-lg rounded-md py-2 w-56 z-50">
+                <div className="absolute right-0 mt-2 bg-white border shadow-lg rounded-md py-2 w-56 z-50">
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
+                    className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-100 text-left"
                   >
                     <LogOut size={16} />
                     Cerrar sesión

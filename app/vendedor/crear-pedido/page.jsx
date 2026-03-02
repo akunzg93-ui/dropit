@@ -225,13 +225,24 @@ if (relError) {
     }
   }
 
-  return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Crear Pedido</h1>
+ return (
+  <div className="min-h-screen bg-slate-50 px-6 py-16">
+    <div className="max-w-4xl mx-auto space-y-10">
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-sky-50 border border-sky-200 rounded-xl p-4">
-          <p className="text-sm text-sky-600">
+      {/* HEADER */}
+      <div>
+        <h1 className="text-4xl font-bold text-indigo-900">
+          Crear Pedido
+        </h1>
+        <p className="text-slate-600 mt-2">
+          Registra un nuevo envío usando tus coins disponibles.
+        </p>
+      </div>
+
+      {/* COINS DISPONIBLES */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="bg-sky-50 border border-sky-200 rounded-2xl p-6 shadow-sm">
+          <p className="text-sm text-sky-600 mb-2">
             Coins Small disponibles
           </p>
           <p className="text-2xl font-bold text-sky-700">
@@ -239,8 +250,8 @@ if (relError) {
           </p>
         </div>
 
-        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-          <p className="text-sm text-indigo-600">
+        <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 shadow-sm">
+          <p className="text-sm text-indigo-600 mb-2">
             Coins Medium disponibles
           </p>
           <p className="text-2xl font-bold text-indigo-700">
@@ -249,51 +260,59 @@ if (relError) {
         </div>
       </div>
 
-      <Input
-        placeholder="Nombre del producto"
-        value={producto}
-        onChange={(e) => setProducto(e.target.value)}
-      />
+      {/* FORM CARD */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-6">
 
-      <Input
-        placeholder="Correo del comprador"
-        value={correoComprador}
-        onChange={(e) => setCorreoComprador(e.target.value)}
-      />
+        <Input
+          placeholder="Nombre del producto"
+          value={producto}
+          onChange={(e) => setProducto(e.target.value)}
+          className="h-12 rounded-xl focus:ring-2 focus:ring-indigo-500"
+        />
 
-      <Select onValueChange={setTamano} value={tamano}>
-        <SelectTrigger>
-          <SelectValue placeholder="Selecciona tamaño" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="small">
-            Pequeño (&lt; 3 kg)
-          </SelectItem>
-          <SelectItem value="medium">
-            Mediano (3–10 kg)
-          </SelectItem>
-        </SelectContent>
-      </Select>
+        <Input
+          placeholder="Correo del comprador"
+          value={correoComprador}
+          onChange={(e) => setCorreoComprador(e.target.value)}
+          className="h-12 rounded-xl focus:ring-2 focus:ring-indigo-500"
+        />
 
-      {/* 🔔 BOTÓN PARA COMPRAR COINS (SOLO UX) */}
-      {tamano && coinsDisponibles[tamano] === 0 && (
-        <div className="border border-amber-300 bg-amber-50 rounded-xl p-4 flex items-center justify-between">
-          <p className="text-sm text-amber-800">
-            No tienes coins <b>{tamano}</b> disponibles para crear este pedido.
-          </p>
+        <Select onValueChange={setTamano} value={tamano}>
+          <SelectTrigger className="h-12 rounded-xl focus:ring-2 focus:ring-indigo-500">
+            <SelectValue placeholder="Selecciona tamaño" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="small">
+              Pequeño (&lt; 3 kg)
+            </SelectItem>
+            <SelectItem value="medium">
+              Mediano (3–10 kg)
+            </SelectItem>
+          </SelectContent>
+        </Select>
 
-          <Button
-            variant="outline"
-            className="border-amber-400 text-amber-800 hover:bg-amber-100"
-            onClick={() => (window.location.href = "/vendedor/coins")}
-          >
-            Comprar coins
-          </Button>
-        </div>
-      )}
+        {/* ALERTA SIN COINS */}
+        {tamano && coinsDisponibles[tamano] === 0 && (
+          <div className="border border-amber-300 bg-amber-50 rounded-2xl p-4 flex items-center justify-between">
+            <p className="text-sm text-amber-800">
+              No tienes coins <b>{tamano}</b> disponibles.
+            </p>
 
+            <Button
+              variant="outline"
+              className="border-amber-400 text-amber-800 hover:bg-amber-100 rounded-xl"
+              onClick={() => (window.location.href = "/vendedor/coins")}
+            >
+              Comprar coins
+            </Button>
+          </div>
+        )}
+
+      </div>
+
+      {/* MAPA */}
       {establecimientos.length > 0 && (
-        <div className="h-[400px] w-full rounded overflow-hidden border">
+        <div className="h-[400px] w-full rounded-3xl overflow-hidden border border-slate-200 shadow-sm">
           <MapaEstablecimientos
             establecimientos={establecimientos}
             seleccionados={seleccionados}
@@ -302,55 +321,69 @@ if (relError) {
         </div>
       )}
 
-      <h2 className="text-lg font-semibold">
-        Establecimientos permitidos
-      </h2>
+      {/* ESTABLECIMIENTOS */}
+      {establecimientos.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-slate-800">
+            Establecimientos permitidos
+          </h2>
 
-      <div className="space-y-3">
-        {establecimientos.map((est) => {
-          const activo = seleccionados.some(
-            (e) => e.id === est.id
-          );
-          return (
-            <div
-              key={est.id}
-              onClick={() => toggleEstablecimiento(est)}
-              className={`border p-4 rounded cursor-pointer transition ${
-                activo
-                  ? "bg-green-700 text-white"
-                  : "bg-white hover:bg-gray-50"
-              }`}
-            >
-              <h3 className="font-semibold">{est.nombre}</h3>
-              <p className="text-sm">{est.direccion}</p>
-              <p className="text-xs mt-1">
-                Small: {est.capacidad_small} — Medium:{" "}
-                {est.capacidad_medium}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+          {establecimientos.map((est) => {
+            const activo = seleccionados.some(
+              (e) => e.id === est.id
+            );
 
+            return (
+              <div
+                key={est.id}
+                onClick={() => toggleEstablecimiento(est)}
+                className={`border rounded-2xl p-6 cursor-pointer transition-all duration-200 shadow-sm ${
+                  activo
+                    ? "border-indigo-500 bg-indigo-600 text-white shadow-md"
+                    : "bg-white hover:shadow-md border-slate-200"
+                }`}
+              >
+                <h3 className="font-semibold text-lg">
+                  {est.nombre}
+                </h3>
+
+                <p className="text-sm mt-1 opacity-80">
+                  {est.direccion}
+                </p>
+
+                <p className="text-xs mt-2 opacity-70">
+                  Small: {est.capacidad_small} — Medium:{" "}
+                  {est.capacidad_medium}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* BOTÓN */}
       <Button
-        className="w-full"
+        className="w-full h-12 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold shadow hover:shadow-lg transition-all"
         onClick={crearPedido}
         disabled={loading}
       >
         {loading ? "Creando pedido..." : "Crear Pedido"}
       </Button>
 
+      {/* MENSAJE */}
       {mensaje && (
         <p
-          className={`text-center ${
+          className={`text-center font-medium ${
             mensaje.startsWith("✅")
-              ? "text-green-600"
+              ? "text-emerald-600"
               : "text-red-600"
           }`}
         >
           {mensaje}
         </p>
       )}
+
     </div>
-  );
+  </div>
+);
 }

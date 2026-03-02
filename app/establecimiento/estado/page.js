@@ -1,10 +1,8 @@
-// app/establecimiento/estado/page.jsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-// Estados considerados “activos” en capacidad
 const ESTADOS_ACTIVOS = [
   "PENDING_VENDOR",
   "IN_TRANSIT_TO_ESTABLISHMENT",
@@ -12,18 +10,6 @@ const ESTADOS_ACTIVOS = [
   "READY_FOR_PICKUP",
 ];
 
-const ALL_STATES = [
-  "TODOS",
-  "PENDING_VENDOR",
-  "IN_TRANSIT_TO_ESTABLISHMENT",
-  "AT_ESTABLISHMENT",
-  "READY_FOR_PICKUP",
-  "DELIVERED_TO_BUYER",
-];
-
-// ----------------------------------------------------
-// TIMELINE COMPONENT (visual flow)
-// ----------------------------------------------------
 function Timeline({ status }) {
   const steps = [
     "PENDING_VENDOR",
@@ -41,15 +27,15 @@ function Timeline({ status }) {
           <div key={step} className="flex items-center">
             <div
               className={`w-3 h-3 rounded-full ${
-                active ? "bg-blue-600" : "bg-gray-300"
+                active ? "bg-indigo-600" : "bg-slate-300"
               }`}
-            ></div>
+            />
             {i < steps.length - 1 && (
               <div
-                className={`w-6 h-0.5 ${
-                  active ? "bg-blue-600" : "bg-gray-300"
+                className={`w-6 h-[2px] ${
+                  active ? "bg-indigo-600" : "bg-slate-300"
                 }`}
-              ></div>
+              />
             )}
           </div>
         );
@@ -61,82 +47,46 @@ function Timeline({ status }) {
 export default function EstablecimientoEstadoPage() {
   const [establecimientos, setEstablecimientos] = useState([]);
   const [selectedEstId, setSelectedEstId] = useState(null);
-
   const [deliveries, setDeliveries] = useState([]);
   const [filtered, setFiltered] = useState([]);
-
   const [search, setSearch] = useState("");
-  const [filterEstado, setFilterEstado] = useState("TODOS");
-
-  const [cargando, setCargando] = useState(false);
-  const [mensaje, setMensaje] = useState("");
   const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
 
-  // ---------------------------------------------------
-  // 1) Cargar establecimientos
-  // ---------------------------------------------------
   useEffect(() => {
     const cargarEstablecimientos = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("establecimientos")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("*");
 
-      if (error) return setMensaje("Error al cargar establecimientos.");
       setEstablecimientos(data || []);
-
-      if (data?.length > 0 && !selectedEstId) {
-        setSelectedEstId(data[0].id);
-      }
+      if (data?.length > 0) setSelectedEstId(data[0].id);
     };
 
     cargarEstablecimientos();
   }, []);
 
-  // ---------------------------------------------------
-  // 2) Cargar deliveries del establecimiento
-  // ---------------------------------------------------
   useEffect(() => {
     if (!selectedEstId) return;
 
     const cargarDeliveries = async () => {
-      setCargando(true);
-
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("deliveries")
         .select("*")
-        .eq("establishment_id", selectedEstId)
-        .order("created_at", { ascending: false });
-
-      setCargando(false);
-
-      if (error) return setMensaje("Error al cargar entregas.");
+        .eq("establishment_id", selectedEstId);
 
       setDeliveries(data || []);
       setUltimaActualizacion(new Date());
     };
 
     cargarDeliveries();
-
-    // ⏱ REFRESH cada 15 segundos
     const interval = setInterval(cargarDeliveries, 15000);
     return () => clearInterval(interval);
-
   }, [selectedEstId]);
 
-  // ---------------------------------------------------
-  // 3) Filtros combinados
-  // ---------------------------------------------------
   useEffect(() => {
     let lista = [...deliveries];
 
-    // FILTRO POR ESTADO
-    if (filterEstado !== "TODOS") {
-      lista = lista.filter((d) => d.status === filterEstado);
-    }
-
-    // FILTRO POR BUSQUEDA
-    if (search.trim() !== "") {
+    if (search.trim()) {
       const s = search.toLowerCase();
       lista = lista.filter(
         (d) =>
@@ -147,191 +97,209 @@ export default function EstablecimientoEstadoPage() {
     }
 
     setFiltered(lista);
-  }, [deliveries, search, filterEstado]);
+  }, [deliveries, search]);
 
-  // ---------------------------------------------------
-  // Helpers capacidad
-  // ---------------------------------------------------
-  const actual = establecimientos.find((e) => e.id === selectedEstId);
-  const capSmall = actual?.capacidad_small || 0;
-  const capMedium = actual?.capacidad_medium || 0;
+  // -------------------------
+  // MÉTRICAS GLOBALES
+  // -------------------------
 
-  const activos = deliveries.filter((d) =>
-    ESTADOS_ACTIVOS.includes(d.status)
+  const totalLocales = establecimientos.length;
+
+  const totalCapacidad = establecimientos.reduce(
+    (acc, e) =>
+      acc +
+      (e.capacidad_small || 0) +
+      (e.capacidad_medium || 0),
+    0
   );
 
-  const capacidadRestante = capSmall + capMedium - activos.length;
-
-  const paquetesEnCamino = deliveries.filter(
-    (d) => d.status === "IN_TRANSIT_TO_ESTABLISHMENT"
+  const totalActivos = deliveries.filter((d) =>
+    ESTADOS_ACTIVOS.includes(d.status)
   ).length;
 
-  const hoy = new Date().toISOString().split("T")[0];
-  const paquetesRecibidosHoy = deliveries.filter((d) => {
-    const fecha = d.created_at?.split("T")[0];
-    return fecha === hoy && d.status === "AT_ESTABLISHMENT";
-  }).length;
-
-  // ---------------------------------------------------
-  // Acciones
-  // ---------------------------------------------------
-  const actualizarEstado = async (id, nuevo) => {
-    const { data, error } = await supabase
-      .from("deliveries")
-      .update({ status: nuevo })
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) return setMensaje("Error al actualizar estado.");
-
-    setDeliveries((prev) =>
-      prev.map((d) => (d.id === id ? data : d))
-    );
-    setUltimaActualizacion(new Date());
-  };
-
-  const marcarRecibido = (id) =>
-    actualizarEstado(id, "AT_ESTABLISHMENT");
-
-  const marcarEntregado = (id) =>
-    actualizarEstado(id, "DELIVERED_TO_BUYER");
-
-  // ---------------------------------------------------
-  // RENDER
-  // ---------------------------------------------------
+  const ingresosTotales = deliveries.reduce(
+    (acc, d) => acc + (d.amount || 0),
+    0
+  );
 
   return (
-    <div className="max-w-6xl mx-auto p-4 space-y-6">
+    <div className="min-h-screen bg-slate-50 py-10 px-6">
+      <div className="max-w-7xl mx-auto space-y-10">
 
-      {/* HEADER SKDROPX */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl p-6 shadow-md">
-        <h1 className="text-xl font-semibold">Panel de Operación del Establecimiento</h1>
-        <p className="text-sm text-blue-100 mt-1">
-          Control de paquetes, capacidad y operaciones
-        </p>
-      </div>
-
-      {/* ESTADÍSTICAS */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          🚚 <p className="text-sm text-gray-600">Paquetes en camino</p>
-          <p className="text-2xl font-bold">{paquetesEnCamino}</p>
-        </div>
-
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          📦 <p className="text-sm text-gray-600">Recibidos hoy</p>
-          <p className="text-2xl font-bold">{paquetesRecibidosHoy}</p>
-        </div>
-
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          🔔 <p className="text-sm text-gray-600">Capacidad restante</p>
-          <p className="text-2xl font-bold">{capacidadRestante}</p>
-        </div>
-
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          ⏳ <p className="text-sm text-gray-600">Última actualización</p>
-          <p className="text-xs mt-1">
-            {ultimaActualizacion?.toLocaleTimeString() || "—"}
+        {/* HEADER */}
+        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-3xl p-8 shadow-lg">
+          <h1 className="text-2xl font-bold">
+            Panel Multi-Local
+          </h1>
+          <p className="text-white/90 text-sm mt-1">
+            Vista consolidada de operación
           </p>
         </div>
-      </div>
 
-      {/* SELECT ESTABLECIMIENTO */}
-      <div className="bg-white p-4 rounded-xl border shadow-sm">
-        <label className="text-sm font-medium">Seleccionar establecimiento</label>
-        <select
-          className="border rounded px-3 py-2 text-sm w-full sm:w-80 mt-2"
-          value={selectedEstId || ""}
-          onChange={(e) => setSelectedEstId(Number(e.target.value))}
-        >
-          {establecimientos.map((est) => (
-            <option key={est.id} value={est.id}>
-              {est.nombre} – {est.direccion}
-            </option>
-          ))}
-        </select>
-      </div>
+        {/* KPI GLOBAL */}
+        <div className="grid sm:grid-cols-4 gap-6">
 
-      {/* FILTROS */}
-      <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <input
-          type="text"
-          placeholder="Buscar por ID / buyer / vendedor..."
-          className="border px-3 py-2 rounded w-full sm:w-80 text-sm"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+          <div className="bg-white rounded-3xl p-6 shadow border">
+            <p className="text-sm text-slate-500">Locales activos</p>
+            <p className="text-3xl font-bold text-indigo-700">
+              {totalLocales}
+            </p>
+          </div>
 
-        <select
-          className="border px-3 py-2 rounded text-sm"
-          value={filterEstado}
-          onChange={(e) => setFilterEstado(e.target.value)}
-        >
-          {ALL_STATES.map((st) => (
-            <option key={st}>{st.replace(/_/g, " ")}</option>
-          ))}
-        </select>
-      </div>
+          <div className="bg-white rounded-3xl p-6 shadow border">
+            <p className="text-sm text-slate-500">Capacidad total</p>
+            <p className="text-3xl font-bold">
+              {totalCapacidad}
+            </p>
+          </div>
 
-      {/* TABLA */}
-      <div className="bg-white rounded-xl shadow p-4 border">
-        <table className="min-w-full text-sm border-separate border-spacing-y-1">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-3 py-2">ID</th>
-              <th className="px-3 py-2">Buyer</th>
-              <th className="px-3 py-2">Vendedor</th>
-              <th className="px-3 py-2">Timeline</th>
-              <th className="px-3 py-2">Acciones</th>
-            </tr>
-          </thead>
+          <div className="bg-white rounded-3xl p-6 shadow border">
+            <p className="text-sm text-slate-500">Paquetes activos</p>
+            <p className="text-3xl font-bold text-amber-600">
+              {totalActivos}
+            </p>
+          </div>
 
-          <tbody>
-            {filtered.length === 0 && (
+          <div className="bg-white rounded-3xl p-6 shadow border">
+            <p className="text-sm text-slate-500">Ingresos totales</p>
+            <p className="text-3xl font-bold text-emerald-600">
+              ${ingresosTotales}
+            </p>
+          </div>
+        </div>
+
+        {/* TABLA LOCALES */}
+        <div className="bg-white rounded-3xl shadow-lg border p-6">
+          <h2 className="font-semibold mb-6 text-slate-800">
+            Rendimiento por local
+          </h2>
+
+          <table className="w-full text-sm">
+            <thead className="bg-slate-100">
               <tr>
-                <td colSpan={5} className="text-center py-4 text-gray-500">
-                  No se encontraron entregas.
-                </td>
+                <th className="px-4 py-3 text-left">Local</th>
+                <th className="px-4 py-3 text-center">Capacidad</th>
+                <th className="px-4 py-3 text-center">Ocupación</th>
               </tr>
-            )}
+            </thead>
 
-            {filtered.map((d) => (
-              <tr key={d.id} className="bg-white shadow-sm">
-                <td className="px-3 py-2">{d.id}</td>
-                <td className="px-3 py-2 text-xs">{d.buyer_id || "—"}</td>
-                <td className="px-3 py-2 text-xs">{d.vendor_id || "—"}</td>
+            <tbody>
+              {establecimientos.map((est) => {
+                const total =
+                  (est.capacidad_small || 0) +
+                  (est.capacidad_medium || 0);
 
-                <td className="px-3 py-2">
-                  <Timeline status={d.status} />
-                </td>
+                const ocupacion =
+                  total > 0
+                    ? Math.min(
+                        100,
+                        Math.round((totalActivos / total) * 100)
+                      )
+                    : 0;
 
-                <td className="px-3 py-2 space-x-2">
-                  {d.status === "PENDING_VENDOR" && (
-                    <button
-                      onClick={() => marcarRecibido(d.id)}
-                      className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs hover:bg-blue-700"
-                    >
-                      Recibido
-                    </button>
-                  )}
+                let colorBar = "bg-emerald-500";
+                let badge = null;
 
-                  {d.status === "AT_ESTABLISHMENT" && (
-                    <button
-                      onClick={() => marcarEntregado(d.id)}
-                      className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs hover:bg-green-700"
-                    >
-                      Entregado
-                    </button>
-                  )}
-                </td>
+                if (ocupacion > 80) {
+                  colorBar = "bg-red-500";
+                  badge = "Saturado";
+                } else if (ocupacion > 60) {
+                  colorBar = "bg-amber-500";
+                  badge = "Alta demanda";
+                }
+
+                return (
+                  <tr key={est.id} className="border-t hover:bg-slate-50">
+                    <td className="px-4 py-4">
+                      <div className="font-medium">
+                        {est.nombre}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {est.direccion}
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-4 text-center">
+                      {total}
+                    </td>
+
+                    <td className="px-4 py-4">
+                      <div className="w-full bg-slate-200 h-2 rounded-full">
+                        <div
+                          className={`${colorBar} h-2 rounded-full transition-all`}
+                          style={{ width: `${ocupacion}%` }}
+                        />
+                      </div>
+
+                      <div className="flex justify-between items-center mt-2 text-xs">
+                        <span>{ocupacion}%</span>
+                        {badge && (
+                          <span className={`px-2 py-1 rounded-full text-white text-[10px] ${
+                            ocupacion > 80
+                              ? "bg-red-500"
+                              : "bg-amber-500"
+                          }`}>
+                            {badge}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* DELIVERIES */}
+        <div className="bg-white rounded-3xl shadow-lg border p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="font-semibold text-slate-800">
+              Entregas recientes
+            </h2>
+            <div className="text-xs text-slate-500">
+              Actualizado: {ultimaActualizacion?.toLocaleTimeString() || "—"}
+            </div>
+          </div>
+
+          <table className="w-full text-sm">
+            <thead className="bg-slate-100">
+              <tr>
+                <th className="px-3 py-2">ID</th>
+                <th className="px-3 py-2">Buyer</th>
+                <th className="px-3 py-2">Vendedor</th>
+                <th className="px-3 py-2">Timeline</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="text-center py-6 text-slate-500">
+                    No se encontraron entregas.
+                  </td>
+                </tr>
+              )}
+
+              {filtered.map((d) => (
+                <tr key={d.id} className="border-t">
+                  <td className="px-3 py-2">{d.id}</td>
+                  <td className="px-3 py-2 text-xs">
+                    {d.buyer_id || "—"}
+                  </td>
+                  <td className="px-3 py-2 text-xs">
+                    {d.vendor_id || "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <Timeline status={d.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
       </div>
-
-      {mensaje && <p className="text-sm mt-2">{mensaje}</p>}
     </div>
   );
 }

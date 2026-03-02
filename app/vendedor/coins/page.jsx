@@ -23,7 +23,7 @@ export default function ComprarCoinsPage() {
   });
 
   // ----------------------------
-  // 💰 CÁLCULOS
+  // 💰 CÁLCULOS (NO MODIFICADOS)
   // ----------------------------
   const subtotal =
     small * PRECIO_SMALL + medium * PRECIO_MEDIUM;
@@ -40,7 +40,7 @@ export default function ComprarCoinsPage() {
   ];
 
   // ----------------------------
-  // 🔵 CARGAR COINS REALES
+  // 🔵 CARGAR COINS REALES (NO MODIFICADO)
   // ----------------------------
   const cargarCoins = async () => {
     const { data } = await supabase.auth.getUser();
@@ -76,131 +76,149 @@ export default function ComprarCoinsPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
-      {/* ✅ MENSAJE */}
-      {mensajeExito && (
-        <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl p-4 font-semibold">
-          ✅ Coins compradas correctamente
-        </div>
-      )}
+    <div className="min-h-screen bg-slate-50 px-6 py-16">
+      <div className="max-w-4xl mx-auto space-y-10">
 
-      <h1 className="text-3xl font-bold text-sky-700">
-        Comprar Coins
-      </h1>
-
-      {/* 🔵 COINS DISPONIBLES */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-sky-50 border border-sky-200 rounded-xl p-4">
-          <p className="text-sm text-sky-600">Coins Small disponibles</p>
-          <p className="text-2xl font-bold text-sky-700">
-            {coinsDisponibles.small}
-          </p>
-        </div>
-
-        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-          <p className="text-sm text-indigo-600">Coins Medium disponibles</p>
-          <p className="text-2xl font-bold text-indigo-700">
-            {coinsDisponibles.medium}
-          </p>
-        </div>
-      </div>
-
-      {/* 🎁 PACKS */}
-      <div className="space-y-3">
-        <p className="font-semibold text-gray-700">
-          Packs con descuento
-        </p>
-
-        <div className="grid grid-cols-3 gap-4">
-          <button
-            onClick={() => {
-              setSmall(10);
-              setMedium(0);
-            }}
-            className="border rounded-xl p-4 hover:border-sky-500 text-left"
-          >
-            <p className="font-semibold">10 Small</p>
-            <p className="text-sm text-green-600">10% descuento</p>
-          </button>
-
-          <button
-            onClick={() => {
-              setSmall(0);
-              setMedium(10);
-            }}
-            className="border rounded-xl p-4 hover:border-sky-500 text-left"
-          >
-            <p className="font-semibold">10 Medium</p>
-            <p className="text-sm text-green-600">10% descuento</p>
-          </button>
-
-          <button
-            onClick={() => {
-              setSmall(5);
-              setMedium(5);
-            }}
-            className="border rounded-xl p-4 hover:border-sky-500 text-left"
-          >
-            <p className="font-semibold">5 + 5 Mixto</p>
-            <p className="text-sm text-green-600">10% descuento</p>
-          </button>
-        </div>
-      </div>
-
-      {/* CONTADORES */}
-      <div className="border rounded-xl p-4 flex justify-between">
-        <div>
-          <p className="font-semibold">Coin Small</p>
-          <p className="text-sm">$60 MXN</p>
-        </div>
-        <div className="flex gap-3 items-center">
-          <button onClick={() => setSmall(Math.max(0, small - 1))}>−</button>
-          <span>{small}</span>
-          <button onClick={() => setSmall(small + 1)}>+</button>
-        </div>
-      </div>
-
-      <div className="border rounded-xl p-4 flex justify-between">
-        <div>
-          <p className="font-semibold">Coin Medium</p>
-          <p className="text-sm">$90 MXN</p>
-        </div>
-        <div className="flex gap-3 items-center">
-          <button onClick={() => setMedium(Math.max(0, medium - 1))}>−</button>
-          <span>{medium}</span>
-          <button onClick={() => setMedium(medium + 1)}>+</button>
-        </div>
-      </div>
-
-      {/* 💰 RESUMEN */}
-      <div className="bg-gray-50 border rounded-xl p-4 space-y-1">
-        <div className="flex justify-between">
-          <span>Subtotal</span>
-          <span>${subtotal} MXN</span>
-        </div>
-
-        {descuento > 0 && (
-          <div className="flex justify-between text-green-600 font-semibold">
-            <span>Descuento</span>
-            <span>- {Math.round(descuento * 100)}%</span>
+        {/* MENSAJE */}
+        {mensajeExito && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl p-4 font-semibold shadow-sm">
+            ✅ Coins compradas correctamente
           </div>
         )}
 
-        <div className="flex justify-between text-xl font-bold">
-          <span>Total</span>
-          <span>${total} MXN</span>
+        {/* HEADER */}
+        <div>
+          <h1 className="text-4xl font-bold text-indigo-900">
+            Comprar Coins
+          </h1>
+          <p className="text-slate-600 mt-2">
+            Adquiere coins para registrar nuevos envíos.
+          </p>
         </div>
+
+        {/* SALDO ACTUAL */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <SaldoCard
+            label="Coins Small disponibles"
+            value={coinsDisponibles.small}
+            variant="small"
+          />
+          <SaldoCard
+            label="Coins Medium disponibles"
+            value={coinsDisponibles.medium}
+            variant="medium"
+          />
+        </div>
+
+        {/* SELECTORES */}
+        <div className="space-y-6">
+          <CoinSelector
+            title="Coin Small"
+            price={PRECIO_SMALL}
+            qty={small}
+            setQty={setSmall}
+            variant="small"
+          />
+          <CoinSelector
+            title="Coin Medium"
+            price={PRECIO_MEDIUM}
+            qty={medium}
+            setQty={setMedium}
+            variant="medium"
+          />
+        </div>
+
+        {/* RESUMEN PREMIUM */}
+        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-3xl p-8 shadow-lg space-y-3">
+
+          <div className="flex justify-between opacity-90">
+            <span>Subtotal</span>
+            <span>${subtotal} MXN</span>
+          </div>
+
+          {descuento > 0 && (
+            <div className="flex justify-between text-emerald-300 font-semibold">
+              <span>Descuento</span>
+              <span>- {Math.round(descuento * 100)}%</span>
+            </div>
+          )}
+
+          <div className="flex justify-between text-2xl font-bold pt-2 border-t border-white/30">
+            <span>Total</span>
+            <span>${total} MXN</span>
+          </div>
+
+          {total > 0 && stripePromise && (
+            <div className="pt-4">
+              <Elements stripe={stripePromise}>
+                <CheckoutForm
+                  items={items}
+                  total={total}
+                  onSuccess={handleSuccess}
+                />
+              </Elements>
+            </div>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- COMPONENTES VISUALES ---------------- */
+
+function SaldoCard({ label, value, variant }) {
+  const styles =
+    variant === "small"
+      ? "bg-sky-50 border-sky-200 text-sky-700"
+      : "bg-indigo-50 border-indigo-200 text-indigo-700";
+
+  return (
+    <div className={`border rounded-2xl p-6 shadow-sm ${styles}`}>
+      <p className="text-sm mb-2 opacity-80">{label}</p>
+      <p className="text-2xl font-bold">{value}</p>
+    </div>
+  );
+}
+
+function CoinSelector({ title, price, qty, setQty, variant }) {
+  const containerStyle =
+    variant === "small"
+      ? "bg-sky-50 border-sky-200"
+      : "bg-indigo-50 border-indigo-200";
+
+  const buttonStyle =
+    variant === "small"
+      ? "bg-sky-100 hover:bg-sky-200 text-sky-700"
+      : "bg-indigo-100 hover:bg-indigo-200 text-indigo-700";
+
+  return (
+    <div className={`border rounded-2xl p-6 shadow-sm flex justify-between items-center ${containerStyle}`}>
+      <div>
+        <p className="font-semibold text-slate-900">{title}</p>
+        <p className="text-sm text-slate-600">${price} MXN</p>
       </div>
 
-      {total > 0 && stripePromise && (
-        <Elements stripe={stripePromise}>
-          <CheckoutForm
-            items={items}
-            total={total}
-            onSuccess={handleSuccess}
-          />
-        </Elements>
-      )}
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => setQty(Math.max(0, qty - 1))}
+          className={`w-8 h-8 rounded-lg ${buttonStyle}`}
+        >
+          –
+        </button>
+
+        <span className="w-6 text-center font-semibold text-slate-900">
+          {qty}
+        </span>
+
+        <button
+          onClick={() => setQty(qty + 1)}
+          className={`w-8 h-8 rounded-lg ${buttonStyle}`}
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 }
