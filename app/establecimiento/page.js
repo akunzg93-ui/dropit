@@ -70,6 +70,9 @@ export default function EstablecimientoPage() {
   const [cp, setCp] = useState("");
   const [horario, setHorario] = useState("");
 
+  const [horaApertura, setHoraApertura] = useState("");
+const [horaCierre, setHoraCierre] = useState("");
+
   // ⭐ CAPACIDADES
   const [capSmall, setCapSmall] = useState("");
   const [capMedium, setCapMedium] = useState("");
@@ -210,11 +213,17 @@ export default function EstablecimientoPage() {
         return;
       }
 
+let horarioFinal = horario;
+
+if (horario === "custom" && horaApertura && horaCierre) {
+  horarioFinal = `${horaApertura} – ${horaCierre}`;
+}
+
       const payload = {
         nombre,
         direccion,
         cp,
-        horario,
+        horario: horarioFinal,
         lat: coords.lat,
         lng: coords.lng,
         capacidad_small: Number(capSmall),
@@ -484,8 +493,42 @@ export default function EstablecimientoPage() {
                     {h}
                   </SelectItem>
                 ))}
+                <SelectItem value="custom">
+  Horario personalizado
+</SelectItem>
               </SelectContent>
             </Select>
+            {horario === "custom" && (
+  <div className="grid grid-cols-2 gap-4 mt-4">
+
+    <div>
+      <label className="text-xs text-slate-500">
+        Apertura
+      </label>
+
+      <input
+        type="time"
+        value={horaApertura}
+        onChange={(e) => setHoraApertura(e.target.value)}
+        className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm"
+      />
+    </div>
+
+    <div>
+      <label className="text-xs text-slate-500">
+        Cierre
+      </label>
+
+      <input
+        type="time"
+        value={horaCierre}
+        onChange={(e) => setHoraCierre(e.target.value)}
+        className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm"
+      />
+    </div>
+
+  </div>
+)}
           </div>
 
           {/* CAPACIDADES */}
