@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import SharePedidoCard from "@/components/ui/SharePedidoCard";
+
 import {
   Select,
   SelectTrigger,
@@ -31,6 +33,7 @@ export default function CrearPedido() {
   const [producto, setProducto] = useState("");
   const [tamano, setTamano] = useState("");
   const [correoComprador, setCorreoComprador] = useState("");
+  const [pedidoCreado, setPedidoCreado] = useState(null);
 
   const [establecimientos, setEstablecimientos] = useState([]);
   const [seleccionados, setSeleccionados] = useState([]);
@@ -213,6 +216,21 @@ if (relError) {
 
       setMensaje(`✅ Pedido creado correctamente. Folio: ${folio}`);
 
+      setPedidoCreado({
+  folio,
+  codigo: pedido.codigo_vendedor || "N/A",
+});
+
+await fetch("/api/orders/email/pedido-creado", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    correo: correoComprador,
+    folio,
+  }),
+});
       setProducto("");
       setTamano("");
       setCorreoComprador("");
@@ -225,6 +243,8 @@ if (relError) {
     }
   }
 
+
+ 
  return (
   <div className="min-h-screen bg-slate-50 px-6 py-16">
     <div className="max-w-4xl mx-auto space-y-10">
@@ -382,6 +402,12 @@ if (relError) {
           {mensaje}
         </p>
       )}
+       {pedidoCreado && (
+  <SharePedidoCard
+    folio={pedidoCreado.folio}
+    codigo={pedidoCreado.codigo}
+  />
+)}
 
     </div>
   </div>
