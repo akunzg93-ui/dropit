@@ -10,6 +10,15 @@ export default function Login() {
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
 
+  async function loginGoogle() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+  }
+
   async function handleLogin(email, password) {
     setMensaje("");
     setLoading(true);
@@ -75,6 +84,19 @@ export default function Login() {
       footerText="¿No tienes cuenta?"
       footerLinkText="Regístrate como emprendedor"
       onFooterClick={() => router.push("/vendedor/register")}
+
+      extraButtons={
+        <button
+          onClick={loginGoogle}
+          className="w-full flex items-center justify-center gap-3 border border-slate-300 rounded-xl py-3 bg-white hover:bg-slate-50 transition"
+        >
+          <img
+            src="https://www.svgrepo.com/show/475656/google-color.svg"
+            className="w-5 h-5"
+          />
+          Continuar con Google
+        </button>
+      }
     />
   );
 }

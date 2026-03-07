@@ -25,6 +25,7 @@ interface LoginCardProps {
   footerText: string;
   footerLinkText: string;
   onFooterClick: () => void;
+  extraButtons?: React.ReactNode; // ✅ NUEVO
 }
 
 export default function LoginCard({
@@ -36,6 +37,7 @@ export default function LoginCard({
   footerText,
   footerLinkText,
   onFooterClick,
+  extraButtons, // ✅ NUEVO
 }: LoginCardProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,7 +68,6 @@ export default function LoginCard({
           </p>
 
           <h1 className="text-4xl font-bold text-slate-900 mt-3 leading-tight">
-            {" "}
             <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
               Tus envíos bajo control
             </span>
@@ -74,34 +75,48 @@ export default function LoginCard({
         </div>
 
         {/* Beneficios rápidos */}
-      <div className="flex justify-center gap-8 text-xs font-medium mb-8">
+        <div className="flex justify-center gap-8 text-xs font-medium mb-8">
 
-  <div className="flex items-center gap-2 text-indigo-600">
-    <Zap size={15} className="text-indigo-500" />
-    <span>Rápido</span>
-  </div>
+          <div className="flex items-center gap-2 text-indigo-600">
+            <Zap size={15} className="text-indigo-500" />
+            <span>Rápido</span>
+          </div>
 
-  <div className="flex items-center gap-2 text-emerald-600">
-    <ShieldCheck size={15} className="text-emerald-500" />
-    <span>Seguro</span>
-  </div>
+          <div className="flex items-center gap-2 text-emerald-600">
+            <ShieldCheck size={15} className="text-emerald-500" />
+            <span>Seguro</span>
+          </div>
 
-  <div className="flex items-center gap-2 text-sky-600">
-    <Truck size={15} className="text-sky-500" />
-    <span>Profesional</span>
-  </div>
+          <div className="flex items-center gap-2 text-sky-600">
+            <Truck size={15} className="text-sky-500" />
+            <span>Profesional</span>
+          </div>
 
-</div>
+        </div>
+
         {/* Badge modo */}
-<div className="mb-6 text-center">
-  <span className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase tracking-wide">
-    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-    {badge}
-  </span>
-</div>
+        <div className="mb-6 text-center">
+          <span className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase tracking-wide">
+            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+            {badge}
+          </span>
+        </div>
+
         <p className="text-sm text-muted-foreground text-center mb-8">
           {subtitle}
         </p>
+
+        {/* 👇 BOTONES EXTRA (Google / Microsoft) */}
+{extraButtons && (
+  <div className="mb-6 space-y-3">
+    {extraButtons}
+    <div className="flex items-center gap-3">
+      <div className="h-px bg-slate-200 flex-1"></div>
+      <span className="text-xs text-slate-400">o</span>
+      <div className="h-px bg-slate-200 flex-1"></div>
+    </div>
+  </div>
+)}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           
@@ -181,6 +196,7 @@ export default function LoginCard({
         <p className="text-xs text-muted-foreground mt-4 text-center">
           Al continuar aceptas nuestros Términos y Política de privacidad.
         </p>
+
       </div>
     </main>
   );
