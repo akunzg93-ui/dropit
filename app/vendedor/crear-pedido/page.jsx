@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ export default function CrearPedido() {
 
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
+  const [declaracionLegal, setDeclaracionLegal] = useState(false);
 
   // -------------------------------
   // DEBUG helper: ver DB coins
@@ -147,6 +149,10 @@ export default function CrearPedido() {
         return;
       }
 
+      if (!declaracionLegal) {
+  setMensaje("Debes aceptar la declaración sobre el contenido del paquete.");
+  return;
+}
       const { data: userData } = await supabase.auth.getUser();
       const vendedorId = userData?.user?.id;
       const vendedorEmail = userData?.user?.email;
@@ -172,6 +178,7 @@ export default function CrearPedido() {
           tipo_paquete: tamano,
           estado: "creado",
           folio,
+          declaracion_legal:declaracionLegal,
         })
         .select()
         .single();
@@ -380,6 +387,25 @@ await fetch("/api/orders/email/pedido-creado", {
           })}
         </div>
       )}
+
+{/* DECLARACIÓN LEGAL */}
+<div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+  <input
+    type="checkbox"
+    checked={declaracionLegal}
+    onChange={(e) => setDeclaracionLegal(e.target.checked)}
+    className="mt-1"
+  />
+
+  <p className="text-sm text-slate-600">
+    Declaro que el paquete no contiene artículos ilegales,
+    sustancias prohibidas, armas, dinero en efectivo u otros
+    bienes restringidos según los{" "}
+    <Link href="/terminos" className="text-indigo-600 underline">
+      Términos y Condiciones
+    </Link>.
+  </p>
+</div>
 
       {/* BOTÓN */}
       <Button

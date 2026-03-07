@@ -11,6 +11,7 @@ import {
   User,
   LogOut,
   Shield,
+  FileText,
 } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
 import RoleSwitcher from "@/app/components/RoleSwitcher";
@@ -90,6 +91,13 @@ export default function Navbar() {
 
         {/* MENU DESKTOP */}
         <div className="hidden md:flex gap-8 text-sm font-medium items-center">
+          {/* TERMINOS */}
+<Link
+  href="/terminos"
+  className={`flex items-center gap-1 ${active("/terminos")}`}
+>
+  <FileText size={16} /> Términos y condiciones
+</Link>
           {user && <RoleSwitcher />}
 
           {/* ADMIN */}

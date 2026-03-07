@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ export default function RegisterEstablecimiento() {
   const [confirm, setConfirm] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
+  const [aceptaTerminos, setAceptaTerminos] = useState(false);
 
   async function handleRegister() {
     setMensaje("");
@@ -26,6 +28,11 @@ export default function RegisterEstablecimiento() {
 
     if (password !== confirm) {
       setMensaje("Las contraseñas no coinciden.");
+      return;
+    }
+
+    if (!aceptaTerminos) {
+      setMensaje("Debes aceptar los Términos y Condiciones.");
       return;
     }
 
@@ -134,6 +141,27 @@ export default function RegisterEstablecimiento() {
               {mensaje}
             </div>
           )}
+
+          {/* ACEPTACIÓN DE TÉRMINOS */}
+          <div className="flex items-start gap-2 text-sm text-slate-600 mt-2">
+            <input
+              type="checkbox"
+              checked={aceptaTerminos}
+              onChange={(e) => setAceptaTerminos(e.target.checked)}
+              className="mt-1"
+            />
+
+            <span>
+              Acepto los{" "}
+              <Link
+                href="/terminos"
+                className="text-indigo-600 underline"
+                target="_blank"
+              >
+                Términos y Condiciones
+              </Link>
+            </span>
+          </div>
 
           <Button
             disabled={loading}
