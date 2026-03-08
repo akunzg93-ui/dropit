@@ -14,7 +14,6 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  // obtener usuario autenticado
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -23,14 +22,14 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${url.origin}/login`);
   }
 
-  // verificar si existe profile
+  // Buscar profile
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  // si no existe profile → crearlo
+  // Si no existe profile lo creamos
   if (!profile) {
     await supabase.from("profiles").insert({
       id: user.id,
@@ -40,7 +39,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${url.origin}/onboarding`);
   }
 
-  // redirigir según rol
+  // Redirección por rol
   if (profile.role === "vendor") {
     return NextResponse.redirect(`${url.origin}/vendedor/dashboard`);
   }
@@ -53,5 +52,5 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${url.origin}/comprador`);
   }
 
-  return NextResponse.redirect(`${url.origin}/`);
+  return NextResponse.redirect(`${url.origin}/onboarding`);
 }
