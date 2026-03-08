@@ -1,58 +1,82 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
 import LoginCard from "@/app/components/auth/LoginCard";
 
 export default function LoginEstablecimiento() {
   const router = useRouter();
+
   const [mensaje, setMensaje] = useState("");
-  const [cargando, setCargando] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  async function loginGoogle() {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-  }
+  // 🔹 Si ya hay sesión, redirigir al panel de establecimiento
+  useEffect(() => {
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession();
 
-  async function manejarLogin(email: string, password: string) {
-    setMensaje("");
+      if (!data?.session) return;
 
-    if (!email || !password) {
-      setMensaje("Escribe tu correo y contraseña.");
-      return;
+      const userId = data.session.user.id;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
+
+      if (!profile) return;
+
+      if (profile.role === "establishment") {
+        router.push("/establecimiento");
+      }
     }
 
-    setCargando(true);
+    checkSession();
+  }, []);
+
+async function loginGoogle() {
+  await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+      queryParams: {
+        role: "establishment",
+      },
+    },
+  });
+}
+  async function handleLogin(email, password) {
+    setMensaje("");
+    setLoading(true);
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    setCargando(false);
+    setLoading(false);
 
     if (error) {
-      setMensaje("No se pudo iniciar sesión: " + error.message);
+      setMensaje("Correo o contraseña incorrectos.");
       return;
     }
 
-    const { data: perfil, error: perfilError } = await supabase
+    const userId = data.user.id;
+
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role")
-      .eq("id", data.user.id)
+      .eq("id", userId)
       .single();
 
-    if (perfilError || !perfil) {
-      setMensaje("No se pudo obtener el rol del usuario.");
+    if (profileError || !profile) {
+      setMensaje("No se pudo obtener tu perfil.");
       return;
     }
 
-    if (perfil.role !== "establishment") {
+    if (profile.role !== "establishment") {
       setMensaje("Esta cuenta no pertenece a un establecimiento.");
       return;
     }
@@ -65,8 +89,8 @@ export default function LoginEstablecimiento() {
       badge="Modo Establecimiento"
       title="Acceso Establecimiento"
       subtitle="Inicia sesión para recibir y gestionar pedidos."
-      onSubmit={manejarLogin}
-      loading={cargando}
+      onSubmit={handleLogin}
+      loading={loading}
       error={mensaje}
       footerText="¿No tienes cuenta?"
       footerLinkText="Registrar establecimiento"

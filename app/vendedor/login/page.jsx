@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import LoginCard from "@/app/components/auth/LoginCard";
@@ -10,11 +10,37 @@ export default function Login() {
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession();
+
+      if (!data.session) return;
+
+      const userId = data.session.user.id;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
+
+      if (!profile) return;
+
+      const role = profile.role;
+
+      if (role === "vendor") router.push("/vendedor/dashboard");
+      if (role === "establishment") router.push("/establecimiento");
+      if (role === "admin") router.push("/admin");
+    }
+
+    checkSession();
+  }, [router]);
+
   async function loginGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?role=vendor`,
       },
     });
   }
@@ -55,11 +81,6 @@ export default function Login() {
       return;
     }
 
-    if (role === "buyer") {
-      router.push("/comprador");
-      return;
-    }
-
     if (role === "establishment") {
       router.push("/establecimiento");
       return;
@@ -84,7 +105,6 @@ export default function Login() {
       footerText="¿No tienes cuenta?"
       footerLinkText="Regístrate como emprendedor"
       onFooterClick={() => router.push("/vendedor/register")}
-
       extraButtons={
         <button
           onClick={loginGoogle}

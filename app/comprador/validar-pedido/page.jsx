@@ -96,10 +96,10 @@ export default function ValidarPedidoPage() {
       <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-16 px-6">
         <div className="max-w-4xl mx-auto text-center space-y-3">
           <h1 className="text-4xl font-bold">
-            Portal de validación Dropit
+            Rastrea o confirma tu pedido Dropit
           </h1>
           <p className="text-white/80">
-            Confirma tu pedido de forma rápida y segura.
+            Confirma o rastrea tu pedido de forma rápida y segura.
           </p>
         </div>
       </div>

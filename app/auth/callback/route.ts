@@ -1,56 +1,30 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
 
-  const supabase = createClient(
+  const cookieStore = cookies() as any;
+
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {},
+        remove(name: string, options: any) {},
+      },
+    }
   );
 
   if (code) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.redirect(`${url.origin}/login`);
-  }
-
-  // Buscar profile
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  // Si no existe profile lo creamos
-  if (!profile) {
-    await supabase.from("profiles").insert({
-      id: user.id,
-      email: user.email,
-    });
-
-    return NextResponse.redirect(`${url.origin}/onboarding`);
-  }
-
-  // Redirección por rol
-  if (profile.role === "vendor") {
-    return NextResponse.redirect(`${url.origin}/vendedor/dashboard`);
-  }
-
-  if (profile.role === "establishment") {
-    return NextResponse.redirect(`${url.origin}/establecimiento`);
-  }
-
-  if (profile.role === "buyer") {
-    return NextResponse.redirect(`${url.origin}/comprador`);
-  }
-
-  return NextResponse.redirect(`${url.origin}/onboarding`);
+  return NextResponse.redirect(`${url.origin}/post-login`);
 }

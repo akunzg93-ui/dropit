@@ -91,13 +91,15 @@ export default function Navbar() {
 
         {/* MENU DESKTOP */}
         <div className="hidden md:flex gap-8 text-sm font-medium items-center">
-          {/* TERMINOS */}
-<Link
-  href="/terminos"
-  className={`flex items-center gap-1 ${active("/terminos")}`}
->
-  <FileText size={16} /> Términos y condiciones
-</Link>
+
+          {/* ACCIONES PUBLICAS */}
+          <Link
+            href="/comprador/validar-pedido"
+            className={`flex items-center gap-1 ${active("/comprador/validar-pedido")}`}
+          >
+            <Package size={16} /> Rastrear pedido
+          </Link>
+
           {user && <RoleSwitcher />}
 
           {/* ADMIN */}
@@ -106,10 +108,12 @@ export default function Navbar() {
               <button className={`flex items-center gap-1 ${active("/admin")}`}>
                 <Shield size={16} /> Admin ▾
               </button>
+
               <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
                 <Link href="/admin/usuarios" className="px-4 py-2 hover:bg-gray-100">
                   Gestión de usuarios
                 </Link>
+
                 <Link href="/admin/reportes" className="px-4 py-2 hover:bg-gray-100">
                   Reportes del sistema
                 </Link>
@@ -123,19 +127,24 @@ export default function Navbar() {
               <button className={`flex items-center gap-1 ${active("/establecimiento")}`}>
                 <Store size={16} /> Establecimiento ▾
               </button>
+
               <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
                 <Link href="/establecimiento" className="px-4 py-2 hover:bg-gray-100">
                   Registrar punto
                 </Link>
+
                 <Link href="/establecimiento/estado" className="px-4 py-2 hover:bg-gray-100">
                   Panel de operación
                 </Link>
+
                 <Link href="/establecimiento/recibir-pedido" className="px-4 py-2 hover:bg-gray-100">
                   Recepción de pedido
                 </Link>
+
                 <Link href="/establecimiento/entregar" className="px-4 py-2 hover:bg-gray-100">
                   Entregar pedido
                 </Link>
+
                 <Link href="/establecimiento/balance" className="px-4 py-2 hover:bg-gray-100">
                   Balance financiero
                 </Link>
@@ -143,16 +152,18 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* VENDEDOR SIMPLIFICADO */}
+          {/* VENDEDOR */}
           {["vendor", "admin"].includes(role) && (
             <div className="relative group">
               <button className={`flex items-center gap-1 ${active("/vendedor")}`}>
                 <User size={16} /> Vendedor ▾
               </button>
+
               <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
                 <Link href="/vendedor/dashboard" className="px-4 py-2 hover:bg-gray-100">
                   Dashboard
                 </Link>
+
                 <Link href="/vendedor/crear-pedido" className="px-4 py-2 hover:bg-gray-100">
                   Crear pedido
                 </Link>
@@ -166,16 +177,22 @@ export default function Navbar() {
               <button className={`flex items-center gap-1 ${active("/comprador")}`}>
                 <Package size={16} /> Comprador ▾
               </button>
+
               <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
-                <Link
-                  href="/comprador/validar-pedido"
-                  className="px-4 py-2 hover:bg-gray-100"
-                >
+                <Link href="/comprador/validar-pedido" className="px-4 py-2 hover:bg-gray-100">
                   Validar pedido
                 </Link>
               </div>
             </div>
           )}
+
+          {/* TERMINOS */}
+          <Link
+            href="/terminos"
+            className={`flex items-center gap-1 ${active("/terminos")}`}
+          >
+            <FileText size={16} /> Términos y condiciones
+          </Link>
 
           {/* USUARIO */}
           {user ? (
@@ -187,6 +204,7 @@ export default function Navbar() {
                 <User size={18} />
                 {user.email}
               </button>
+
               {userMenu && (
                 <div className="absolute right-0 mt-2 bg-white border shadow-lg rounded-md py-2 w-56 z-50">
                   <button
@@ -212,6 +230,7 @@ export default function Navbar() {
         <button className="md:hidden" onClick={toggleMenu}>
           {open ? <X size={26} /> : <Menu size={26} />}
         </button>
+
       </div>
     </nav>
   );
