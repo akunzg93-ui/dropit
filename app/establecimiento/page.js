@@ -69,6 +69,8 @@ export default function EstablecimientoPage() {
   const [direccion, setDireccion] = useState("");
   const [cp, setCp] = useState("");
   const [horario, setHorario] = useState("");
+  const [instruccionesLlegada, setInstruccionesLlegada] = useState("");
+  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
 
   const [horaApertura, setHoraApertura] = useState("");
 const [horaCierre, setHoraCierre] = useState("");
@@ -229,6 +231,8 @@ if (horario === "custom" && horaApertura && horaCierre) {
         capacidad_small: Number(capSmall),
         capacidad_medium: Number(capMedium),
         usuario_id: user.id,
+        instrucciones_llegada: instruccionesLlegada,
+        google_maps_url: googleMapsUrl,
       };
 
       if (editandoId) {
@@ -283,6 +287,8 @@ if (horario === "custom" && horaApertura && horaCierre) {
       setSelectedPoint(null);
       setBusqueda("");
       setSugerencias([]);
+      setInstruccionesLlegada("");
+      setGoogleMapsUrl("");
     } catch (err) {
       setMensaje("Ocurrió un error: " + (err?.message || "desconocido"));
     } finally {
@@ -300,6 +306,8 @@ if (horario === "custom" && horaApertura && horaCierre) {
     setCapSmall(est.capacidad_small || "");
     setCapMedium(est.capacidad_medium || "");
     setSelectedPoint({ lat: est.lat, lng: est.lng });
+    setInstruccionesLlegada(est.instrucciones_llegada || "");
+    setGoogleMapsUrl(est.google_maps_url || "");
 
     setMensaje(`Editando: ${est.nombre}`);
   };
@@ -476,6 +484,39 @@ if (horario === "custom" && horaApertura && horaCierre) {
               onChange={(e) => setDireccion(e.target.value)}
             />
           </div>
+
+{/* INSTRUCCIONES PARA LLEGAR */}
+<div>
+  <label className="block text-sm font-medium mb-2 text-slate-700">
+    Cómo llegar al establecimiento
+  </label>
+
+  <textarea
+    className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+    placeholder="Ej: Dentro de Plaza San Ángel, segundo piso, local 24..."
+    rows={3}
+    value={instruccionesLlegada}
+    onChange={(e) => setInstruccionesLlegada(e.target.value)}
+  />
+</div>
+
+{/* GOOGLE MAPS */}
+<div>
+  <label className="block text-sm font-medium mb-2 text-slate-700">
+    Link de Google Maps
+  </label>
+
+  <input
+    className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+    placeholder="https://maps.google.com/..."
+    value={googleMapsUrl}
+    onChange={(e) => setGoogleMapsUrl(e.target.value)}
+  />
+
+  <p className="text-xs text-slate-500 mt-1">
+    Puedes pegar un link de Google Maps para que los usuarios abran la ruta directamente.
+  </p>
+</div>
 
           {/* HORARIO */}
           <div>
