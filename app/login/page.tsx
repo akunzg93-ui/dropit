@@ -11,43 +11,27 @@ export default function LoginEstablecimiento() {
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Si ya hay sesión, redirigir al panel de establecimiento
+  // Si ya hay sesión → delega a /post-login
   useEffect(() => {
     async function checkSession() {
       const { data } = await supabase.auth.getSession();
-
       if (!data?.session) return;
-
-      const userId = data.session.user.id;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userId)
-        .single();
-
-      if (!profile) return;
-
-      if (profile.role === "establishment") {
-        router.push("/establecimiento");
-      }
+      router.push("/post-login");
     }
-
     checkSession();
   }, []);
 
-async function loginGoogle() {
-  await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
-      queryParams: {
-        role: "establishment",
+  async function loginGoogle() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { role: "establishment" },
       },
-    },
-  });
-}
-  async function handleLogin(email, password) {
+    });
+  }
+
+  async function handleLogin(email: string, password: string) {
     setMensaje("");
     setLoading(true);
 
@@ -63,25 +47,14 @@ async function loginGoogle() {
       return;
     }
 
-    const userId = data.user.id;
-
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", userId)
-      .single();
-
-    if (profileError || !profile) {
-      setMensaje("No se pudo obtener tu perfil.");
+    // Caso: usuario no confirmó correo
+    if (!data.session || !data.user) {
+      setMensaje("Revisa tu correo para confirmar tu cuenta.");
       return;
     }
 
-    if (profile.role !== "establishment") {
-      setMensaje("Esta cuenta no pertenece a un establecimiento.");
-      return;
-    }
-
-    router.push("/establecimiento");
+    // Delega la decisión de rol a /post-login
+    router.push("/post-login");
   }
 
   return (

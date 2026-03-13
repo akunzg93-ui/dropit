@@ -38,26 +38,28 @@ export default function RegisterEstablecimiento() {
 
     setLoading(true);
 
-    await supabase.auth.signOut();
+const { data, error } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+    data: {
+      role: "establishment",
+      nombre_responsable: nombre,
+    },
+    emailRedirectTo: `${window.location.origin}/auth/callback`,
+  },
+});
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          role: "establishment",
-          nombre_responsable: nombre,
-        },
-        emailRedirectTo: `${window.location.origin}/login`,
-      },
-    });
+console.log("SIGNUP DATA:", data);
+console.log("SIGNUP ERROR:", error);
+    setLoading(false);
 
-    if (error) {
-      setMensaje("Hubo un error al registrarte: " + error.message);
-      setLoading(false);
-      return;
-    }
-
+if (error) {
+  console.error(error);
+  setMensaje("Hubo un error al registrarte: " + error.message);
+  setLoading(false);
+  return;
+}
     router.push("/establecimiento/verificar");
   }
 
@@ -65,7 +67,6 @@ export default function RegisterEstablecimiento() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-md space-y-8">
 
-        {/* HEADER PREMIUM */}
         <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-3xl p-6 shadow-xl space-y-3">
           <span className="text-xs font-semibold bg-white/20 px-3 py-1 rounded-full">
             Modo Establecimiento
@@ -80,7 +81,6 @@ export default function RegisterEstablecimiento() {
           </p>
         </div>
 
-        {/* CARD FORM */}
         <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 space-y-5">
 
           <div>
@@ -93,9 +93,6 @@ export default function RegisterEstablecimiento() {
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Ej. Adolfo Kunz"
             />
-            <p className="text-xs text-slate-500 mt-1">
-              Este será el titular de la cuenta.
-            </p>
           </div>
 
           <div>
@@ -103,8 +100,8 @@ export default function RegisterEstablecimiento() {
               Correo electrónico
             </label>
             <Input
-              className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
               type="email"
+              className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="correo@ejemplo.com"
@@ -116,8 +113,8 @@ export default function RegisterEstablecimiento() {
               Contraseña
             </label>
             <Input
-              className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
               type="password"
+              className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Mínimo 6 caracteres"
@@ -129,8 +126,8 @@ export default function RegisterEstablecimiento() {
               Confirmar contraseña
             </label>
             <Input
-              className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
               type="password"
+              className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
             />
@@ -142,7 +139,6 @@ export default function RegisterEstablecimiento() {
             </div>
           )}
 
-          {/* ACEPTACIÓN DE TÉRMINOS */}
           <div className="flex items-start gap-2 text-sm text-slate-600 mt-2">
             <input
               type="checkbox"

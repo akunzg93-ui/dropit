@@ -48,7 +48,7 @@ export default function RegisterVendedor() {
           role: "vendor",
           nombre_responsable: nombre,
         },
-        emailRedirectTo: `${window.location.origin}/vendedor/login`,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
