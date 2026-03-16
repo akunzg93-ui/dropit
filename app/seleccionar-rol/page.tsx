@@ -9,10 +9,8 @@ export default function SeleccionarRol() {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
 
-  // 🔒 PROTEGER ACCESO SI NO CONFIRMÓ CORREO
   useEffect(() => {
     async function checkUser() {
-
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
@@ -20,30 +18,40 @@ export default function SeleccionarRol() {
         return;
       }
 
-      // 🔴 CLAVE: cerrar sesión si no confirmó
       if (!user.email_confirmed_at) {
         await supabase.auth.signOut();
         router.push("/verificar");
         return;
       }
-
     }
 
     checkUser();
-  }, []);
+  }, [router]);
 
   async function setRole(role: string) {
     setLoading(role);
 
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) return;
+    const { data: { user } } = await supabase.auth.getUser();
 
-    const userId = data.session.user.id;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
 
-    await supabase
+    const userId = user.id;
+
+    const { error } = await supabase
       .from("profiles")
-      .update({ role })
-      .eq("id", userId);
+      .upsert({
+        id: userId,
+        role: role
+      });
+
+    if (error) {
+      console.error("Error guardando rol:", error);
+      setLoading(null);
+      return;
+    }
 
     if (role === "vendor") router.push("/vendedor/dashboard");
     if (role === "establishment") router.push("/establecimiento");
@@ -67,9 +75,8 @@ export default function SeleccionarRol() {
 
         <div className="grid md:grid-cols-3 gap-6">
 
-          {/* EMPRENDEDOR */}
-
           <button
+            disabled={loading !== null}
             onClick={() => setRole("vendor")}
             className="group bg-white rounded-2xl p-6 shadow-sm border hover:shadow-lg transition text-left"
           >
@@ -90,10 +97,8 @@ export default function SeleccionarRol() {
             )}
           </button>
 
-
-          {/* ESTABLECIMIENTO */}
-
           <button
+            disabled={loading !== null}
             onClick={() => setRole("establishment")}
             className="group bg-white rounded-2xl p-6 shadow-sm border hover:shadow-lg transition text-left"
           >
@@ -114,10 +119,8 @@ export default function SeleccionarRol() {
             )}
           </button>
 
-
-          {/* COMPRADOR */}
-
           <button
+            disabled={loading !== null}
             onClick={() => setRole("buyer")}
             className="group bg-white rounded-2xl p-6 shadow-sm border hover:shadow-lg transition text-left"
           >
