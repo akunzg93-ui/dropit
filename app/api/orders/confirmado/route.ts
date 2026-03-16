@@ -38,7 +38,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2️⃣ Establecimiento (AHORA traemos uuid también)
+    // 2️⃣ Establecimiento
     const { data: establecimiento } = await supabase
       .from("establecimientos")
       .select("id, nombre, uuid")
@@ -52,13 +52,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3️⃣ Update pedido (ESTADO + ESTABLECIMIENTO + UUID)
+    // 3️⃣ Update pedido
     const { error: updateError } = await supabase
       .from("pedidos")
       .update({
         estado: "en_transito",
         establecimiento_nombre: establecimiento.nombre,
-        establecimiento_uuid: establecimiento.uuid, // 🔥 CLAVE
+        establecimiento_uuid: establecimiento.uuid,
       })
       .eq("id", pedido_id);
 
@@ -70,9 +70,29 @@ export async function POST(req: Request) {
       );
     }
 
+    // 4️⃣ 🔔 Notificar establecimiento
+    try {
+      await fetch(
+        `${process.env.NEXT_PUBLIC_SITE_URL}/api/orders/notificar-establecimiento`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pedido_id,
+          }),
+        }
+      );
+    } catch (notifyError) {
+      console.error("⚠️ Error notificando establecimiento:", notifyError);
+    }
+
     return NextResponse.json({ ok: true });
+
   } catch (err) {
     console.error("❌ ERROR CONFIRMADO:", err);
+
     return NextResponse.json(
       { error: "Error interno" },
       { status: 500 }
