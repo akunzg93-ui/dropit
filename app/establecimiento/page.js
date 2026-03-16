@@ -99,23 +99,30 @@ const [horaCierre, setHoraCierre] = useState("");
   const [cargandoSugerencias, setCargandoSugerencias] = useState(false);
 
   // 🔄 Cargar establecimientos
-  useEffect(() => {
-    const cargar = async () => {
-      const { data, error } = await supabase
-        .from("establecimientos")
-        .select("*")
-        .order("created_at", { ascending: false });
+ useEffect(() => {
+  const cargar = async () => {
 
-      if (error) {
-        console.error("❌ Error cargando establecimientos:", error);
-        return;
-      }
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
 
-      setEstablecimientos((data || []).filter((e) => e !== null));
-    };
+    if (!user) return;
 
-    cargar();
-  }, []);
+    const { data, error } = await supabase
+      .from("establecimientos")
+      .select("*")
+      .eq("usuario_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("❌ Error cargando establecimientos:", error);
+      return;
+    }
+
+    setEstablecimientos((data || []).filter((e) => e !== null));
+  };
+
+  cargar();
+}, []);
 
   // 🔍 Autocomplete
   const manejarCambioBusqueda = async (valor) => {

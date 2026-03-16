@@ -32,8 +32,7 @@ export async function POST(req: Request) {
         id,
         folio,
         estado,
-        establecimiento_uuid,
-        establecimiento_nombre
+        establecimiento_uuid
       `)
       .eq("id", pedido_id)
       .single();
@@ -47,19 +46,38 @@ export async function POST(req: Request) {
 
     const pedidoAny = pedido as any;
 
-    // 2️⃣ Obtener establecimiento
-    const { data: establecimiento } = await supabase
+    // 2️⃣ Obtener establecimiento + dueño
+    const { data: establecimiento, error: estError } = await supabase
       .from("establecimientos")
-      .select("nombre, email")
+      .select(`
+        nombre,
+        usuario_id
+      `)
       .eq("uuid", pedidoAny.establecimiento_uuid)
       .single();
 
-    if (!establecimiento?.email) {
+    if (estError || !establecimiento) {
       return NextResponse.json(
-        { error: "Establecimiento sin email" },
+        { error: "Establecimiento no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // 3️⃣ Obtener email desde profiles
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", establecimiento.usuario_id)
+      .single();
+
+    if (profileError || !profile?.email) {
+      return NextResponse.json(
+        { error: "Usuario del establecimiento sin email" },
         { status: 409 }
       );
     }
+
+    const emailDestino = profile.email;
 
     const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -155,16 +173,20 @@ export async function POST(req: Request) {
 
     const { error: resendError } = await resend.emails.send({
       from: "Dropit <no-reply@drop-itt.com>",
-      to: establecimiento.email,
+      to: emailDestino,
       subject,
       html,
     });
 
     if (resendError) {
       console.error("❌ RESEND ERROR:", resendError);
+      return NextResponse.json(
+        { error: "Error enviando correo" },
+        { status: 500 }
+      );
     }
 
-    console.log("✅ Correo establecimiento enviado");
+    console.log("✅ Correo establecimiento enviado a:", emailDestino);
 
     return NextResponse.json({ ok: true });
 
