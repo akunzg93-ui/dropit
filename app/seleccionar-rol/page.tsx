@@ -2,12 +2,35 @@
 
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Package, Store, ShoppingCart } from "lucide-react";
 
 export default function SeleccionarRol() {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
+
+  // 🔒 PROTEGER ACCESO SI NO CONFIRMÓ CORREO
+  useEffect(() => {
+    async function checkUser() {
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      // 🔴 CLAVE: cerrar sesión si no confirmó
+      if (!user.email_confirmed_at) {
+        await supabase.auth.signOut();
+        router.push("/verificar");
+        return;
+      }
+
+    }
+
+    checkUser();
+  }, []);
 
   async function setRole(role: string) {
     setLoading(role);

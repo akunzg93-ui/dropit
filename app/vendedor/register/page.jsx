@@ -38,6 +38,7 @@ export default function RegisterVendedor() {
 
     setLoading(true);
 
+    // evitar sesión previa
     await supabase.auth.signOut();
 
     const { data, error } = await supabase.auth.signUp({
@@ -48,7 +49,6 @@ export default function RegisterVendedor() {
           role: "vendor",
           nombre_responsable: nombre,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -58,7 +58,24 @@ export default function RegisterVendedor() {
       return;
     }
 
-    router.push("/vendedor/verificar");
+await supabase.auth.signOut();
+
+    // enviar correo de verificación con tu API
+    try {
+      await fetch("/api/orders/auth/send-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+    } catch (err) {
+      console.error("Error enviando correo:", err);
+    }
+
+    setLoading(false);
+
+    router.push("/verificar");
   }
 
   return (
@@ -187,6 +204,7 @@ export default function RegisterVendedor() {
         <p className="text-xs text-slate-500 text-center">
           Al registrarte aceptas nuestros Términos y Política de privacidad.
         </p>
+
       </div>
     </div>
   );

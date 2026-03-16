@@ -10,27 +10,14 @@ export default function Login() {
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Si ya hay sesión → delega a /post-login
   useEffect(() => {
     async function checkSession() {
       const { data } = await supabase.auth.getSession();
 
-      if (!data.session) return;
+      if (!data?.session) return;
 
-      const userId = data.session.user.id;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userId)
-        .single();
-
-      if (!profile) return;
-
-      const role = profile.role;
-
-      if (role === "vendor") router.push("/vendedor/dashboard");
-      if (role === "establishment") router.push("/establecimiento");
-      if (role === "admin") router.push("/admin");
+      router.push("/post-login");
     }
 
     checkSession();
@@ -40,7 +27,8 @@ export default function Login() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?role=vendor`,
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { role: "vendor" },
       },
     });
   }
@@ -61,37 +49,17 @@ export default function Login() {
       return;
     }
 
-    const userId = data.user.id;
+    const user = data.user;
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", userId)
-      .single();
-
-    if (profileError || !profile) {
-      setMensaje("No se pudo obtener tu perfil.");
+    // bloquear acceso si no confirmó correo
+    if (!user?.email_confirmed_at) {
+      await supabase.auth.signOut();
+      router.push("/verificar");
       return;
     }
 
-    const role = profile.role;
-
-    if (role === "vendor") {
-      router.push("/vendedor/dashboard");
-      return;
-    }
-
-    if (role === "establishment") {
-      router.push("/establecimiento");
-      return;
-    }
-
-    if (role === "admin") {
-      router.push("/admin");
-      return;
-    }
-
-    setMensaje("Tu rol no está configurado correctamente.");
+    // usuario válido → continuar flujo centralizado
+    router.push("/post-login");
   }
 
   return (

@@ -15,9 +15,12 @@ export default function LoginEstablecimiento() {
   useEffect(() => {
     async function checkSession() {
       const { data } = await supabase.auth.getSession();
+
       if (!data?.session) return;
+
       router.push("/post-login");
     }
+
     checkSession();
   }, []);
 
@@ -47,13 +50,15 @@ export default function LoginEstablecimiento() {
       return;
     }
 
-    // Caso: usuario no confirmó correo
-    if (!data.session || !data.user) {
-      setMensaje("Revisa tu correo para confirmar tu cuenta.");
+    const user = data.user;
+
+    // bloquear acceso si no confirmó correo
+    if (!user?.email_confirmed_at) {
+      router.push("/verificar");
       return;
     }
 
-    // Delega la decisión de rol a /post-login
+    // usuario válido → continuar flujo
     router.push("/post-login");
   }
 

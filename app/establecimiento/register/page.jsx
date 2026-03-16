@@ -38,29 +38,47 @@ export default function RegisterEstablecimiento() {
 
     setLoading(true);
 
-const { data, error } = await supabase.auth.signUp({
-  email,
-  password,
-  options: {
-    data: {
-      role: "establishment",
-      nombre_responsable: nombre,
-    },
-    emailRedirectTo: `${window.location.origin}/auth/callback`,
-  },
-});
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          role: "establishment",
+          nombre_responsable: nombre,
+        },
+      },
+    });
 
-console.log("SIGNUP DATA:", data);
-console.log("SIGNUP ERROR:", error);
+    console.log("SIGNUP DATA:", data);
+    console.log("SIGNUP ERROR:", error);
+
+    if (error) {
+      console.error(error);
+      setMensaje("Hubo un error al registrarte: " + error.message);
+      setLoading(false);
+      return;
+    }
+
+    // 🔴 Cerrar sesión para evitar login automático
+    await supabase.auth.signOut();
+
+    // 📧 Enviar correo de verificación con Resend
+    try {
+      await fetch("/api/orders/auth/send-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+    } catch (err) {
+      console.error("Error enviando correo:", err);
+    }
+
     setLoading(false);
 
-if (error) {
-  console.error(error);
-  setMensaje("Hubo un error al registrarte: " + error.message);
-  setLoading(false);
-  return;
-}
-    router.push("/establecimiento/verificar");
+    // 👉 enviar a pantalla de verificación
+    router.push("/verificar");
   }
 
   return (

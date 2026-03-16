@@ -5,61 +5,61 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
 export default function PostLogin() {
+
   const router = useRouter();
 
   useEffect(() => {
+
     async function checkRole() {
 
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/login");
+        router.replace("/login");
         return;
       }
 
-      const { data: profile, error } = await supabase
+      if (!user.email_confirmed_at) {
+        router.replace("/verificar");
+        return;
+      }
+
+      const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
         .single();
 
-      if (error || !profile) {
-        router.push("/seleccionar-rol");
-        return;
-      }
-
-      if (!profile.role) {
-        router.push("/seleccionar-rol");
+      if (!profile?.role) {
+        router.replace("/seleccionar-rol");
         return;
       }
 
       if (profile.role === "vendor") {
-        router.push("/vendedor/dashboard");
-        return;
+        router.replace("/vendedor/dashboard");
       }
 
       if (profile.role === "establishment") {
-        router.push("/establecimiento");
-        return;
+        router.replace("/establecimiento");
       }
 
       if (profile.role === "buyer") {
-        router.push("/comprador");
-        return;
+        router.replace("/comprador");
       }
 
       if (profile.role === "admin") {
-        router.push("/admin");
-        return;
+        router.replace("/admin");
       }
+
     }
 
     checkRole();
-  }, [router]);
+
+  }, []);
 
   return (
     <div className="flex items-center justify-center h-screen">
-      <p className="text-slate-500">Cargando...</p>
+      Cargando...
     </div>
   );
 }
