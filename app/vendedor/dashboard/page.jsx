@@ -172,7 +172,7 @@ export default function DashboardVendedor() {
             title="Ver mis pedidos"
             description="Consulta el estado y seguimiento de todos tus envíos."
             buttonLabel="Ver mis pedidos"
-            onClick={() => router.push("/vendedor/mis-pedidos")}
+            onClick={() => router.push("/vendedor/pedidos")}
           />
 
         </div>

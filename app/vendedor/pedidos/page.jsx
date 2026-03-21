@@ -38,7 +38,6 @@ export default function MisPedidos() {
   const [estadoFiltro, setEstadoFiltro] = useState("");
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
 
-  // 🔹 Cargar pedidos del vendedor
   useEffect(() => {
     cargarPedidos();
   }, []);
@@ -57,6 +56,7 @@ export default function MisPedidos() {
         producto,
         tamano,
         estado,
+        codigo_vendedor,
         created_at
       `)
       .eq("vendedor_id", userId)
@@ -69,6 +69,34 @@ export default function MisPedidos() {
 
     setPedidos(data || []);
     setFiltered(data || []);
+  }
+
+  // 🔥 DESCARGAR ETIQUETA
+  async function descargarEtiqueta(folio, codigo) {
+    try {
+      const res = await fetch("http://localhost:4000/generar-etiqueta", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          folio,
+          codigo_vendedor: codigo,
+        }),
+      });
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `etiqueta-${folio}.pdf`;
+      a.click();
+
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error descargando etiqueta:", err);
+    }
   }
 
   // 🔹 Filtros
@@ -89,7 +117,6 @@ export default function MisPedidos() {
     setFiltered(f);
   }, [busqueda, tamanoFiltro, estadoFiltro, pedidos]);
 
-  // 🔹 Métricas
   const metricas = {
     total: pedidos.length,
     en_transito: pedidos.filter((p) => p.estado === "en_transito").length,
@@ -179,10 +206,28 @@ export default function MisPedidos() {
                 <td className="p-3">
                   {new Date(p.created_at).toLocaleDateString()}
                 </td>
+
+                {/* 🔥 ACCIONES */}
                 <td className="p-3 text-right">
-                  <Button size="sm" onClick={() => setPedidoSeleccionado(p)}>
-                    Ver detalles
-                  </Button>
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        descargarEtiqueta(p.folio, p.codigo_vendedor)
+                      }
+                      disabled={!p.codigo_vendedor}
+                    >
+                      Etiqueta
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      onClick={() => setPedidoSeleccionado(p)}
+                    >
+                      Ver
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
