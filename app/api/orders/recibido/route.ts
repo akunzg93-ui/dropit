@@ -43,6 +43,8 @@ export async function POST(req: Request) {
         correo_comprador_enviado,
         pedido_establecimientos (
           establecimientos (
+            id,
+            uuid,
             nombre,
             direccion
           )
@@ -94,7 +96,60 @@ export async function POST(req: Request) {
         recibido_en: new Date().toISOString(),
       })
       .eq("id", pedidoAny.id);
+      // 🔥 GENERAR BALANCE (VERSIÓN FINAL ESTABLE)
 
+try {
+  console.log("🔥 INTENTO GENERAR BALANCE");
+
+  const relaciones = pedidoAny.pedido_establecimientos || [];
+
+// 🔥 tomar el que tenga uuid válido (primer match real)
+const establecimientoMatch = relaciones.find(
+  (r: any) => r?.establecimientos?.uuid
+);
+
+const establecimiento_id = establecimientoMatch?.establecimientos?.uuid;
+
+console.log("🏪 establecimiento_id:", establecimiento_id);
+
+  console.log("🏪 establecimiento_id:", establecimiento_id);
+
+  if (!establecimiento_id) {
+    console.error("❌ NO hay establecimiento_id");
+  } else {
+    const monto_bruto = 60;
+    const comision_rate = 0.2;
+    const iva_rate = 0.16;
+
+    const comision_monto = monto_bruto * comision_rate;
+    const iva_monto = comision_monto * iva_rate;
+    const neto_establecimiento =
+      monto_bruto - comision_monto - iva_monto;
+
+    const { error } = await supabase
+      .from("balance_movimientos")
+      .insert({
+        pedido_id: pedidoAny.id,
+        establecimiento_id,
+        moneda: "MXN",
+        monto_bruto,
+        comision_rate,
+        iva_rate,
+        comision_monto,
+        iva_monto,
+        neto_establecimiento,
+        status: "available",
+      });
+
+    if (error) {
+      console.error("💥 ERROR INSERT:", error);
+    } else {
+      console.log("✅ INSERT OK");
+    }
+  }
+} catch (err) {
+  console.error("💥 ERROR GENERAL:", err);
+}
     // ✅ QR (folio|codigo_entrega) → PNG → Storage
     const qrPayload = `${pedidoAny.folio}|${codigoEntrega}`;
 
@@ -105,20 +160,24 @@ export async function POST(req: Request) {
 
     const fileName = `qr-recoleccion-${pedidoAny.folio}.png`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("qr-codes")
-      .upload(fileName, qrBuffer, {
-        contentType: "image/png",
-        upsert: true,
-      });
+   let uploadError = null;
 
-    if (uploadError) {
-      console.error("❌ Storage upload error:", uploadError);
-      return NextResponse.json(
-        { error: "Error subiendo QR a storage" },
-        { status: 500 }
-      );
-    }
+try {
+  const { error } = await supabase.storage
+    .from("qr-codes")
+    .upload(fileName, qrBuffer, {
+      contentType: "image/png",
+      upsert: true,
+    });
+
+  uploadError = error;
+} catch (err) {
+  console.error("⚠️ Storage crash:", err);
+}
+
+if (uploadError) {
+  console.error("⚠️ Storage upload error:", uploadError);
+}
 
     const { data: publicUrlData } = supabase.storage
       .from("qr-codes")

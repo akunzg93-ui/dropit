@@ -103,88 +103,95 @@ export default function Navbar() {
           {user && <RoleSwitcher />}
 
           {/* ADMIN */}
-          {role === "admin" && (
-            <div className="relative group">
-              <button className={`flex items-center gap-1 ${active("/admin")}`}>
-                <Shield size={16} /> Admin ▾
-              </button>
+{role === "admin" && (
+  <div className="relative group">
+    <button className={`flex items-center gap-1 ${active("/admin")}`}>
+      <Shield size={16} /> Admin ▾
+    </button>
 
-              <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
-                <Link href="/admin/usuarios" className="px-4 py-2 hover:bg-gray-100">
-                  Gestión de usuarios
-                </Link>
+    <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
+      <Link href="/admin/usuarios" className="px-4 py-2 hover:bg-gray-100">
+        Gestión de usuarios
+      </Link>
 
-                <Link href="/admin/reportes" className="px-4 py-2 hover:bg-gray-100">
-                  Reportes del sistema
-                </Link>
-              </div>
-            </div>
-          )}
+      <Link href="/admin/reportes" className="px-4 py-2 hover:bg-gray-100">
+        Reportes del sistema
+      </Link>
 
-          {/* ESTABLECIMIENTO */}
-          {["establishment", "admin"].includes(role) && (
-            <div className="relative group">
-              <button className={`flex items-center gap-1 ${active("/establecimiento")}`}>
-                <Store size={16} /> Establecimiento ▾
-              </button>
+      {/* 🔥 AGREGA ESTO */}
+      <Link href="/admin/retiros" className="px-4 py-2 hover:bg-gray-100">
+        Financiero (Retiros)
+      </Link>
+    </div>
+  </div>
+)}
 
-              <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
-                <Link href="/establecimiento" className="px-4 py-2 hover:bg-gray-100">
-                  Registrar punto
-                </Link>
+{/* ESTABLECIMIENTO */}
+{role === "establishment" && (
+  <div className="relative group">
+    <button className={`flex items-center gap-1 ${active("/establecimiento")}`}>
+      <Store size={16} /> Establecimiento ▾
+    </button>
 
-                <Link href="/establecimiento/estado" className="px-4 py-2 hover:bg-gray-100">
-                  Panel de operación
-                </Link>
+    <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
+      <Link href="/establecimiento" className="px-4 py-2 hover:bg-gray-100">
+        Registrar punto
+      </Link>
 
-                <Link href="/establecimiento/recibir-pedido" className="px-4 py-2 hover:bg-gray-100">
-                  Recepción de pedido
-                </Link>
+      <Link href="/establecimiento/estado" className="px-4 py-2 hover:bg-gray-100">
+        Panel de operación
+      </Link>
 
-                <Link href="/establecimiento/entregar" className="px-4 py-2 hover:bg-gray-100">
-                  Entregar pedido
-                </Link>
+      <Link href="/establecimiento/recibir-pedido" className="px-4 py-2 hover:bg-gray-100">
+        Recepción de pedido
+      </Link>
 
-                <Link href="/establecimiento/balance" className="px-4 py-2 hover:bg-gray-100">
-                  Balance financiero
-                </Link>
-              </div>
-            </div>
-          )}
+      <Link href="/establecimiento/entregar" className="px-4 py-2 hover:bg-gray-100">
+        Entregar pedido
+      </Link>
 
-          {/* VENDEDOR */}
-          {["vendor", "admin"].includes(role) && (
-            <div className="relative group">
-              <button className={`flex items-center gap-1 ${active("/vendedor")}`}>
-                <User size={16} /> Vendedor ▾
-              </button>
+      <Link href="/establecimiento/balance" className="px-4 py-2 hover:bg-gray-100">
+        Balance financiero
+      </Link>
+    </div>
+  </div>
+)}
 
-              <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
-                <Link href="/vendedor/dashboard" className="px-4 py-2 hover:bg-gray-100">
-                  Dashboard
-                </Link>
+{/* VENDEDOR */}
+{role === "vendor" && (
+  <div className="relative group">
+    <button className={`flex items-center gap-1 ${active("/vendedor")}`}>
+      <User size={16} /> Vendedor ▾
+    </button>
 
-                <Link href="/vendedor/crear-pedido" className="px-4 py-2 hover:bg-gray-100">
-                  Crear pedido
-                </Link>
-              </div>
-            </div>
-          )}
+    <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
+      <Link href="/vendedor/dashboard" className="px-4 py-2 hover:bg-gray-100">
+        Dashboard
+      </Link>
 
-          {/* COMPRADOR */}
-          {["buyer", "admin"].includes(role) && (
-            <div className="relative group">
-              <button className={`flex items-center gap-1 ${active("/comprador")}`}>
-                <Package size={16} /> Comprador ▾
-              </button>
+      <Link href="/vendedor/crear-pedido" className="px-4 py-2 hover:bg-gray-100">
+        Crear pedido
+      </Link>
+    </div>
+  </div>
+)}
 
-              <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
-                <Link href="/comprador/validar-pedido" className="px-4 py-2 hover:bg-gray-100">
-                  Validar pedido
-                </Link>
-              </div>
-            </div>
-          )}
+{/* COMPRADOR */}
+{role === "buyer" && (
+  <div className="relative group">
+    <button className={`flex items-center gap-1 ${active("/comprador")}`}>
+      <Package size={16} /> Comprador ▾
+    </button>
+
+    <div className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border shadow-xl rounded-md py-2 w-60 z-50">
+      <Link href="/comprador/validar-pedido" className="px-4 py-2 hover:bg-gray-100">
+        Validar pedido
+      </Link>
+    </div>
+  </div>
+)}
+
+{/* TERMINOS (se queda igual) */}
 
           {/* TERMINOS */}
           <Link
@@ -193,7 +200,7 @@ export default function Navbar() {
           >
             <FileText size={16} /> Términos y condiciones
           </Link>
-
+           
           {/* USUARIO */}
           {user ? (
             <div className="relative">

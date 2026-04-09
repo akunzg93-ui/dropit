@@ -4,289 +4,306 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
 
 type Movimiento = {
   id: number;
-  pedido_id: number;
+  neto_establecimiento: number;
   monto_bruto: number;
   comision_monto: number;
   iva_monto: number;
-  neto_establecimiento: number;
   status: string;
-  fecha_pago: string | null;
-  referencia_pago: string | null;
   created_at: string;
 };
 
-export default function BalanceEstablecimiento() {
-  const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
-  const [resumen, setResumen] = useState({
-    total_disponible: 0,
-    total_pagado: 0,
-    total_comision: 0,
-    total_iva: 0,
-  });
+type RetiroAplicacion = {
+  monto_aplicado: number;
+  created_at: string;
+};
 
-  const [graficaMensual, setGraficaMensual] = useState<any[]>([]);
-  const [fechaInicio, setFechaInicio] = useState("");
-  const [fechaFin, setFechaFin] = useState("");
+type Establecimiento = {
+  uuid: string;
+  nombre: string;
+};
+
+function formatMoney(value: number) {
+  return value.toLocaleString("es-MX", {
+    style: "currency",
+    currency: "MXN",
+  });
+}
+
+export default function BalanceEstablecimiento() {
+  const [establecimientos, setEstablecimientos] = useState<Establecimiento[]>([]);
+  const [establecimientoActivo, setEstablecimientoActivo] = useState<string>("");
+
+  const [saldoReal, setSaldoReal] = useState(0);
+  const [pendienteRetiro, setPendienteRetiro] = useState(0);
+  const [totalRetirado, setTotalRetirado] = useState(0);
+
+  const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
+  const [retirosAplicaciones, setRetirosAplicaciones] = useState<RetiroAplicacion[]>([]);
+
+  const [montoRetiro, setMontoRetiro] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingRetiro, setLoadingRetiro] = useState(false);
+  const [mensaje, setMensaje] = useState("");
 
   useEffect(() => {
-    cargarBalance();
+    init();
   }, []);
 
-  async function cargarBalance() {
+  async function init() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("establecimientos")
+      .select("uuid, nombre")
+      .eq("usuario_id", user.id);
+
+    if (!data || data.length === 0) return;
+
+    setEstablecimientos(data);
+    setEstablecimientoActivo(data[0].uuid);
+
+    await cargarBalance(data[0].uuid);
+  }
+
+  async function cargarBalance(uuid: string) {
     setLoading(true);
 
-    let query = supabase
+    const { data: saldoData } = await supabase
+      .from("establecimiento_saldos")
+      .select("saldo_disponible")
+      .eq("establecimiento_id", uuid)
+      .single();
+
+    setSaldoReal(Number(saldoData?.saldo_disponible || 0));
+
+    const { data: movs } = await supabase
       .from("balance_movimientos")
       .select("*")
+      .eq("establecimiento_id", uuid)
       .order("created_at", { ascending: false });
 
-    if (fechaInicio) query = query.gte("created_at", fechaInicio);
-    if (fechaFin) query = query.lte("created_at", fechaFin + " 23:59:59");
+    if (movs) setMovimientos(movs);
 
-    const { data } = await query;
-    if (!data) {
-      setLoading(false);
-      return;
+    // 🔥 NUEVO: traer retiros reales
+    // 🔹 1. traer movimientos del establecimiento
+const { data: movimientosIds } = await supabase
+  .from("balance_movimientos")
+  .select("id")
+  .eq("establecimiento_id", uuid);
+
+const ids = (movimientosIds || []).map((m) => m.id);
+
+if (ids.length === 0) {
+  setRetirosAplicaciones([]);
+} else {
+  // 🔹 2. traer retiros reales ligados a esos movimientos
+  const { data: retirosApp } = await supabase
+    .from("retiro_aplicaciones")
+    .select("monto_aplicado, created_at")
+    .in("balance_movimiento_id", ids);
+
+  setRetirosAplicaciones(retirosApp || []);
+}
+
+    let pendiente = 0;
+    let retirado = 0;
+
+    const { data: retirosData } = await supabase
+      .from("retiros")
+      .select("monto, status")
+      .eq("establecimiento_id", uuid);
+
+    if (retirosData) {
+      retirosData.forEach((r) => {
+        if (r.status === "pending" || r.status === "approved") pendiente += Number(r.monto);
+        if (r.status === "paid") retirado += Number(r.monto);
+      });
     }
 
-    setMovimientos(data);
+    setPendienteRetiro(pendiente);
+    setTotalRetirado(retirado);
 
-    let totalDisponible = 0;
-    let totalPagado = 0;
-    let totalComision = 0;
-    let totalIva = 0;
+    const disponible = Number(saldoData?.saldo_disponible || 0) - pendiente;
+    setMontoRetiro(disponible > 0 ? String(disponible) : "");
 
-    const agrupado: Record<string, any> = {};
-
-    data.forEach((m) => {
-      const fecha = new Date(m.created_at);
-      const mes = `${fecha.getFullYear()}-${String(
-        fecha.getMonth() + 1
-      ).padStart(2, "0")}`;
-
-      if (!agrupado[mes]) {
-        agrupado[mes] = {
-          mes,
-          neto: 0,
-          comision: 0,
-        };
-      }
-
-      agrupado[mes].neto += Number(m.neto_establecimiento);
-      agrupado[mes].comision += Number(m.comision_monto);
-
-      totalComision += Number(m.comision_monto);
-      totalIva += Number(m.iva_monto);
-
-      if (m.status === "available")
-        totalDisponible += Number(m.neto_establecimiento);
-
-      if (m.status === "paid")
-        totalPagado += Number(m.neto_establecimiento);
-    });
-
-    setResumen({
-      total_disponible: totalDisponible,
-      total_pagado: totalPagado,
-      total_comision: totalComision,
-      total_iva: totalIva,
-    });
-
-    setGraficaMensual(Object.values(agrupado));
     setLoading(false);
   }
 
-  function exportarCSV() {
-    const headers = [
-      "Pedido",
-      "Bruto",
-      "Comisión",
-      "IVA",
-      "Neto",
-      "Estado",
-      "Fecha Pago",
-      "Referencia",
-    ];
+  async function solicitarRetiro() {
+    setMensaje("");
 
-    const rows = movimientos.map((m) => [
-      m.pedido_id,
-      m.monto_bruto,
-      m.comision_monto,
-      m.iva_monto,
-      m.neto_establecimiento,
-      m.status,
-      m.fecha_pago || "",
-      m.referencia_pago || "",
-    ]);
+    const monto = Number(montoRetiro);
+    const disponible = saldoReal - pendienteRetiro;
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers, ...rows].map((e) => e.join(",")).join("\n");
+    if (!monto || monto <= 0) return setMensaje("Monto inválido");
+    if (monto > disponible) return setMensaje("Saldo insuficiente");
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "balance_dropit.csv");
-    document.body.appendChild(link);
-    link.click();
+    setLoadingRetiro(true);
+
+    const res = await fetch("/api/orders/retiros/solicitar", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        establecimientos: [
+          {
+            establecimiento_id: establecimientoActivo,
+            monto,
+          },
+        ],
+      }),
+    });
+
+    const json = await res.json();
+
+    if (!res.ok) setMensaje(json.error);
+    else {
+      setMensaje("✅ Retiro solicitado");
+      await cargarBalance(establecimientoActivo);
+    }
+
+    setLoadingRetiro(false);
   }
 
-  if (loading) {
-    return (
-      <div className="p-10 text-center text-gray-500">
-        Cargando balance...
-      </div>
-    );
-  }
+  const disponible = saldoReal - pendienteRetiro;
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
 
   return (
-    <div className="max-w-6xl mx-auto p-8 space-y-8">
-      <h1 className="text-3xl font-bold text-gray-900">
-        Balance Financiero
-      </h1>
+    <div className="min-h-screen bg-slate-50 px-6 py-16">
+      <div className="max-w-5xl mx-auto space-y-10">
 
-      {/* FILTROS */}
-      <div className="flex flex-wrap gap-4 items-end bg-white border rounded-2xl p-6 shadow-sm">
-        <div>
-          <label className="text-xs text-gray-500">Desde</label>
-          <Input
-            type="date"
-            value={fechaInicio}
-            onChange={(e) => setFechaInicio(e.target.value)}
-          />
-        </div>
+        <h1 className="text-4xl font-bold text-indigo-900">Balance</h1>
 
-        <div>
-          <label className="text-xs text-gray-500">Hasta</label>
-          <Input
-            type="date"
-            value={fechaFin}
-            onChange={(e) => setFechaFin(e.target.value)}
-          />
-        </div>
-
-        <Button onClick={cargarBalance}>
-          Filtrar
-        </Button>
-
-        <Button variant="outline" onClick={exportarCSV}>
-          Exportar CSV
-        </Button>
-      </div>
-
-      {/* CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card label="Disponible" value={resumen.total_disponible} color="green" />
-        <Card label="Pagado" value={resumen.total_pagado} color="gray" />
-        <Card label="Comisión Dropit" value={resumen.total_comision} color="blue" />
-        <Card label="IVA Comisión" value={resumen.total_iva} color="purple" />
-      </div>
-
-      {/* GRAFICA */}
-      <div className="bg-white border rounded-2xl p-6 shadow-sm">
-        <h2 className="font-semibold mb-4 text-gray-700">
-          Resumen mensual
-        </h2>
-
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={graficaMensual}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="mes" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="neto" fill="#2d6cdf" />
-            <Bar dataKey="comision" fill="#16a34a" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* TABLA */}
-      <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600">
-            <tr>
-              <th className="p-4 text-left">Pedido</th>
-              <th className="p-4 text-left">Bruto</th>
-              <th className="p-4 text-left">Comisión</th>
-              <th className="p-4 text-left">IVA</th>
-              <th className="p-4 text-left">Neto</th>
-              <th className="p-4 text-left">Estado</th>
-              <th className="p-4 text-left">Fecha Pago</th>
-              <th className="p-4 text-left">Referencia</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {movimientos.map((m) => (
-              <tr key={m.id} className="border-t hover:bg-gray-50 transition">
-                <td className="p-4 font-medium">{m.pedido_id}</td>
-                <td className="p-4">${m.monto_bruto}</td>
-                <td className="p-4">${m.comision_monto}</td>
-                <td className="p-4">${m.iva_monto}</td>
-                <td className="p-4 font-semibold">
-                  ${m.neto_establecimiento}
-                </td>
-                <td className="p-4">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      m.status === "paid"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {m.status}
-                  </span>
-                </td>
-                <td className="p-4">
-                  {m.fecha_pago
-                    ? new Date(m.fecha_pago).toLocaleString()
-                    : "-"}
-                </td>
-                <td className="p-4">{m.referencia_pago || "-"}</td>
-              </tr>
+        <div className="relative w-full max-w-xs">
+          <select
+            value={establecimientoActivo}
+            onChange={(e) => {
+              setEstablecimientoActivo(e.target.value);
+              cargarBalance(e.target.value);
+            }}
+            className="w-full appearance-none bg-white border border-slate-200 rounded-xl px-4 py-2 pr-10 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            {establecimientos.map((e) => (
+              <option key={e.uuid} value={e.uuid}>
+                {e.nombre}
+              </option>
             ))}
-          </tbody>
-        </table>
+          </select>
+        </div>
 
-        {movimientos.length === 0 && (
-          <div className="p-6 text-center text-gray-400">
-            No hay movimientos en este rango.
+        <div className="grid md:grid-cols-3 gap-6">
+          <Card label="Disponible" value={disponible} color="sky" />
+          <Card label="En proceso" value={pendienteRetiro} color="amber" />
+          <Card label="Retirado" value={totalRetirado} color="indigo" />
+        </div>
+
+        <div className="bg-white rounded-3xl p-6 shadow space-y-4">
+          <p className="text-2xl font-bold">{formatMoney(disponible)}</p>
+
+          <div className="flex gap-2">
+            <Input value={montoRetiro} onChange={(e) => setMontoRetiro(e.target.value)} />
+
+            <Button variant="outline" onClick={() => setMontoRetiro(String(disponible))}>
+              Input
+            </Button>
+
+            <Button
+              className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white"
+              onClick={solicitarRetiro}
+              disabled={loadingRetiro}
+            >
+              {loadingRetiro ? "Procesando..." : "Retiro parcial"}
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={async () => {
+                setMontoRetiro(String(disponible));
+                await solicitarRetiro();
+              }}
+              disabled={loadingRetiro}
+            >
+              Retirar todo
+            </Button>
           </div>
-        )}
+
+          {mensaje && <p>{mensaje}</p>}
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-lg border p-6">
+          <h2 className="font-semibold mb-4">Movimientos</h2>
+
+          <div className="divide-y">
+
+            {/* INGRESO ORIGINAL (solo 1 vez) */}
+            {movimientos
+              .filter((m) => m.status === "paid")
+              .map((m) => (
+                <div key={"ingreso-" + m.id} className="py-4 space-y-1">
+
+                  <div className="flex justify-between">
+                    <p className="font-medium">Ingreso</p>
+
+                    <p className="text-green-600">
+                      +{formatMoney(m.neto_establecimiento)}
+                    </p>
+                  </div>
+
+                  <div className="text-xs text-slate-500 space-y-1">
+                    <p>Bruto: {formatMoney(m.monto_bruto)}</p>
+                    <p>Comisión: -{formatMoney(m.comision_monto)}</p>
+                    <p>IVA: -{formatMoney(m.iva_monto)}</p>
+                  </div>
+
+                  <p className="text-xs text-slate-400">
+                    {new Date(m.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+
+            {/* RETIROS REALES */}
+            {retirosAplicaciones.map((r, i) => (
+              <div key={"retiro-" + i} className="py-4 space-y-1">
+
+                <div className="flex justify-between">
+                  <p className="font-medium">Retiro</p>
+
+                  <p className="text-red-600">
+                    -{formatMoney(r.monto_aplicado)}
+                  </p>
+                </div>
+
+                <p className="text-xs text-slate-400">
+                  {new Date(r.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+
+          </div>
+        </div>
+
       </div>
     </div>
   );
 }
 
 function Card({ label, value, color }: any) {
-  const colors: any = {
-    green: "from-green-50 to-green-100 border-green-200 text-green-700",
-    gray: "from-gray-50 to-gray-100 border-gray-200 text-gray-800",
-    blue: "from-blue-50 to-blue-100 border-blue-200 text-blue-700",
-    purple: "from-purple-50 to-purple-100 border-purple-200 text-purple-700",
+  const colors = {
+    sky: "bg-sky-50 border-sky-200 text-sky-700",
+    amber: "bg-amber-50 border-amber-200 text-amber-700",
+    indigo: "bg-indigo-50 border-indigo-200 text-indigo-700",
   };
 
   return (
-    <div
-      className={`bg-gradient-to-br ${colors[color]} border rounded-2xl p-6 shadow-sm`}
-    >
+    <div className={`border rounded-2xl p-6 ${colors[color]}`}>
       <p className="text-sm">{label}</p>
-      <p className="text-3xl font-bold">
-        ${value.toFixed(2)} MXN
-      </p>
+      <p className="text-xl font-bold">{formatMoney(value)}</p>
     </div>
   );
 }
