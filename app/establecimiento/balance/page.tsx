@@ -53,21 +53,29 @@ export default function BalanceEstablecimiento() {
   }, []);
 
   async function init() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  const { data: { user } } = await supabase.auth.getUser();
 
-    const { data } = await supabase
-      .from("establecimientos")
-      .select("uuid, nombre")
-      .eq("usuario_id", user.id);
+  console.log("USER PROD:", user);
 
-    if (!data || data.length === 0) return;
+  if (!user) return;
 
-    setEstablecimientos(data);
-    setEstablecimientoActivo(data[0].uuid);
+  const { data, error } = await supabase
+    .from("establecimientos")
+    .select("uuid, nombre")
+    .eq("usuario_id", user.id);
 
-    await cargarBalance(data[0].uuid);
-  }
+  console.log("ESTABLECIMIENTOS DATA:", data);
+  console.log("ESTABLECIMIENTOS ERROR:", error);
+
+  if (!data || data.length === 0) return;
+
+  setEstablecimientos(data);
+  setEstablecimientoActivo(data[0].uuid);
+
+  console.log("ESTABLECIMIENTO ACTIVO:", data[0]);
+
+  await cargarBalance(data[0].uuid);
+}
 
   async function cargarBalance(uuid: string) {
     setLoading(true);
