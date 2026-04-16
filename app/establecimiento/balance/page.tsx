@@ -85,6 +85,8 @@ export default function BalanceEstablecimiento() {
   .select("*")
   .eq("establecimiento_id", uuid);
 
+  console.log("BALANCE RAW:", data, error);
+
 const saldo = data?.[0] || {
   saldo_disponible: 0,
   saldo_en_proceso: 0,
