@@ -80,14 +80,18 @@ export default function BalanceEstablecimiento() {
   async function cargarBalance(uuid: string) {
     setLoading(true);
 
-    const { data: saldoData } = await supabase
-      .from("establecimiento_saldos")
-      .select("saldo_disponible")
-      .eq("establecimiento_id", uuid)
-      .maybeSingle();
+    const { data, error } = await supabase
+  .from("establecimiento_saldos")
+  .select("*")
+  .eq("establecimiento_id", uuid);
+
+const saldo = data?.[0] || {
+  saldo_disponible: 0,
+  saldo_en_proceso: 0,
+  saldo_retirado: 0,
+};
       
-      
-    setSaldoReal(Number(saldoData?.saldo_disponible || 0));
+   setSaldoReal(Number(saldo?.saldo_disponible || 0));
 
     const { data: movs } = await supabase
       .from("balance_movimientos")
@@ -136,7 +140,7 @@ if (ids.length === 0) {
     setPendienteRetiro(pendiente);
     setTotalRetirado(retirado);
 
-    const disponible = Number(saldoData?.saldo_disponible || 0) - pendiente;
+    const disponible = Number(saldo?.saldo_disponible || 0) - pendiente;
     setMontoRetiro(disponible > 0 ? String(disponible) : "");
 
     setLoading(false);
