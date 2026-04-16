@@ -84,8 +84,9 @@ export default function BalanceEstablecimiento() {
       .from("establecimiento_saldos")
       .select("saldo_disponible")
       .eq("establecimiento_id", uuid)
-      .single();
-
+      .maybeSingle();
+      
+      
     setSaldoReal(Number(saldoData?.saldo_disponible || 0));
 
     const { data: movs } = await supabase
