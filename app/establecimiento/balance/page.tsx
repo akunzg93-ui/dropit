@@ -95,8 +95,9 @@ const saldo = data?.[0] || {
   saldo_retirado: 0,
 };
       
-   setSaldoReal(Number(saldo?.saldo_disponible || 0));
-
+  setSaldoReal(Number(saldo?.saldo_disponible || 0));
+setPendienteRetiro(Number(saldo?.saldo_en_proceso || 0));
+setTotalRetirado(Number(saldo?.saldo_retirado || 0));
     const { data: movs } = await supabase
       .from("balance_movimientos")
       .select("*")
