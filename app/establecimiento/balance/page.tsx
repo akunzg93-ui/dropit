@@ -55,7 +55,9 @@ export default function BalanceEstablecimiento() {
   async function init() {
   const { data: { user } } = await supabase.auth.getUser();
 
-  console.log("USER PROD:", user);
+console.log("USER FRONT:", user?.id);
+
+if (!user) return;
 
   if (!user) return;
 
