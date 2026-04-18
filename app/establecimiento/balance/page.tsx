@@ -219,9 +219,9 @@ if (ids.length === 0) {
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          <Card label="Disponible" value={disponible} color="sky" />
-          <Card label="En proceso" value={pendienteRetiro} color="amber" />
-          <Card label="Retirado" value={totalRetirado} color="indigo" />
+          <Card label="Disponible" value={saldoReal} color="sky" />
+<Card label="En proceso" value={pendienteRetiro} color="amber" />
+<Card label="Retirado" value={totalRetirado} color="indigo" />
         </div>
 
         <div className="bg-white rounded-3xl p-6 shadow space-y-4">
