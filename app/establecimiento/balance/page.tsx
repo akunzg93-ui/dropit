@@ -130,26 +130,8 @@ if (ids.length === 0) {
   setRetirosAplicaciones(retirosApp || []);
 }
 
-    let pendiente = 0;
-    let retirado = 0;
-
-    const { data: retirosData } = await supabase
-      .from("retiros")
-      .select("monto, status")
-      .eq("establecimiento_id", uuid);
-
-    if (retirosData) {
-      retirosData.forEach((r) => {
-        if (r.status === "pending" || r.status === "approved") pendiente += Number(r.monto);
-        if (r.status === "paid") retirado += Number(r.monto);
-      });
-    }
-
-    setPendienteRetiro(pendiente);
-    setTotalRetirado(retirado);
-
-    const disponible = Number(saldo?.saldo_disponible || 0) - pendiente;
-    setMontoRetiro(disponible > 0 ? String(disponible) : "");
+    const disponible = Number(saldo?.saldo_disponible || 0);
+setMontoRetiro(disponible > 0 ? String(disponible) : "");
 
     setLoading(false);
   }
