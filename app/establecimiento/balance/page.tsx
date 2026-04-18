@@ -208,7 +208,6 @@ setMontoRetiro(disponible > 0 ? String(disponible) : "");
 
         <div className="bg-white rounded-3xl p-6 shadow space-y-4">
           <p className="text-2xl font-bold">{formatMoney(disponible)}</p>
-          <p className="text-sm text-red-500">DEBUG: {saldoReal}</p>
 
           <div className="flex gap-2">
             <Input value={montoRetiro} onChange={(e) => setMontoRetiro(e.target.value)} />
