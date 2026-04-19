@@ -8,8 +8,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 // 💰 PRECIOS BASE
 // ---------------------------------------------
 const PRECIOS = {
-  small: 60,
-  medium: 90,
+  small: 1,
+  medium: 1,
 };
 
 // ---------------------------------------------

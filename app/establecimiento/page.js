@@ -579,6 +579,13 @@ if (horario === "custom" && horaApertura && horaCierre) {
 )}
           </div>
 
+          {/* INFO TIPOS DE PAQUETE */}
+<div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm text-slate-600">
+  <p className="font-medium mb-1">Tipos de paquete</p>
+  <p>Small: hasta 3 kg · máx 40 cm por lado</p>
+  <p>Medium: hasta 10 kg · máx 70 cm por lado</p>
+</div>
+
           {/* CAPACIDADES */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
@@ -605,6 +612,7 @@ if (horario === "custom" && horaApertura && horaCierre) {
               />
             </div>
           </div>
+
 
           {/* BOTÓN */}
           <button
