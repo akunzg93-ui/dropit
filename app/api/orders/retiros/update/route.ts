@@ -33,6 +33,11 @@ export async function POST(req: Request) {
       );
     }
 
+    // 🔒 evitar reprocesar
+    if (statusNormalized === "paid" && retiro.status === "paid") {
+      return NextResponse.json({ ok: true });
+    }
+
     // 🔒 validación
     if (
       statusNormalized === "paid" &&
@@ -46,7 +51,7 @@ export async function POST(req: Request) {
     }
 
     // 🔹 update retiro
-    const { data: updatedRetiro, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from("retiros")
       .update({
         status: statusNormalized,
@@ -54,94 +59,89 @@ export async function POST(req: Request) {
           referencia_pago: referencia_pago || null,
         }),
       })
-      .eq("id", retiro_id)
-      .select()
-      .single();
+      .eq("id", retiro_id);
 
     if (updateError) throw updateError;
 
-    // 🔥 NUEVO: obtener detalles
-    const { data: detalles, error: detallesError } = await supabase
-      .from("retiro_detalles")
-      .select("*")
-      .eq("retiro_id", retiro_id);
-
-    if (detallesError) throw detallesError;
-
-    // 🔥 CONTABILIDAD MULTI-ESTABLECIMIENTO
+    // 🔥 PROCESO CONTABLE CORREGIDO
     if (statusNormalized === "paid") {
-      for (const det of detalles || []) {
-        let montoRestante = Number(Number(det.monto).toFixed(2));
+      const { data: detalles } = await supabase
+        .from("retiro_detalles")
+        .select("*")
+        .eq("retiro_id", retiro_id);
 
-        const { data: movimientos, error: movError } = await supabase
+      for (const det of detalles || []) {
+        let montoRestante = Number(det.monto);
+
+        const { data: movimientos } = await supabase
           .from("balance_movimientos")
           .select("*")
           .eq("establecimiento_id", det.establecimiento_id)
           .eq("status", "available")
           .order("created_at", { ascending: true });
 
-        if (movError) throw movError;
-
         for (const mov of movimientos || []) {
           if (montoRestante <= 0) break;
 
-          const montoMov = parseFloat(mov.neto_establecimiento || 0);
+          const montoMov = Number(mov.neto_establecimiento);
 
+          // 🔒 ya aplicado? skip
+          const { data: yaExiste } = await supabase
+            .from("retiro_aplicaciones")
+            .select("id")
+            .eq("retiro_id", retiro_id)
+            .eq("balance_movimiento_id", mov.id)
+            .maybeSingle();
+
+          if (yaExiste) continue;
+
+          // 🟢 CASO 1: consumo completo
           if (montoMov <= montoRestante) {
-            const { error: updError } = await supabase
+            await supabase
               .from("balance_movimientos")
               .update({ status: "paid" })
               .eq("id", mov.id);
 
-            if (updError) throw updError;
-
-            const { error: appError } = await supabase
-              .from("retiro_aplicaciones")
-              .insert({
-                retiro_id,
-                balance_movimiento_id: mov.id,
-                monto_aplicado: montoMov,
-              });
-
-            if (appError) throw appError;
+            await supabase.from("retiro_aplicaciones").insert({
+              retiro_id,
+              balance_movimiento_id: mov.id,
+              monto_aplicado: montoMov,
+            });
 
             montoRestante -= montoMov;
-          } else {
-            const restante = montoMov - montoRestante;
+          }
 
-            const { error: updError } = await supabase
+          // 🟡 CASO 2: consumo parcial (split correcto)
+          else {
+            const aplicado = montoRestante;
+            const restante = montoMov - aplicado;
+
+            // marcar original como usado
+            await supabase
               .from("balance_movimientos")
               .update({ status: "paid" })
               .eq("id", mov.id);
 
-            if (updError) throw updError;
+            // crear leftover limpio
+            await supabase.from("balance_movimientos").insert({
+              pedido_id: mov.pedido_id,
+              establecimiento_id: mov.establecimiento_id,
+              moneda: mov.moneda,
+              monto_bruto: mov.monto_bruto,
+              comision_rate: mov.comision_rate,
+              iva_rate: mov.iva_rate,
+              comision_monto: mov.comision_monto,
+              iva_monto: mov.iva_monto,
+              neto_establecimiento: Number(restante.toFixed(2)),
+              status: "available",
+            });
 
-            const { error: insertError } = await supabase
-              .from("balance_movimientos")
-              .insert({
-                pedido_id: mov.pedido_id,
-                establecimiento_id: mov.establecimiento_id,
-                moneda: mov.moneda,
-                monto_bruto: mov.monto_bruto,
-                comision_rate: mov.comision_rate,
-                iva_rate: mov.iva_rate,
-                comision_monto: mov.comision_monto,
-                iva_monto: mov.iva_monto,
-                neto_establecimiento: Number(restante.toFixed(2)),
-                status: "available",
-              });
-
-            if (insertError) throw insertError;
-
-            const { error: appError } = await supabase
-              .from("retiro_aplicaciones")
-              .insert({
-                retiro_id,
-                balance_movimiento_id: mov.id,
-                monto_aplicado: montoRestante,
-              });
-
-            if (appError) throw appError;
+            // registrar aplicación
+            await supabase.from("retiro_aplicaciones").insert({
+              retiro_id,
+              balance_movimiento_id: mov.id,
+              monto_aplicado: aplicado,
+            });
 
             montoRestante = 0;
           }

@@ -310,13 +310,18 @@ await fetch("/api/orders/email/pedido-creado", {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="small">
-              Pequeño (&lt; 3 kg)
+              Pequeño (hasta 3 kg · máx 40 cm por lado)
             </SelectItem>
             <SelectItem value="medium">
-              Mediano (3–10 kg)
+              Mediano (hasta 10 kg · máx 70 cm por lado)
             </SelectItem>
           </SelectContent>
         </Select>
+
+        <p className="text-xs text-amber-600 mt-2">
+  ⚠️ El paquete no debe exceder el peso o tamaño indicado. 
+  El establecimiento puede rechazarlo.
+</p>
 
         {/* ALERTA SIN COINS */}
         {tamano && coinsDisponibles[tamano] === 0 && (

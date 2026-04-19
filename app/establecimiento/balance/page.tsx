@@ -38,7 +38,6 @@ export default function BalanceEstablecimiento() {
 
   const [saldoReal, setSaldoReal] = useState(0);
   const [pendienteRetiro, setPendienteRetiro] = useState(0);
-  const [totalRetirado, setTotalRetirado] = useState(0);
 
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [retirosAplicaciones, setRetirosAplicaciones] = useState<RetiroAplicacion[]>([]);
@@ -53,54 +52,40 @@ export default function BalanceEstablecimiento() {
   }, []);
 
   async function init() {
-  const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-console.log("USER FRONT:", user?.id);
+    const { data } = await supabase
+      .from("establecimientos")
+      .select("uuid, nombre")
+      .eq("usuario_id", user.id);
 
-if (!user) return;
+    if (!data || data.length === 0) return;
 
-  if (!user) return;
+    setEstablecimientos(data);
+    setEstablecimientoActivo(data[0].uuid);
 
-  const { data, error } = await supabase
-    .from("establecimientos")
-    .select("uuid, nombre")
-    .eq("usuario_id", user.id);
-
-  console.log("ESTABLECIMIENTOS DATA:", data);
-  console.log("ESTABLECIMIENTOS ERROR:", error);
-
-  if (!data || data.length === 0) return;
-
-  setEstablecimientos(data);
-  setEstablecimientoActivo(data[0].uuid);
-
-  console.log("ESTABLECIMIENTO ACTIVO:", data[0]);
-
-  await cargarBalance(data[0].uuid);
-}
+    await cargarBalance(data[0].uuid);
+  }
 
   async function cargarBalance(uuid: string) {
     setLoading(true);
 
-    const { data, error } = await supabase
-  .from("establecimiento_saldos")
-  .select("*")
-  .eq("establecimiento_id", uuid);
+    // 👉 SOLO usamos saldo disponible para base
+    const { data } = await supabase
+      .from("establecimiento_saldos")
+      .select("*")
+      .eq("establecimiento_id", uuid);
 
-  console.log("BALANCE RAW:", data, error);
+    const saldo = data?.[0] || {
+      saldo_disponible: 0,
+      saldo_en_proceso: 0,
+    };
 
-const saldo = data?.[0] || {
-  saldo_disponible: 0,
-  saldo_en_proceso: 0,
-  saldo_retirado: 0,
-};
+    setSaldoReal(Number(saldo?.saldo_disponible || 0));
+    setPendienteRetiro(Number(saldo?.saldo_en_proceso || 0));
 
-console.log("SALDO OBJ:", saldo);
-      
-  setSaldoReal(Number(saldo?.saldo_disponible || 0));
-setPendienteRetiro(Number(saldo?.saldo_en_proceso || 0));
-setTotalRetirado(Number(saldo?.saldo_retirado || 0));
-
+    // 🔹 movimientos
     const { data: movs } = await supabase
       .from("balance_movimientos")
       .select("*")
@@ -109,34 +94,34 @@ setTotalRetirado(Number(saldo?.saldo_retirado || 0));
 
     if (movs) setMovimientos(movs);
 
-    // 🔥 NUEVO: traer retiros reales
-    // 🔹 1. traer movimientos del establecimiento
-const { data: movimientosIds } = await supabase
-  .from("balance_movimientos")
-  .select("id")
-  .eq("establecimiento_id", uuid);
+    // 🔹 retiro_aplicaciones (fuente real)
+    const { data: movimientosIds } = await supabase
+      .from("balance_movimientos")
+      .select("id")
+      .eq("establecimiento_id", uuid);
 
-const ids = (movimientosIds || []).map((m) => m.id);
+    const ids = (movimientosIds || []).map((m) => m.id);
 
-if (ids.length === 0) {
-  setRetirosAplicaciones([]);
-} else {
-  // 🔹 2. traer retiros reales ligados a esos movimientos
-  const { data: retirosApp } = await supabase
-    .from("retiro_aplicaciones")
-    .select("monto_aplicado, created_at")
-    .in("balance_movimiento_id", ids);
+    if (ids.length === 0) {
+      setRetirosAplicaciones([]);
+    } else {
+      const { data: retirosApp } = await supabase
+        .from("retiro_aplicaciones")
+        .select("monto_aplicado, created_at")
+        .in("balance_movimiento_id", ids);
 
-  setRetirosAplicaciones(retirosApp || []);
-}
+      setRetirosAplicaciones(retirosApp || []);
+    }
 
-    const disponible = Number(saldo?.saldo_disponible || 0);
-setMontoRetiro(disponible > 0 ? String(disponible) : "");
+    const disponible = Number(saldo?.saldo_disponible || 0) - Number(saldo?.saldo_en_proceso || 0);
+    setMontoRetiro(disponible > 0 ? String(disponible) : "");
 
     setLoading(false);
   }
 
   async function solicitarRetiro() {
+    if (loadingRetiro) return;
+
     setMensaje("");
 
     const monto = Number(montoRetiro);
@@ -173,7 +158,13 @@ setMontoRetiro(disponible > 0 ? String(disponible) : "");
     setLoadingRetiro(false);
   }
 
+  // 🔥 cálculos correctos
   const disponible = saldoReal - pendienteRetiro;
+
+  const totalRetirado = retirosAplicaciones.reduce(
+    (acc, r) => acc + Number(r.monto_aplicado),
+    0
+  );
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
 
@@ -190,7 +181,7 @@ setMontoRetiro(disponible > 0 ? String(disponible) : "");
               setEstablecimientoActivo(e.target.value);
               cargarBalance(e.target.value);
             }}
-            className="w-full appearance-none bg-white border border-slate-200 rounded-xl px-4 py-2 pr-10 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm shadow-sm"
           >
             {establecimientos.map((e) => (
               <option key={e.uuid} value={e.uuid}>
@@ -200,14 +191,16 @@ setMontoRetiro(disponible > 0 ? String(disponible) : "");
           </select>
         </div>
 
+        {/* CARDS */}
         <div className="grid md:grid-cols-3 gap-6">
-          <Card label="Disponible" value={saldoReal} color="sky" />
-<Card label="En proceso" value={pendienteRetiro} color="amber" />
-<Card label="Retirado" value={totalRetirado} color="indigo" />
+          <Card label="Disponible" value={disponible} color="sky" />
+          <Card label="En proceso" value={pendienteRetiro} color="amber" />
+          <Card label="Retirado" value={totalRetirado} color="indigo" />
         </div>
 
+        {/* RETIRO */}
         <div className="bg-white rounded-3xl p-6 shadow space-y-4">
-          <p className="text-2xl font-bold">{formatMoney(disponible)}</p>
+          
 
           <div className="flex gap-2">
             <Input value={montoRetiro} onChange={(e) => setMontoRetiro(e.target.value)} />
@@ -217,7 +210,7 @@ setMontoRetiro(disponible > 0 ? String(disponible) : "");
             </Button>
 
             <Button
-              className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white"
+              className="bg-indigo-600 text-white"
               onClick={solicitarRetiro}
               disabled={loadingRetiro}
             >
@@ -239,26 +232,25 @@ setMontoRetiro(disponible > 0 ? String(disponible) : "");
           {mensaje && <p>{mensaje}</p>}
         </div>
 
+        {/* MOVIMIENTOS */}
         <div className="bg-white rounded-3xl shadow-lg border p-6">
           <h2 className="font-semibold mb-4">Movimientos</h2>
 
           <div className="divide-y">
 
-            {/* INGRESO ORIGINAL (solo 1 vez) */}
+            {/* ✅ SOLO ingresos disponibles */}
             {movimientos
               .filter((m) => m.status === "paid")
               .map((m) => (
                 <div key={"ingreso-" + m.id} className="py-4 space-y-1">
-
                   <div className="flex justify-between">
                     <p className="font-medium">Ingreso</p>
-
                     <p className="text-green-600">
                       +{formatMoney(m.neto_establecimiento)}
                     </p>
                   </div>
 
-                  <div className="text-xs text-slate-500 space-y-1">
+                  <div className="text-xs text-slate-500">
                     <p>Bruto: {formatMoney(m.monto_bruto)}</p>
                     <p>Comisión: -{formatMoney(m.comision_monto)}</p>
                     <p>IVA: -{formatMoney(m.iva_monto)}</p>
@@ -270,13 +262,11 @@ setMontoRetiro(disponible > 0 ? String(disponible) : "");
                 </div>
               ))}
 
-            {/* RETIROS REALES */}
+            {/* ✅ retiros reales */}
             {retirosAplicaciones.map((r, i) => (
               <div key={"retiro-" + i} className="py-4 space-y-1">
-
                 <div className="flex justify-between">
                   <p className="font-medium">Retiro</p>
-
                   <p className="text-red-600">
                     -{formatMoney(r.monto_aplicado)}
                   </p>
