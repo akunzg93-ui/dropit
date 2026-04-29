@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 
 const ESTADOS = [
   "creado",
+  "pendiente_aprobacion_establecimiento",
   "en_transito",
   "pendiente_recoleccion",
   "entregado",
@@ -14,6 +15,7 @@ const ESTADOS = [
 
 const ESTADOS_LABEL: Record<string, string> = {
   creado: "Creado",
+  pendiente_aprobacion_establecimiento: "Validando establecimiento",
   en_transito: "En tránsito",
   pendiente_recoleccion: "Pendiente de recolección",
   entregado: "Entregado",
@@ -29,17 +31,6 @@ export default function TrackPedidoPage() {
   const [pedido, setPedido] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // 🔔 Notificación vendedor
-  useEffect(() => {
-    if (!folio || confirmed !== "1") return;
-
-    fetch("/api/orders/notificar-vendedor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ folio }),
-    }).catch(console.error);
-  }, [folio, confirmed]);
 
   useEffect(() => {
     if (!folio) return;
@@ -102,7 +93,7 @@ export default function TrackPedidoPage() {
               ✅ Punto de entrega confirmado
             </p>
             <p className="text-sm mt-1">
-              Ahora puedes dar seguimiento en tiempo real a tu pedido.
+              Ahora el establecimiento revisará tu pedido antes de que el vendedor reciba el código.
             </p>
           </div>
         )}
@@ -137,7 +128,7 @@ export default function TrackPedidoPage() {
               const actual = index === estadoIndex;
 
               return (
-                <div key={estado} className="flex flex-col items-center w-1/4">
+                <div key={estado} className="flex flex-col items-center flex-1">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all
                       ${
@@ -169,13 +160,19 @@ export default function TrackPedidoPage() {
             </p>
 
             <span className="bg-indigo-600 text-white text-sm px-3 py-1 rounded-full">
-              {ESTADOS_LABEL[pedido.estado]}
+              {ESTADOS_LABEL[pedido.estado] || pedido.estado}
             </span>
           </div>
 
           <p className="text-sm text-indigo-800 mt-2">
             Fecha de creación: {fechaCreacion}
           </p>
+
+          {pedido.estado === "pendiente_aprobacion_establecimiento" && (
+            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
+              ⏳ El establecimiento está revisando tu pedido. Te avisaremos en cuanto sea aceptado.
+            </div>
+          )}
         </div>
 
         {/* HISTORIAL TIMELINE */}
@@ -190,28 +187,28 @@ export default function TrackPedidoPage() {
             </p>
           ) : (
             <div className="relative pl-8 space-y-8">
-  <div className="absolute left-3 top-0 bottom-0 w-[2px] bg-slate-200 rounded-full" />
+              <div className="absolute left-3 top-0 bottom-0 w-[2px] bg-slate-200 rounded-full" />
 
-  {eventos.map((e: any, idx: number) => (
-    <div key={idx} className="relative">
-      <div className="absolute left-1 top-1 w-4 h-4 bg-indigo-600 rounded-full ring-4 ring-white shadow" />
+              {eventos.map((e: any, idx: number) => (
+                <div key={idx} className="relative">
+                  <div className="absolute left-1 top-1 w-4 h-4 bg-indigo-600 rounded-full ring-4 ring-white shadow" />
 
-      <div className="flex justify-between items-start ml-8">
-        <div>
-          <p className="font-medium text-slate-800">
-            {ESTADOS_LABEL[e.estado] ?? e.estado}
-          </p>
-        </div>
+                  <div className="flex justify-between items-start ml-8">
+                    <div>
+                      <p className="font-medium text-slate-800">
+                        {ESTADOS_LABEL[e.estado] ?? e.estado}
+                      </p>
+                    </div>
 
-        <p className="text-sm text-slate-500 whitespace-nowrap">
-          {e.fecha
-            ? new Date(e.fecha).toLocaleString()
-            : "—"}
-        </p>
-      </div>
-    </div>
-  ))}
-</div>
+                    <p className="text-sm text-slate-500 whitespace-nowrap">
+                      {e.fecha
+                        ? new Date(e.fecha).toLocaleString()
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 

@@ -12,6 +12,7 @@ export default function RegisterVendedor() {
 
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
+  const [socialUrl, setSocialUrl] = useState(""); // ✅ NUEVO
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [mensaje, setMensaje] = useState("");
@@ -48,6 +49,7 @@ export default function RegisterVendedor() {
         data: {
           role: "vendor",
           nombre_responsable: nombre,
+          social_url: socialUrl, // ✅ NUEVO
         },
       },
     });
@@ -58,7 +60,7 @@ export default function RegisterVendedor() {
       return;
     }
 
-await supabase.auth.signOut();
+    await supabase.auth.signOut();
 
     // enviar correo de verificación con tu API
     try {
@@ -126,6 +128,22 @@ await supabase.auth.signOut();
               onChange={(e) => setEmail(e.target.value)}
               placeholder="correo@ejemplo.com"
             />
+          </div>
+
+          {/* ✅ NUEVO CAMPO */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Red social / sitio web
+            </label>
+            <Input
+              className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
+              value={socialUrl}
+              onChange={(e) => setSocialUrl(e.target.value)}
+              placeholder="https://instagram/facebook.com/tu_tienda"
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Esto ayudará a los establecimientos a confiar en ti.
+            </p>
           </div>
 
           <div>
