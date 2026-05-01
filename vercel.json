@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/jobs/expirar-pedidos",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
