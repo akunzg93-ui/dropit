@@ -2,14 +2,15 @@
   "name": "entregas-web",
   "version": "0.1.0",
   "private": true,
- "scripts": {
-  "dev": "next dev",
-  "dev:pdf": "cd pdf-service && node index.js",
-  "dev:all": "concurrently \"npm run dev\" \"npm run dev:pdf\"",
-  "build": "next build",
-  "start": "next start",
-  "lint": "eslint"
-},
+  "scripts": {
+    "dev": "next dev",
+    "dev:pdf": "cd pdf-service && node index.js",
+    "dev:stripe": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:pdf\" \"npm run dev:stripe\"",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
@@ -22,6 +23,7 @@
     "@supabase/supabase-js": "^2.90.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "concurrently": "^9.2.1",
     "fontkit": "^1.9.0",
     "html5-qrcode": "^2.3.8",
     "leaflet": "^1.9.4",
