@@ -81,13 +81,43 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
 
         {/* LOGO */}
-        <Link href="/" className="flex items-center">
-          <img
-            src="/brand/logo-dropit.png"
-            alt="DROPIT"
-            className="h-16 w-auto"
-          />
-        </Link>
+        <div
+  onClick={() => {
+    if (!user) {
+      window.location.href = "/";
+      return;
+    }
+
+    if (role === "admin") {
+      window.location.href = "/admin";
+      return;
+    }
+
+    if (role === "establishment") {
+      window.location.href = "/establecimiento/estado";
+      return;
+    }
+
+    if (role === "vendor") {
+      window.location.href = "/vendedor/dashboard";
+      return;
+    }
+
+    if (role === "buyer") {
+      window.location.href = "/comprador";
+      return;
+    }
+
+    window.location.href = "/";
+  }}
+  className="flex items-center cursor-pointer"
+>
+  <img
+    src="/brand/logo-dropit.png"
+    alt="DROPIT"
+    className="h-16 w-auto"
+  />
+</div>
 
         {/* MENU DESKTOP */}
         <div className="hidden md:flex gap-8 text-sm font-medium items-center">
