@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import StarsPromedio from "@/app/components/StarsPromedio";
 
 const MapaEstablecimientos = dynamic(
   () => import("../components/MapaEstablecimientos"),
@@ -45,15 +46,60 @@ export default function CompradorPage() {
     if (pid) setPedidoId(Number(pid));
   }, []);
 
+  // 🔥 PEDIDO + VENDEDOR + RATING
   useEffect(() => {
     if (!pedidoId) return;
 
-    supabase
-      .from("pedidos")
-      .select("*")
-      .eq("id", pedidoId)
-      .single()
-      .then(({ data }) => setPedido(data));
+    async function cargarPedido() {
+      // 1. pedido normal
+      const { data } = await supabase
+        .from("pedidos")
+        .select("*")
+        .eq("id", pedidoId)
+        .single();
+
+      if (!data) return;
+
+      let vendedor = null;
+      let vendedor_rating = null;
+
+      // 2. traer vendedor manual
+      if (data.vendedor_id !== null && data.vendedor_id !== undefined) {
+        const res = await fetch("/api/orders/users/get-vendedor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            vendedor_id: data.vendedor_id,
+          }),
+        });
+
+        const json = await res.json();
+        const vend = json.data;
+
+        vendedor = vend;
+
+        console.log("vendedor_id:", data.vendedor_id);
+
+        // 3. traer rating
+        if (vend?.id) {
+          const { data: rating } = await supabase
+            .from("ratings_resumen")
+            .select("rating_promedio, total_reviews")
+            .eq("user_id", vend.id)
+            .maybeSingle();
+
+          vendedor_rating = rating;
+        }
+      }
+
+      setPedido({
+        ...data,
+        vendedor,
+        vendedor_rating,
+      });
+    }
+
+    cargarPedido();
   }, [pedidoId]);
 
   useEffect(() => {
@@ -64,6 +110,8 @@ export default function CompradorPage() {
       .select(`
         establecimientos (
           id,
+          uuid,
+          usuario_id,
           nombre,
           direccion,
           lat,
@@ -72,12 +120,27 @@ export default function CompradorPage() {
         )
       `)
       .eq("pedido_id", pedidoId)
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         const ests = (data || [])
           .map((r) => r.establecimientos)
           .filter(Boolean);
 
-        setEstablecimientos(ests);
+        // 🔥 traer ratings de establecimientos
+        const { data: ratings } = await supabase
+          .from("ratings_resumen")
+          .select("user_id, rating_promedio, total_reviews");
+
+        const estsConRating = ests.map((e) => {
+          const r = ratings?.find((x) => x.user_id === e.uuid);
+
+          return {
+            ...e,
+            rating_promedio: r?.rating_promedio ?? 0,
+            total_reviews: r?.total_reviews ?? 0,
+          };
+        });
+
+        setEstablecimientos(estsConRating);
       });
   }, [pedidoId]);
 
@@ -123,16 +186,16 @@ export default function CompradorPage() {
     <div className="min-h-screen bg-slate-50 py-12 px-6">
       <div className="max-w-6xl mx-auto space-y-10">
 
-        {/* HEADER PREMIUM + PROGRESO */}
+        {/* HEADER */}
         <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-3xl p-8 shadow-lg space-y-4">
-          
+
           <div className="flex items-center justify-between text-sm opacity-90">
             <span>Paso 2 de 3</span>
             <span>Selección de entrega</span>
           </div>
 
           <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
-            <div className="h-full w-2/3 bg-white rounded-full transition-all"></div>
+            <div className="h-full w-2/3 bg-white rounded-full"></div>
           </div>
 
           <h1 className="text-3xl font-bold">
@@ -140,9 +203,29 @@ export default function CompradorPage() {
           </h1>
 
           {pedido && (
-            <p className="text-white/90">
-              Pedido <strong>{pedido.folio}</strong> — {pedido.producto}
-            </p>
+            <>
+              <p className="text-white/90">
+                Pedido <strong>{pedido.folio}</strong> — {pedido.producto}
+              </p>
+
+              {pedido?.vendedor && (
+                <div className="text-white/90 text-sm mt-2 space-y-2">
+                  <p>
+                    Vendedor:{" "}
+                    <strong>
+                      {pedido.vendedor?.nombre ||
+                        pedido.vendedor?.email ||
+                        "Vendedor"}
+                    </strong>
+                  </p>
+
+                  <StarsPromedio
+  evaluado_id={pedido.vendedor.id}
+  tipo="vendedor"
+/>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -157,12 +240,14 @@ export default function CompradorPage() {
           </div>
         </div>
 
-        {/* CONTADOR SELECCIÓN */}
+        {/* CONTADOR */}
         {seleccion && (
           <div className="text-sm text-indigo-600 font-semibold">
             1 punto seleccionado
           </div>
         )}
+
+
 
         {/* LISTA */}
         <div className="grid gap-5">
@@ -173,7 +258,7 @@ export default function CompradorPage() {
               <div
                 key={e.id}
                 onClick={() => setSeleccion(e.id)}
-                className={`rounded-2xl p-6 cursor-pointer transition-all duration-300 border transform ${
+                className={`rounded-2xl p-6 cursor-pointer transition-all duration-300 border ${
                   seleccion === e.id
                     ? "bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500 shadow-lg scale-[1.01]"
                     : "bg-white border-slate-200 hover:bg-slate-50 hover:shadow-md"
@@ -185,6 +270,13 @@ export default function CompradorPage() {
                       {e.nombre}
                     </h3>
 
+                    <div className="mt-2">
+                      <StarsPromedio
+  evaluado_id={e.uuid}
+  tipo="establecimiento"
+/>
+                    </div>
+
                     <p className="text-sm text-slate-600 mt-1">
                       {e.direccion}
                     </p>
@@ -195,20 +287,20 @@ export default function CompradorPage() {
 
                     {e.distancia && (
                       <p className="text-xs text-slate-500 mt-2">
-                        {e.distancia.toFixed(2)} km de distancia
+                        {e.distancia.toFixed(2)} km
                       </p>
                     )}
                   </div>
 
                   <div className="flex flex-col gap-2 items-end">
                     {esMasCercano && (
-                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
+                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
                         Más cercano
                       </span>
                     )}
 
                     {seleccion === e.id && (
-                      <span className="text-xs bg-indigo-600 text-white px-2 py-1 rounded-full font-medium">
+                      <span className="text-xs bg-indigo-600 text-white px-2 py-1 rounded-full">
                         Seleccionado
                       </span>
                     )}
@@ -223,7 +315,7 @@ export default function CompradorPage() {
         <Button
           disabled={!seleccion}
           onClick={confirmarSeleccion}
-          className={`w-full py-6 text-lg rounded-2xl transition-all duration-300 ${
+          className={`w-full py-6 text-lg rounded-2xl ${
             seleccion
               ? "bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.02] shadow-xl"
               : "bg-slate-300 cursor-not-allowed"

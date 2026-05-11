@@ -1,18 +1,21 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
   Popup,
 } from "react-leaflet";
+
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
 // -----------------------------------------------------
-// 🔹 Fix iconos Leaflet default (ESTABLE)
+// 🔹 Fix iconos Leaflet default
 // -----------------------------------------------------
 delete L.Icon.Default.prototype._getIconUrl;
+
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -26,13 +29,27 @@ export default function MapaEstablecimientos({
   establecimientos = [],
   onMarkerClick,
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const center =
     establecimientos.length > 0
       ? [establecimientos[0].lat, establecimientos[0].lng]
-      : [19.432608, -99.133209]; // CDMX
+      : [19.432608, -99.133209];
+
+  // 🔥 evitar render SSR/hydration raro
+  if (!mounted) {
+    return (
+      <div className="w-full h-full bg-slate-100 animate-pulse rounded-xl" />
+    );
+  }
 
   return (
     <MapContainer
+      key={JSON.stringify(establecimientos)}
       center={center}
       zoom={12}
       style={{ height: "100%", width: "100%" }}

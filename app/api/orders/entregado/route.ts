@@ -1,8 +1,6 @@
-// app/api/orders/entregado/route.ts
-
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { sendEmail } from "@/lib/email"; // ✅ usamos helper central
+import { sendEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   try {
@@ -61,6 +59,9 @@ export async function POST(req: Request) {
       .update({ estado: "entregado" })
       .eq("id", pedido.id);
 
+    // 🔥 URL de evaluación (NUEVO)
+    const urlEvaluacion = `${process.env.NEXT_PUBLIC_SITE_URL}/evaluar/${pedido.id}`;
+
     // 📧 Correo al comprador
     try {
       await sendEmail({
@@ -88,9 +89,19 @@ export async function POST(req: Request) {
               </div>
 
               <p style="font-size:14px;color:#555;">
-                Gracias por usar <strong>Dropit</strong>.  
-                Esperamos verte pronto de nuevo 🙌
+                Gracias por usar <strong>Dropit</strong>.
               </p>
+
+              <!-- 🔥 BOTÓN NUEVO -->
+              <div style="text-align:center;margin-top:24px;">
+                <a href="${urlEvaluacion}" 
+                  style="display:inline-block;padding:14px 24px;
+                  background:linear-gradient(90deg,#4f46e5,#2563eb);
+                  color:white;border-radius:10px;
+                  text-decoration:none;font-weight:600;">
+                  ⭐ Evaluar experiencia
+                </a>
+              </div>
 
               <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
 
@@ -127,7 +138,12 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      pedido_id: pedido.id,
+      folio: pedido.folio,
+    });
+
   } catch (err) {
     console.error("❌ ERROR ENTREGADO:", err);
     return NextResponse.json(

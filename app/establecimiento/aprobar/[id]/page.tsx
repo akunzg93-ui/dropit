@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useParams, useRouter } from "next/navigation";
+import StarsPromedio from "@/app/components/StarsPromedio";
 
 export default function AprobarPedido() {
   const { id } = useParams();
@@ -20,6 +21,7 @@ export default function AprobarPedido() {
         .single();
 
       if (!error) setPedido(data);
+
       setLoading(false);
     }
 
@@ -57,39 +59,69 @@ export default function AprobarPedido() {
   return (
     <div className="min-h-screen bg-slate-50 p-6">
 
-      {/* 🔵 HEADER PRO */}
+      {/* 🔵 HEADER */}
       <div className="max-w-3xl mx-auto mb-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-blue-500 text-white rounded-2xl p-6 shadow-lg">
-          <p className="text-sm opacity-80">Validación de pedido</p>
-          <h1 className="text-2xl font-bold">Revisión de recepción</h1>
-          <p className="text-sm opacity-80 mt-1">
+        <div className="bg-gradient-to-r from-indigo-600 to-blue-500 text-white rounded-3xl p-8 shadow-xl">
+
+          <p className="text-sm opacity-80">
+            Validación de pedido
+          </p>
+
+          <h1 className="text-3xl font-bold mt-1">
+            Revisión de recepción
+          </h1>
+
+          <p className="text-sm opacity-80 mt-2">
             Confirma si deseas aceptar este envío en tu establecimiento.
           </p>
+
         </div>
       </div>
 
-      {/* 📦 CARD PRINCIPAL */}
-      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow p-6 space-y-6">
+      {/* 📦 CARD */}
+      <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-lg border border-slate-200 p-8 space-y-8">
 
         {/* INFO */}
         <div className="grid md:grid-cols-2 gap-6">
 
           <div>
-            <p className="text-sm text-gray-500">Folio</p>
-            <p className="text-lg font-semibold">{pedido.folio}</p>
+            <p className="text-sm text-slate-500">
+              Folio
+            </p>
+
+            <p className="text-2xl font-bold text-slate-900">
+              {pedido.folio}
+            </p>
           </div>
 
           <div>
-            <p className="text-sm text-gray-500">Estado</p>
-            <span className="inline-block px-3 py-1 text-xs rounded-full bg-amber-100 text-amber-700">
+            <p className="text-sm text-slate-500">
+              Estado
+            </p>
+
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700 mt-1">
               Pendiente de aprobación
             </span>
           </div>
 
         </div>
 
+        {/* ⭐ EVALUACIÓN */}
+        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 border border-indigo-400 rounded-2xl p-5 shadow-lg">
+
+          <p className="text-sm text-white/80 mb-2">
+            Evaluación del vendedor
+          </p>
+
+          <StarsPromedio
+            evaluado_id={pedido.vendedor_id}
+            tipo="vendedor"
+          />
+
+        </div>
+
         {/* ⚠️ ALERTA */}
-        <div className="bg-amber-50 border border-amber-200 text-amber-700 rounded-xl p-4 text-sm">
+        <div className="bg-amber-50 border border-amber-200 text-amber-700 rounded-2xl p-4 text-sm">
           ⚠️ Al aceptar este pedido, te comprometes a recibir el paquete y
           resguardarlo hasta que el cliente lo recoja.
         </div>
@@ -99,14 +131,14 @@ export default function AprobarPedido() {
 
           <button
             onClick={aceptar}
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-medium transition"
+            className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.01] text-white py-3 rounded-2xl font-semibold transition shadow-lg"
           >
             Aceptar pedido
           </button>
 
           <button
             onClick={rechazar}
-            className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-medium transition"
+            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-2xl font-semibold transition border border-slate-200"
           >
             Rechazar
           </button>
@@ -116,7 +148,7 @@ export default function AprobarPedido() {
         {/* 🔙 VOLVER */}
         <button
           onClick={() => router.push("/establecimiento")}
-          className="text-sm text-gray-500 hover:text-gray-700"
+          className="text-sm text-slate-500 hover:text-slate-700 transition"
         >
           ← Volver
         </button>

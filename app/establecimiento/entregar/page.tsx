@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
+import { useRouter } from "next/navigation";
 
 type PedidoPreview = {
   id: string;
@@ -18,6 +19,8 @@ export default function EntregarPedidoPage() {
 
   const [scannerActivo, setScannerActivo] = useState(false);
   const [pedido, setPedido] = useState<PedidoPreview | null>(null);
+
+  const router = useRouter();
 
   const qrInstance = useRef<Html5Qrcode | null>(null);
 
@@ -148,6 +151,8 @@ export default function EntregarPedidoPage() {
         setMensaje(data.error || "Error al entregar pedido");
         return;
       }
+
+      router.push(`/establecimiento/evaluar/${pedido.id}`)
 
       setMensaje("✅ Pedido entregado correctamente");
       setPedido(null);

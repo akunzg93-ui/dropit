@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import SharePedidoCard from "@/components/ui/SharePedidoCard";
+import StarsPromedio from "@/app/components/StarsPromedio";
 
 import {
   Select,
@@ -376,12 +377,19 @@ await fetch("/api/orders/email/pedido-creado", {
                 }`}
               >
                 <h3 className="font-semibold text-lg">
-                  {est.nombre}
-                </h3>
+  {est.nombre}
+</h3>
 
-                <p className="text-sm mt-1 opacity-80">
-                  {est.direccion}
-                </p>
+<div className="mt-2">
+  <StarsPromedio
+    evaluado_id={est.uuid}
+    tipo="establecimiento"
+  />
+</div>
+
+<p className="text-sm mt-2 opacity-80">
+  {est.direccion}
+</p>
 
                 <p className="text-xs mt-2 opacity-70">
                   Small: {est.capacidad_small} — Medium:{" "}
