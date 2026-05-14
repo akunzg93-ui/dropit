@@ -90,85 +90,137 @@ export default function ValidarPedidoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+  <div className="min-h-screen bg-slate-50 pb-36">
 
-      {/* HEADER */}
-      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-16 px-6">
-        <div className="max-w-4xl mx-auto text-center space-y-3">
-          <h1 className="text-4xl font-bold">
-            Rastrea o confirma tu pedido Dropit
-          </h1>
-          <p className="text-white/80">
-            Confirma o rastrea tu pedido de forma rápida y segura.
-          </p>
+    {/* HEADER */}
+    <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white pt-5 pb-16 md:pt-8 md:pb-20 px-4 md:px-6">
+      <div className="max-w-4xl mx-auto text-center space-y-2">
+
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs font-medium">
+          <ShieldCheck size={14} />
+          Seguimiento seguro
         </div>
-      </div>
 
-      {/* CARD */}
-      <div className="max-w-md mx-auto -mt-12 px-6">
-        <div className="bg-white rounded-3xl shadow-xl p-10 space-y-8 transition-all duration-300">
+        <h1 className="text-xl md:text-4xl font-bold leading-tight">
+          Rastrea o confirma tu pedido Dropit
+        </h1>
 
-          {/* ICONO DINÁMICO */}
-          <div className="flex justify-center">
-            <div className="w-20 h-20 rounded-3xl bg-indigo-100 flex items-center justify-center transition-all">
-
-              {estadoVisual === "buscando" && (
-                <Loader2 className="animate-spin text-indigo-600" size={34} />
-              )}
-
-              {estadoVisual === "encontrado" && (
-                <CheckCircle2 className="text-emerald-500 scale-110 transition" size={34} />
-              )}
-
-              {estadoVisual === "idle" && (
-                <PackageCheck className="text-indigo-600" size={34} />
-              )}
-
-            </div>
-          </div>
-
-          {/* INPUT */}
-          <div className="space-y-3">
-            <input
-              className="w-full border border-slate-300 rounded-2xl px-5 py-4 text-center text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-              placeholder="EW-XXXXXXX"
-              value={folio}
-              onChange={(e) => setFolio(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") validarPedido();
-              }}
-              disabled={validando}
-            />
-
-            <p className="text-xs text-slate-500 text-center">
-              Ejemplo: <span className="font-semibold">EW-AB12CD34</span>
-            </p>
-          </div>
-
-          {/* BOTÓN (YA OPCIONAL) */}
-          <button
-            onClick={validarPedido}
-            disabled={validando}
-            className="w-full h-14 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-60"
-          >
-            {validando ? "Validando..." : "Validar pedido"}
-          </button>
-
-          {/* ERROR */}
-          {mensaje && (
-            <div className="bg-red-50 border border-red-200 text-red-600 text-sm text-center py-3 px-4 rounded-2xl animate-pulse">
-              {mensaje}
-            </div>
-          )}
-
-          {/* SEGURIDAD */}
-          <div className="flex items-center justify-center gap-2 text-xs text-slate-500 pt-2">
-            <ShieldCheck size={14} />
-            Conexión segura y protegida por Dropit
-          </div>
-
-        </div>
+        <p className="text-white/80 text-sm md:text-base max-w-lg mx-auto">
+          Confirma o rastrea tu pedido de forma rápida y segura.
+        </p>
       </div>
     </div>
-  );
+
+    {/* CARD */}
+    <div className="max-w-md mx-auto -mt-10 px-4 md:px-6">
+      <div className="bg-white rounded-[28px] shadow-xl border border-slate-200 p-4 md:p-10 space-y-5 transition-all duration-300">
+
+        {/* ICONO DINÁMICO */}
+        <div className="flex justify-center">
+          <div className="w-16 h-16 md:w-20 md:h-20 rounded-[28px] bg-indigo-100 flex items-center justify-center transition-all">
+
+            {estadoVisual === "buscando" && (
+              <Loader2
+                className="animate-spin text-indigo-600"
+                size={28}
+              />
+            )}
+
+            {estadoVisual === "encontrado" && (
+              <CheckCircle2
+                className="text-emerald-500 scale-110 transition"
+                size={28}
+              />
+            )}
+
+            {estadoVisual === "idle" && (
+              <PackageCheck
+                className="text-indigo-600"
+                size={28}
+              />
+            )}
+
+          </div>
+        </div>
+
+        {/* INPUT */}
+        <div className="space-y-3">
+
+          <input
+            className="
+              w-full
+              border
+              border-slate-300
+              rounded-2xl
+              px-5
+              py-4
+              text-center
+              text-2xl
+              tracking-wider
+              uppercase
+              focus:outline-none
+              focus:ring-2
+              focus:ring-indigo-500
+              transition
+            "
+            placeholder="EW-XXXXXXX"
+            value={folio}
+            onChange={(e) => setFolio(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") validarPedido();
+            }}
+            disabled={validando}
+          />
+
+          <p className="text-xs text-slate-500 text-center">
+            Ejemplo:{" "}
+            <span className="font-semibold">
+              EW-AB12CD34
+            </span>
+          </p>
+        </div>
+
+        {/* BOTÓN */}
+        <button
+          onClick={validarPedido}
+          disabled={validando}
+          className="
+            w-full
+            h-14
+            rounded-2xl
+            bg-gradient-to-r
+            from-indigo-600
+            to-blue-600
+            text-white
+            font-semibold
+            shadow-lg
+            hover:shadow-xl
+            hover:scale-[1.02]
+            active:scale-[0.98]
+            transition-all
+            disabled:opacity-60
+          "
+        >
+          {validando
+            ? "Validando..."
+            : "Validar pedido"}
+        </button>
+
+        {/* ERROR */}
+        {mensaje && (
+          <div className="bg-red-50 border border-red-200 text-red-600 text-sm text-center py-3 px-4 rounded-2xl animate-pulse">
+            {mensaje}
+          </div>
+        )}
+
+        {/* SEGURIDAD */}
+        <div className="flex items-center justify-center gap-2 text-xs text-slate-500 pt-1">
+          <ShieldCheck size={14} />
+          Conexión segura y protegida por Dropit
+        </div>
+
+      </div>
+    </div>
+  </div>
+);
 }

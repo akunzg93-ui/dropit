@@ -178,11 +178,11 @@ export default function EntregarPedidoPage() {
   // 🖥 UI
   // --------------------------------------------------
  return (
-  <div className="min-h-screen bg-slate-50 py-12 px-6">
-    <div className="max-w-3xl mx-auto space-y-10">
+  <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">
+    <div className="max-w-3xl mx-auto space-y-5 md:space-y-10">
 
       {/* HEADER PREMIUM */}
-      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-3xl p-8 shadow-lg space-y-4">
+      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-[28px] p-5 md:p-8 shadow-lg space-y-3">
 
         <div className="flex items-center justify-between text-sm opacity-90">
           <span>Proceso operativo</span>
@@ -193,7 +193,7 @@ export default function EntregarPedidoPage() {
           <div className="h-full w-full bg-white rounded-full"></div>
         </div>
 
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-2xl md:text-3xl font-bold leading-tight">
           Entrega de pedido
         </h1>
 
@@ -203,14 +203,14 @@ export default function EntregarPedidoPage() {
       </div>
 
       {/* CARD */}
-      <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 space-y-6 transition-all duration-300">
+      <div className="bg-white rounded-[28px] shadow-xl border border-slate-200 p-5 md:p-8 space-y-5 transition-all duration-300">
 
         {!pedido && (
           <>
             {/* BOTÓN QR */}
             <button
               onClick={scannerActivo ? detenerScanner : iniciarScanner}
-              className={`w-full py-4 rounded-2xl font-semibold text-lg transition-all duration-300 ${
+              className={`w-full py-3.5 md:py-4 rounded-2xl font-semibold text-lg transition-all duration-300 ${
                 scannerActivo
                   ? "bg-emerald-100 text-emerald-700 border border-emerald-300 animate-pulse"
                   : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.02] text-white shadow-lg"
@@ -229,24 +229,29 @@ export default function EntregarPedidoPage() {
             {/* DIVISOR */}
             <div className="flex items-center gap-4">
               <div className="flex-1 h-px bg-slate-200" />
+
               <span className="text-xs text-slate-400 font-medium">
                 o ingreso manual
               </span>
+
               <div className="flex-1 h-px bg-slate-200" />
             </div>
 
             {/* INPUTS */}
             <div className="space-y-4">
+
               <input
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+                className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
                 placeholder="EW-XXXXXXX"
                 value={folio}
-                onChange={(e) => setFolio(e.target.value.toUpperCase())}
+                onChange={(e) =>
+                  setFolio(e.target.value.toUpperCase())
+                }
               />
 
               <input
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
-                placeholder="Código de entrega del comprador"
+                className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+                placeholder="Código de entrega"
                 value={codigo}
                 onChange={(e) => setCodigo(e.target.value)}
               />
@@ -255,35 +260,49 @@ export default function EntregarPedidoPage() {
             <button
               onClick={consultarPedido}
               disabled={loading}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium disabled:opacity-50 transition"
+              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium disabled:opacity-50 transition"
             >
-              {loading ? "Validando..." : "Ver resumen del pedido"}
+              {loading
+                ? "Validando..."
+                : "Ver resumen del pedido"}
             </button>
           </>
         )}
 
         {pedido && (
-          <div className="space-y-6 transition-all duration-300">
+          <div className="space-y-6 animate-fade-in transition-all duration-300">
 
             {/* RESUMEN */}
-            <div className="rounded-2xl p-6 border border-slate-200 bg-slate-50 shadow-sm">
+            <div className="rounded-2xl p-6 border border-slate-200 bg-slate-50 transition-all duration-300 shadow-sm">
+
               <h3 className="text-lg font-semibold text-slate-900 mb-4">
                 Resumen del pedido
               </h3>
 
               <div className="space-y-2 text-sm">
+
                 <div>
-                  <span className="text-slate-500">Folio:</span>{" "}
-                  <span className="font-medium">{pedido.folio}</span>
+                  <span className="text-slate-500">
+                    Folio:
+                  </span>{" "}
+                  <span className="font-medium">
+                    {pedido.folio}
+                  </span>
                 </div>
 
                 <div>
-                  <span className="text-slate-500">Producto:</span>{" "}
-                  <span className="font-medium">{pedido.producto}</span>
+                  <span className="text-slate-500">
+                    Producto:
+                  </span>{" "}
+                  <span className="font-medium">
+                    {pedido.producto}
+                  </span>
                 </div>
 
                 <div>
-                  <span className="text-slate-500">Establecimiento:</span>{" "}
+                  <span className="text-slate-500">
+                    Establecimiento:
+                  </span>{" "}
                   <span className="font-medium">
                     {pedido.establecimiento_nombre}
                   </span>
@@ -291,15 +310,15 @@ export default function EntregarPedidoPage() {
               </div>
             </div>
 
-            {/* CONFIRMAR ENTREGA */}
+            {/* CONFIRMAR */}
             <button
               onClick={confirmarEntrega}
               disabled={loading}
               className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-semibold transition-all duration-300 shadow-md hover:scale-[1.02] active:scale-[0.98]"
             >
               {loading
-                ? "Entregando..."
-                : "Confirmar entrega al comprador"}
+                ? "Confirmando..."
+                : "Confirmar entrega del paquete"}
             </button>
 
             <button
@@ -311,7 +330,7 @@ export default function EntregarPedidoPage() {
           </div>
         )}
 
-        {/* MENSAJE CON FEEDBACK VISUAL */}
+        {/* MENSAJE */}
         {mensaje && (
           <div
             className={`mt-4 text-center font-medium transition-all duration-300 ${
@@ -325,6 +344,7 @@ export default function EntregarPedidoPage() {
                 ✔
               </div>
             )}
+
             {mensaje}
           </div>
         )}

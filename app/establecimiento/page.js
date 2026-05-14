@@ -368,375 +368,665 @@ if (horario === "custom" && horaApertura && horaCierre) {
   // UI PREMIUM (CON MAPA)
   // -------------------------
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-6">
-      <div className="max-w-6xl mx-auto space-y-10">
+  <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">
+    <div className="max-w-6xl mx-auto space-y-5 md:space-y-10">
 
-        {/* HEADER PREMIUM */}
-        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-3xl p-8 shadow-xl space-y-4">
-          <div className="flex items-center justify-between text-sm opacity-90">
-            <span>Proceso operativo</span>
-            <span>Registro de establecimiento</span>
-          </div>
+      {/* HEADER PREMIUM */}
+      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-[28px] p-5 md:p-8 shadow-xl space-y-3">
 
-          <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
-            <div className="h-full w-1/2 bg-white rounded-full transition-all"></div>
-          </div>
-
-          <h1 className="text-3xl font-bold">Registro de establecimientos</h1>
-          <p className="text-white/90">
-            Configura ubicaciones, horarios y capacidades de recepción.
-          </p>
+        <div className="flex items-center justify-between text-sm opacity-90">
+          <span>Proceso operativo</span>
+          <span>Registro de establecimiento</span>
         </div>
 
-        {/* MENSAJE */}
-        {mensaje && (
-          <div
-            className={`rounded-2xl border p-4 text-sm shadow-sm ${
-              mensaje.includes("✅")
-                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                : mensaje.includes("⚠️")
-                ? "bg-amber-50 border-amber-200 text-amber-800"
-                : "bg-slate-50 border-slate-200 text-slate-700"
-            }`}
-          >
-            {mensaje}
-          </div>
-        )}
+        <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+          <div className="h-full w-1/2 bg-white rounded-full transition-all"></div>
+        </div>
 
-        {/* FORMULARIO */}
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 space-y-6"
+        <h1 className="text-2xl md:text-3xl font-bold leading-tight">
+          Registro de establecimientos
+        </h1>
+
+        <p className="text-white/90 text-sm md:text-base">
+          Configura ubicaciones, horarios y capacidades de recepción.
+        </p>
+      </div>
+
+      {/* MENSAJE */}
+      {mensaje && (
+        <div
+          className={`rounded-2xl border p-4 text-sm shadow-sm ${
+            mensaje.includes("✅")
+              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+              : mensaje.includes("⚠️")
+              ? "bg-amber-50 border-amber-200 text-amber-800"
+              : "bg-slate-50 border-slate-200 text-slate-700"
+          }`}
         >
-          <h2 className="text-xl font-semibold text-slate-800">
-            Datos del establecimiento
-          </h2>
+          {mensaje}
+        </div>
+      )}
 
-          {/* AUTOCOMPLETE */}
+      {/* FORMULARIO */}
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white rounded-[28px] shadow-xl border border-slate-200 p-5 md:p-8 space-y-5"
+      >
+
+        <h2 className="text-2xl font-semibold text-slate-800">
+          Datos del establecimiento
+        </h2>
+
+        {/* AUTOCOMPLETE */}
+        <div>
+          <label className="block text-sm font-medium mb-2 text-slate-700">
+            Buscar dirección
+          </label>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+
+            <div className="relative flex-1">
+
+              <input
+                className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+                placeholder="Ej. Calle, colonia..."
+                value={busqueda}
+                onChange={(e) =>
+                  manejarCambioBusqueda(e.target.value)
+                }
+              />
+
+              {cargandoSugerencias && (
+                <div className="absolute right-3 top-3 text-xs text-slate-400">
+                  ...
+                </div>
+              )}
+
+              {sugerencias.length > 0 && (
+                <ul className="absolute z-20 mt-2 w-full bg-white border rounded-2xl shadow-lg text-sm max-h-48 overflow-auto">
+
+                  {sugerencias.map((sug) => (
+                    <li
+                      key={sug.id}
+                      className="px-4 py-3 hover:bg-indigo-50 cursor-pointer"
+                      onClick={() =>
+                        seleccionarSugerencia(sug)
+                      }
+                    >
+                      {sug.label}
+                    </li>
+                  ))}
+
+                </ul>
+              )}
+
+            </div>
+
+            <button
+              type="button"
+              onClick={usarUbicacionActual}
+              className="
+                px-4
+                py-3.5
+                rounded-2xl
+                bg-slate-800
+                text-white
+                text-sm
+                font-medium
+                hover:bg-black
+                transition
+                whitespace-nowrap
+              "
+            >
+              Usar ubicación
+            </button>
+
+          </div>
+        </div>
+
+        {/* GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+
           <div>
             <label className="block text-sm font-medium mb-2 text-slate-700">
-              Buscar dirección
+              Nombre
             </label>
 
-            <div className="flex gap-3">
-              <div className="relative flex-1">
-                <input
-                  className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
-                  placeholder="Ej. Calle, colonia, ciudad..."
-                  value={busqueda}
-                  onChange={(e) => manejarCambioBusqueda(e.target.value)}
-                />
-
-                {cargandoSugerencias && (
-                  <div className="absolute right-3 top-3 text-xs text-slate-400">...</div>
-                )}
-
-                {sugerencias.length > 0 && (
-                  <ul className="absolute z-20 mt-2 w-full bg-white border rounded-xl shadow-lg text-sm max-h-48 overflow-auto">
-                    {sugerencias.map((sug) => (
-                      <li
-                        key={sug.id}
-                        className="px-4 py-2 hover:bg-indigo-50 cursor-pointer"
-                        onClick={() => seleccionarSugerencia(sug)}
-                      >
-                        {sug.label}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={usarUbicacionActual}
-                className="px-4 py-3 rounded-xl bg-slate-800 text-white text-sm font-medium hover:bg-black transition whitespace-nowrap"
-              >
-                Usar ubicación
-              </button>
-            </div>
-          </div>
-
-          {/* CAMPOS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-medium mb-2 text-slate-700">
-                Nombre
-              </label>
-              <input
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2 text-slate-700">
-                Código Postal
-              </label>
-              <input
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                value={cp}
-                onChange={(e) => setCp(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2 text-slate-700">
-              Dirección
-            </label>
             <input
-              className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              value={direccion}
-              onChange={(e) => setDireccion(e.target.value)}
+              className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
             />
           </div>
 
-{/* INSTRUCCIONES PARA LLEGAR */}
-<div>
-  <label className="block text-sm font-medium mb-2 text-slate-700">
-    Cómo llegar al establecimiento
-  </label>
-
-  <textarea
-    className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-    placeholder="Ej: Dentro de Plaza San Ángel, segundo piso, local 24..."
-    rows={3}
-    value={instruccionesLlegada}
-    onChange={(e) => setInstruccionesLlegada(e.target.value)}
-  />
-</div>
-
-{/* GOOGLE MAPS */}
-<div>
-  <label className="block text-sm font-medium mb-2 text-slate-700">
-    Link de Google Maps
-  </label>
-
-  <input
-    className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-    placeholder="https://maps.google.com/..."
-    value={googleMapsUrl}
-    onChange={(e) => setGoogleMapsUrl(e.target.value)}
-  />
-
-  <p className="text-xs text-slate-500 mt-1">
-    Puedes pegar un link de Google Maps para que los usuarios abran la ruta directamente.
-  </p>
-</div>
-
-          {/* HORARIO */}
           <div>
             <label className="block text-sm font-medium mb-2 text-slate-700">
-              Horario
+              Código Postal
             </label>
 
-            <Select value={horario} onValueChange={setHorario}>
-              <SelectTrigger className="rounded-xl border-slate-300">
-                <SelectValue placeholder="Selecciona un horario" />
-              </SelectTrigger>
-              <SelectContent>
-                {HORARIOS.map((h) => (
-                  <SelectItem key={h} value={h}>
-                    {h}
-                  </SelectItem>
-                ))}
-                <SelectItem value="custom">
-  Horario personalizado
-</SelectItem>
-              </SelectContent>
-            </Select>
-            {horario === "custom" && (
-  <div className="grid grid-cols-2 gap-4 mt-4">
+            <input
+              className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              value={cp}
+              onChange={(e) => setCp(e.target.value)}
+            />
+          </div>
 
-    <div>
-      <label className="text-xs text-slate-500">
-        Apertura
-      </label>
+        </div>
 
-      <input
-        type="time"
-        value={horaApertura}
-        onChange={(e) => setHoraApertura(e.target.value)}
-        className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm"
-      />
-    </div>
+        {/* DIRECCIÓN */}
+        <div>
+          <label className="block text-sm font-medium mb-2 text-slate-700">
+            Dirección
+          </label>
 
-    <div>
-      <label className="text-xs text-slate-500">
-        Cierre
-      </label>
+          <input
+            className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            value={direccion}
+            onChange={(e) => setDireccion(e.target.value)}
+          />
+        </div>
 
-      <input
-        type="time"
-        value={horaCierre}
-        onChange={(e) => setHoraCierre(e.target.value)}
-        className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm"
+        {/* INSTRUCCIONES */}
+        <div>
+          <label className="block text-sm font-medium mb-2 text-slate-700">
+            Cómo llegar al establecimiento
+          </label>
+
+          <textarea
+            className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            placeholder="Ej: Dentro de Plaza San Ángel..."
+            rows={3}
+            value={instruccionesLlegada}
+            onChange={(e) =>
+              setInstruccionesLlegada(e.target.value)
+            }
+          />
+        </div>
+
+        {/* GOOGLE MAPS */}
+        <div>
+          <label className="block text-sm font-medium mb-2 text-slate-700">
+            Link de Google Maps
+          </label>
+
+          <input
+            className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            placeholder="https://maps.google.com/..."
+            value={googleMapsUrl}
+            onChange={(e) =>
+              setGoogleMapsUrl(e.target.value)
+            }
+          />
+
+          <p className="text-xs text-slate-500 mt-2">
+            Puedes pegar un link de Google Maps para abrir la ruta directamente.
+          </p>
+        </div>
+
+        {/* HORARIO */}
+        <div>
+          <label className="block text-sm font-medium mb-2 text-slate-700">
+            Horario
+          </label>
+
+          <Select
+            value={horario}
+            onValueChange={setHorario}
+          >
+            <SelectTrigger className="rounded-2xl border-slate-300 h-12">
+              <SelectValue placeholder="Selecciona un horario" />
+            </SelectTrigger>
+
+            <SelectContent>
+
+              {HORARIOS.map((h) => (
+                <SelectItem key={h} value={h}>
+                  {h}
+                </SelectItem>
+              ))}
+
+              <SelectItem value="custom">
+                Horario personalizado
+              </SelectItem>
+
+            </SelectContent>
+          </Select>
+
+          {horario === "custom" && (
+            <div className="grid grid-cols-2 gap-4 mt-4">
+
+              <div>
+                <label className="text-xs text-slate-500">
+                  Apertura
+                </label>
+
+                <input
+                  type="time"
+                  value={horaApertura}
+                  onChange={(e) =>
+                    setHoraApertura(e.target.value)
+                  }
+                  className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-500">
+                  Cierre
+                </label>
+
+                <input
+                  type="time"
+                  value={horaCierre}
+                  onChange={(e) =>
+                    setHoraCierre(e.target.value)
+                  }
+                  className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-sm"
+                />
+              </div>
+
+            </div>
+          )}
+
+        </div>
+
+        {/* TIPOS */}
+        <div className="bg-slate-50 border border-slate-200 rounded-[24px] p-4 text-sm text-slate-600 space-y-1">
+          <p className="font-medium text-slate-800">
+            Tipos de paquete
+          </p>
+
+          <p>
+            Small: hasta 3 kg · máx 40 cm por lado
+          </p>
+
+          <p>
+            Medium: hasta 10 kg · máx 70 cm por lado
+          </p>
+        </div>
+
+        {/* CAPACIDADES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Capacidad SMALL
+            </label>
+
+            <input
+              type="number"
+              className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              value={capSmall}
+              onChange={(e) =>
+                setCapSmall(e.target.value)
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Capacidad MEDIUM
+            </label>
+
+            <input
+              type="number"
+              className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              value={capMedium}
+              onChange={(e) =>
+                setCapMedium(e.target.value)
+              }
+            />
+          </div>
+
+        </div>
+
+        {/* BOTÓN */}
+        <button
+          type="submit"
+          disabled={cargando}
+          className="
+            w-full
+            py-4
+            rounded-[24px]
+            text-white
+            font-semibold
+            text-lg
+            bg-gradient-to-r
+            from-indigo-600
+            to-blue-600
+            hover:scale-[1.01]
+            transition-all
+            shadow-lg
+            disabled:opacity-50
+            disabled:cursor-not-allowed
+            flex
+            items-center
+            justify-center
+            gap-2
+          "
+        >
+          {cargando && (
+            <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          )}
+
+          {editandoId
+            ? "Actualizar establecimiento"
+            : "Guardar establecimiento"}
+        </button>
+
+      </form>
+
+      {/* MAPA */}
+      <div className="bg-white rounded-[28px] shadow-xl border border-slate-200 p-5 md:p-8 space-y-4">
+
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+
+          <div>
+            <h2 className="text-2xl font-semibold text-slate-800">
+              Mapa
+            </h2>
+
+            <p className="text-sm text-slate-600">
+              Selecciona o ajusta el punto del establecimiento.
+            </p>
+          </div>
+
+          <div className="text-xs text-slate-500 md:text-right">
+
+            {selectedPoint ? (
+              <div>
+                <div className="font-medium text-slate-700">
+                  Punto seleccionado
+                </div>
+
+                <div>
+                  {selectedPoint.lat.toFixed(5)},{" "}
+                  {selectedPoint.lng.toFixed(5)}
+                </div>
+              </div>
+            ) : (
+              <div>Sin punto seleccionado</div>
+            )}
+
+          </div>
+        </div>
+
+        <div className="rounded-[24px] overflow-hidden border border-slate-200 shadow-sm">
+
+  <div className="h-[320px] md:h-96 relative">
+
+    <div className="h-full w-full">
+      <MapaEstablecimientos
+        establecimientos={establecimientos}
+        selectedPoint={selectedPoint}
+        onLocationSelected={manejarClickMapa}
       />
     </div>
 
   </div>
-)}
-          </div>
 
-          {/* INFO TIPOS DE PAQUETE */}
-<div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm text-slate-600">
-  <p className="font-medium mb-1">Tipos de paquete</p>
-  <p>Small: hasta 3 kg · máx 40 cm por lado</p>
-  <p>Medium: hasta 10 kg · máx 70 cm por lado</p>
 </div>
 
-          {/* CAPACIDADES */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-medium mb-2 text-slate-700">
-                Capacidad SMALL
-              </label>
-              <input
-                type="number"
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                value={capSmall}
-                onChange={(e) => setCapSmall(e.target.value)}
-              />
-            </div>
+        </div>
+      </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2 text-slate-700">
-                Capacidad MEDIUM
-              </label>
-              <input
-                type="number"
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                value={capMedium}
-                onChange={(e) => setCapMedium(e.target.value)}
-              />
-            </div>
+      {/* MOBILE CARDS */}
+      <div className="md:hidden space-y-4">
+
+        <h2 className="text-2xl font-semibold text-slate-800">
+          Establecimientos registrados
+        </h2>
+
+        {establecimientosOrdenados.length === 0 && (
+          <div className="text-sm text-slate-500 text-center py-6">
+            No hay establecimientos registrados aún.
           </div>
+        )}
 
-
-          {/* BOTÓN */}
-          <button
-            type="submit"
-            disabled={cargando}
-            className="w-full py-4 rounded-2xl text-white font-semibold text-lg bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.01] transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        {establecimientosOrdenados.map((est) => (
+          <div
+            key={est.id}
+            className="
+              border
+              border-slate-200
+              rounded-[24px]
+              p-4
+              bg-white
+              shadow-sm
+              space-y-4
+            "
           >
-            {cargando && (
-              <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            )}
-            {editandoId ? "Actualizar establecimiento" : "Guardar establecimiento"}
-          </button>
-        </form>
 
-        {/* MAPA CARD (DE VUELTA) */}
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 space-y-4">
-          <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-slate-800">
-                Mapa
-              </h2>
-              <p className="text-sm text-slate-600">
-                Selecciona o ajusta el punto del establecimiento.
+              <h3 className="font-semibold text-slate-800">
+                {est.nombre}
+              </h3>
+
+              <p className="text-sm text-slate-500 mt-1">
+                {est.direccion}
               </p>
             </div>
 
-            <div className="text-xs text-slate-500 text-right">
-              {selectedPoint ? (
-                <div>
-                  <div className="font-medium text-slate-700">Punto seleccionado</div>
-                  <div>
-                    {selectedPoint.lat.toFixed(5)}, {selectedPoint.lng.toFixed(5)}
-                  </div>
-                </div>
-              ) : (
-                <div>Sin punto seleccionado</div>
-              )}
+            <div className="grid grid-cols-2 gap-3 text-sm">
+
+              <div>
+                <p className="text-slate-400 text-xs">
+                  Código postal
+                </p>
+
+                <p className="font-medium">
+                  {est.cp}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-slate-400 text-xs">
+                  Horario
+                </p>
+
+                <p className="font-medium">
+                  {est.horario || "—"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-slate-400 text-xs">
+                  SMALL
+                </p>
+
+                <p className="font-medium">
+                  {est.capacidad_small ?? "—"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-slate-400 text-xs">
+                  MEDIUM
+                </p>
+
+                <p className="font-medium">
+                  {est.capacidad_medium ?? "—"}
+                </p>
+              </div>
+
             </div>
-          </div>
 
-          <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-            <div className="h-96">
-              <MapaEstablecimientos
-                establecimientos={establecimientos}
-                selectedPoint={selectedPoint}
-                onLocationSelected={manejarClickMapa}
-              />
+            <div className="flex gap-2">
+
+              <button
+                onClick={() => editarEstablecimiento(est)}
+                className="
+                  flex-1
+                  h-11
+                  rounded-2xl
+                  bg-indigo-600
+                  text-white
+                  text-sm
+                  font-medium
+                "
+              >
+                Editar
+              </button>
+
+              <button
+                onClick={() =>
+                  eliminarEstablecimiento(est.id)
+                }
+                disabled={eliminandoId === est.id}
+                className="
+                  flex-1
+                  h-11
+                  rounded-2xl
+                  bg-slate-200
+                  text-slate-700
+                  text-sm
+                  font-medium
+                "
+              >
+                {eliminandoId === est.id
+                  ? "Eliminando..."
+                  : "Eliminar"}
+              </button>
+
             </div>
+
           </div>
-        </div>
-
-        {/* TABLA MODERNA */}
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 space-y-6">
-          <h2 className="text-xl font-semibold text-slate-800">
-            Establecimientos registrados
-          </h2>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="text-left text-slate-500 border-b">
-                  <th className="pb-3">Nombre</th>
-                  <th className="pb-3">Dirección</th>
-                  <th className="pb-3">CP</th>
-                  <th className="pb-3">Horario</th>
-                  <th className="pb-3">Capacidades</th>
-                  <th className="pb-3">Distancia</th>
-                  <th className="pb-3">Acciones</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y">
-                {establecimientosOrdenados.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="py-6 text-center text-slate-500">
-                      No hay establecimientos registrados aún.
-                    </td>
-                  </tr>
-                )}
-
-                {establecimientosOrdenados.map((est) => (
-                  <tr key={est.id} className="hover:bg-slate-50 transition">
-                    <td className="py-4 font-medium text-slate-800">{est.nombre}</td>
-                    <td className="text-slate-700">{est.direccion}</td>
-                    <td className="text-slate-700">{est.cp}</td>
-                    <td className="text-slate-700">{est.horario || "—"}</td>
-                    <td>
-                      <div className="text-xs text-slate-600">
-                        S: {est.capacidad_small ?? "—"} <br />
-                        M: {est.capacidad_medium ?? "—"}
-                      </div>
-                    </td>
-                    <td className="text-slate-700">
-                      {est.distanciaKm != null ? `${est.distanciaKm.toFixed(2)} km` : "—"}
-                    </td>
-
-                    <td className="py-4 flex gap-2">
-                      <button
-                        onClick={() => editarEstablecimiento(est)}
-                        className="px-3 py-1 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-                      >
-                        Editar
-                      </button>
-
-                      <button
-                        onClick={() => eliminarEstablecimiento(est.id)}
-                        disabled={eliminandoId === est.id}
-                        className="px-3 py-1 text-xs bg-slate-200 rounded-lg hover:bg-slate-300 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        {eliminandoId === est.id && (
-                          <span className="h-3 w-3 border-2 border-slate-700 border-t-transparent rounded-full animate-spin" />
-                        )}
-                        {eliminandoId === est.id ? "Eliminando..." : "Eliminar"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-
-            </table>
-          </div>
-        </div>
+        ))}
 
       </div>
+
+      {/* TABLA DESKTOP */}
+      <div className="hidden md:block bg-white rounded-[28px] shadow-xl border border-slate-200 p-8 space-y-6">
+
+        <h2 className="text-xl font-semibold text-slate-800">
+          Establecimientos registrados
+        </h2>
+
+        <div className="overflow-x-auto">
+
+          <table className="min-w-full text-sm">
+
+            <thead>
+              <tr className="text-left text-slate-500 border-b">
+                <th className="pb-3">Nombre</th>
+                <th className="pb-3">Dirección</th>
+                <th className="pb-3">CP</th>
+                <th className="pb-3">Horario</th>
+                <th className="pb-3">Capacidades</th>
+                <th className="pb-3">Distancia</th>
+                <th className="pb-3">Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y">
+
+              {establecimientosOrdenados.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="py-6 text-center text-slate-500"
+                  >
+                    No hay establecimientos registrados aún.
+                  </td>
+                </tr>
+              )}
+
+              {establecimientosOrdenados.map((est) => (
+                <tr
+                  key={est.id}
+                  className="hover:bg-slate-50 transition"
+                >
+
+                  <td className="py-4 font-medium text-slate-800">
+                    {est.nombre}
+                  </td>
+
+                  <td className="text-slate-700">
+                    {est.direccion}
+                  </td>
+
+                  <td className="text-slate-700">
+                    {est.cp}
+                  </td>
+
+                  <td className="text-slate-700">
+                    {est.horario || "—"}
+                  </td>
+
+                  <td>
+                    <div className="text-xs text-slate-600">
+                      S: {est.capacidad_small ?? "—"} <br />
+                      M: {est.capacidad_medium ?? "—"}
+                    </div>
+                  </td>
+
+                  <td className="text-slate-700">
+                    {est.distanciaKm != null
+                      ? `${est.distanciaKm.toFixed(2)} km`
+                      : "—"}
+                  </td>
+
+                  <td className="py-4 flex gap-2">
+
+                    <button
+                      onClick={() =>
+                        editarEstablecimiento(est)
+                      }
+                      className="
+                        px-3
+                        py-1
+                        text-xs
+                        bg-indigo-600
+                        text-white
+                        rounded-lg
+                        hover:bg-indigo-700
+                        transition
+                      "
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        eliminarEstablecimiento(est.id)
+                      }
+                      disabled={eliminandoId === est.id}
+                      className="
+                        px-3
+                        py-1
+                        text-xs
+                        bg-slate-200
+                        rounded-lg
+                        hover:bg-slate-300
+                        transition
+                        disabled:opacity-60
+                        disabled:cursor-not-allowed
+                        flex
+                        items-center
+                        gap-2
+                      "
+                    >
+                      {eliminandoId === est.id && (
+                        <span className="h-3 w-3 border-2 border-slate-700 border-t-transparent rounded-full animate-spin" />
+                      )}
+
+                      {eliminandoId === est.id
+                        ? "Eliminando..."
+                        : "Eliminar"}
+                    </button>
+
+                  </td>
+
+                </tr>
+              ))}
+
+            </tbody>
+
+          </table>
+
+        </div>
+      </div>
+
     </div>
-  );
+);
 }

@@ -168,20 +168,41 @@ export default function BalanceEstablecimiento() {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
 
-  return (
-    <div className="min-h-screen bg-slate-50 px-6 py-16">
-      <div className="max-w-5xl mx-auto space-y-10">
+ return (
+  <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">
+    <div className="max-w-5xl mx-auto space-y-5 md:space-y-10">
 
-        <h1 className="text-4xl font-bold text-indigo-900">Balance</h1>
+      {/* HEADER */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
-        <div className="relative w-full max-w-xs">
+        <div>
+          <h1 className="text-2xl md:text-4xl font-bold text-indigo-900">
+            Balance
+          </h1>
+
+          <p className="text-sm text-slate-500 mt-1">
+            Gestiona tus ingresos y retiros.
+          </p>
+        </div>
+
+        <div className="relative w-full md:w-[280px]">
           <select
             value={establecimientoActivo}
             onChange={(e) => {
               setEstablecimientoActivo(e.target.value);
               cargarBalance(e.target.value);
             }}
-            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm shadow-sm"
+            className="
+              w-full
+              bg-white
+              border
+              border-slate-200
+              rounded-2xl
+              px-4
+              py-3
+              text-sm
+              shadow-sm
+            "
           >
             {establecimientos.map((e) => (
               <option key={e.uuid} value={e.uuid}>
@@ -190,35 +211,66 @@ export default function BalanceEstablecimiento() {
             ))}
           </select>
         </div>
+      </div>
 
-        {/* CARDS */}
-        <div className="grid md:grid-cols-3 gap-6">
-          <Card label="Disponible" value={disponible} color="sky" />
-          <Card label="En proceso" value={pendienteRetiro} color="amber" />
-          <Card label="Retirado" value={totalRetirado} color="indigo" />
+      {/* CARDS */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card label="Disponible" value={disponible} color="sky" />
+        <Card label="En proceso" value={pendienteRetiro} color="amber" />
+        <Card label="Retirado" value={totalRetirado} color="indigo" />
+      </div>
+
+      {/* RETIRO */}
+      <div className="bg-white rounded-[28px] p-5 md:p-6 shadow-xl border border-slate-200 space-y-4">
+
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">
+            Solicitar retiro
+          </h2>
+
+          <p className="text-sm text-slate-500 mt-1">
+            Retira tu saldo disponible.
+          </p>
         </div>
 
-        {/* RETIRO */}
-        <div className="bg-white rounded-3xl p-6 shadow space-y-4">
-          
+        {/* INPUT + ACTIONS */}
+        <div className="space-y-3">
 
-          <div className="flex gap-2">
-            <Input value={montoRetiro} onChange={(e) => setMontoRetiro(e.target.value)} />
+          <Input
+            value={montoRetiro}
+            onChange={(e) => setMontoRetiro(e.target.value)}
+            className="h-12 rounded-2xl text-base"
+          />
 
-            <Button variant="outline" onClick={() => setMontoRetiro(String(disponible))}>
-              Input
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+            <Button
+              variant="outline"
+              className="h-11 rounded-2xl"
+              onClick={() => setMontoRetiro(String(disponible))}
+            >
+              Máximo
             </Button>
 
             <Button
-              className="bg-indigo-600 text-white"
+              className="
+                h-11
+                rounded-2xl
+                bg-indigo-600
+                hover:bg-indigo-700
+                text-white
+              "
               onClick={solicitarRetiro}
               disabled={loadingRetiro}
             >
-              {loadingRetiro ? "Procesando..." : "Retiro parcial"}
+              {loadingRetiro
+                ? "Procesando..."
+                : "Retiro parcial"}
             </Button>
 
             <Button
               variant="outline"
+              className="h-11 rounded-2xl"
               onClick={async () => {
                 setMontoRetiro(String(disponible));
                 await solicitarRetiro();
@@ -227,63 +279,95 @@ export default function BalanceEstablecimiento() {
             >
               Retirar todo
             </Button>
-          </div>
 
-          {mensaje && <p>{mensaje}</p>}
+          </div>
         </div>
 
-        {/* MOVIMIENTOS */}
-        <div className="bg-white rounded-3xl shadow-lg border p-6">
-          <h2 className="font-semibold mb-4">Movimientos</h2>
+        {mensaje && (
+          <div className="text-sm text-center font-medium text-indigo-600">
+            {mensaje}
+          </div>
+        )}
+      </div>
 
-          <div className="divide-y">
+      {/* MOVIMIENTOS */}
+      <div className="bg-white rounded-[28px] shadow-xl border border-slate-200 p-5 md:p-6">
 
-            {/* ✅ SOLO ingresos disponibles */}
-            {movimientos
-              .filter((m) => m.status === "paid")
-              .map((m) => (
-                <div key={"ingreso-" + m.id} className="py-4 space-y-1">
-                  <div className="flex justify-between">
-                    <p className="font-medium">Ingreso</p>
-                    <p className="text-green-600">
-                      +{formatMoney(m.neto_establecimiento)}
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-semibold text-slate-900">
+            Movimientos
+          </h2>
+
+          <span className="text-xs text-slate-400">
+            {movimientos.length} registros
+          </span>
+        </div>
+
+        <div className="divide-y">
+
+          {/* INGRESOS */}
+          {movimientos
+            .filter((m) => m.status === "paid")
+            .map((m) => (
+              <div
+                key={"ingreso-" + m.id}
+                className="py-4 space-y-2"
+              >
+                <div className="flex justify-between items-start gap-3">
+
+                  <div>
+                    <p className="font-medium text-sm">
+                      Ingreso
+                    </p>
+
+                    <p className="text-xs text-slate-400 mt-1">
+                      {new Date(m.created_at).toLocaleDateString()}
                     </p>
                   </div>
 
-                  <div className="text-xs text-slate-500">
-                    <p>Bruto: {formatMoney(m.monto_bruto)}</p>
-                    <p>Comisión: -{formatMoney(m.comision_monto)}</p>
-                    <p>IVA: -{formatMoney(m.iva_monto)}</p>
-                  </div>
-
-                  <p className="text-xs text-slate-400">
-                    {new Date(m.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
-
-            {/* ✅ retiros reales */}
-            {retirosAplicaciones.map((r, i) => (
-              <div key={"retiro-" + i} className="py-4 space-y-1">
-                <div className="flex justify-between">
-                  <p className="font-medium">Retiro</p>
-                  <p className="text-red-600">
-                    -{formatMoney(r.monto_aplicado)}
+                  <p className="text-green-600 font-semibold text-sm">
+                    +{formatMoney(m.neto_establecimiento)}
                   </p>
                 </div>
 
-                <p className="text-xs text-slate-400">
-                  {new Date(r.created_at).toLocaleDateString()}
-                </p>
+                <div className="text-xs text-slate-500 space-y-1">
+                  <p>Bruto: {formatMoney(m.monto_bruto)}</p>
+                  <p>Comisión: -{formatMoney(m.comision_monto)}</p>
+                  <p>IVA: -{formatMoney(m.iva_monto)}</p>
+                </div>
               </div>
             ))}
 
-          </div>
-        </div>
+          {/* RETIROS */}
+          {retirosAplicaciones.map((r, i) => (
+            <div
+              key={"retiro-" + i}
+              className="py-4 space-y-2"
+            >
+              <div className="flex justify-between items-start gap-3">
 
+                <div>
+                  <p className="font-medium text-sm">
+                    Retiro
+                  </p>
+
+                  <p className="text-xs text-slate-400 mt-1">
+                    {new Date(r.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+
+                <p className="text-red-600 font-semibold text-sm">
+                  -{formatMoney(r.monto_aplicado)}
+                </p>
+              </div>
+            </div>
+          ))}
+
+        </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
 
 function Card({ label, value, color }: any) {
@@ -294,9 +378,23 @@ function Card({ label, value, color }: any) {
   };
 
   return (
-    <div className={`border rounded-2xl p-6 ${colors[color]}`}>
-      <p className="text-sm">{label}</p>
-      <p className="text-xl font-bold">{formatMoney(value)}</p>
+    <div
+      className={`
+        border
+        rounded-[28px]
+        p-5
+        md:p-6
+        shadow-sm
+        ${colors[color]}
+      `}
+    >
+      <p className="text-sm opacity-80">
+        {label}
+      </p>
+
+      <p className="text-2xl font-bold mt-1">
+        {formatMoney(value)}
+      </p>
     </div>
   );
 }

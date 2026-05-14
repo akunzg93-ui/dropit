@@ -83,43 +83,126 @@ export default function TrackPedidoPage() {
     : [];
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-6">
-      <div className="max-w-4xl mx-auto space-y-8">
+  <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">
+    <div className="max-w-4xl mx-auto space-y-5 md:space-y-8">
 
-        {/* BANNER ÉXITO PREMIUM */}
-        {confirmed && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 shadow-sm text-emerald-800">
-            <p className="font-semibold text-lg">
-              ✅ Punto de entrega confirmado
-            </p>
-            <p className="text-sm mt-1">
-              Ahora el establecimiento revisará tu pedido antes de que el vendedor reciba el código.
-            </p>
-          </div>
-        )}
+      {/* BANNER ÉXITO PREMIUM */}
+      {confirmed && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-[28px] p-5 md:p-6 shadow-sm text-emerald-800">
+          <p className="font-semibold text-base md:text-lg">
+            ✅ Punto de entrega confirmado
+          </p>
 
-        {/* HEADER PEDIDO */}
-        <div className="bg-white rounded-3xl shadow-lg border border-slate-200 p-6">
-          <h1 className="text-2xl font-bold text-indigo-900">
-            Pedido {pedido.folio}
-          </h1>
+          <p className="text-sm mt-1">
+            Ahora el establecimiento revisará tu pedido antes de que el vendedor reciba el código.
+          </p>
+        </div>
+      )}
 
-          <div className="mt-3 space-y-1 text-slate-600">
-            <p>
-              <span className="font-medium text-slate-800">Producto:</span>{" "}
-              {pedido.producto}
-            </p>
-            <p>
-              <span className="font-medium text-slate-800">
-                Establecimiento:
-              </span>{" "}
-              {pedido.establecimiento_nombre || "Por definir"}
-            </p>
-          </div>
+      {/* HEADER PEDIDO */}
+      <div className="bg-white rounded-[28px] shadow-lg border border-slate-200 p-5 md:p-6">
+        <h1 className="text-3xl md:text-2xl font-bold text-indigo-900 leading-tight break-words">
+          Pedido {pedido.folio}
+        </h1>
+
+        <div className="mt-4 space-y-2 text-slate-600 text-sm md:text-base">
+
+          <p className="break-words">
+            <span className="font-semibold text-slate-800">
+              Producto:
+            </span>{" "}
+            {pedido.producto}
+          </p>
+
+          <p className="break-words">
+            <span className="font-semibold text-slate-800">
+              Establecimiento:
+            </span>{" "}
+            {pedido.establecimiento_nombre || "Por definir"}
+          </p>
+
+        </div>
+      </div>
+
+      {/* STEPPER MOBILE-FIRST */}
+      <div className="bg-white rounded-[28px] shadow-lg border border-slate-200 p-5 md:p-8 relative">
+
+        {/* MOBILE */}
+        <div className="md:hidden space-y-4">
+
+          {ESTADOS.map((estado, index) => {
+            const completado = index < estadoIndex;
+            const actual = index === estadoIndex;
+
+            return (
+              <div
+                key={estado}
+                className="flex items-start gap-4"
+              >
+
+                {/* LINE */}
+                <div className="flex flex-col items-center">
+
+                  <div
+                    className={`
+                      w-9
+                      h-9
+                      rounded-full
+                      flex
+                      items-center
+                      justify-center
+                      text-xs
+                      font-semibold
+                      z-10
+                      ${
+                        completado
+                          ? "bg-emerald-500 text-white"
+                          : actual
+                          ? "bg-indigo-600 text-white ring-4 ring-indigo-200"
+                          : "bg-slate-300 text-slate-700"
+                      }
+                    `}
+                  >
+                    {index + 1}
+                  </div>
+
+                  {index !== ESTADOS.length - 1 && (
+                    <div className="w-[2px] h-10 bg-slate-200 mt-1" />
+                  )}
+                </div>
+
+                {/* CONTENT */}
+                <div className="pt-1 min-w-0">
+
+                  <p
+                    className={`
+                      text-sm
+                      font-medium
+                      ${
+                        actual
+                          ? "text-indigo-700"
+                          : "text-slate-700"
+                      }
+                    `}
+                  >
+                    {ESTADOS_LABEL[estado]}
+                  </p>
+
+                  {actual && (
+                    <p className="text-xs text-slate-400 mt-1">
+                      Estado actual
+                    </p>
+                  )}
+                </div>
+
+              </div>
+            );
+          })}
         </div>
 
-        {/* STEPPER PROFESIONAL */}
-        <div className="bg-white rounded-3xl shadow-lg border border-slate-200 p-8 relative">
+        {/* DESKTOP */}
+        <div className="hidden md:block">
+
           <div className="absolute top-12 left-12 right-12 h-1 bg-slate-200 rounded-full" />
 
           <div className="relative flex justify-between">
@@ -128,7 +211,10 @@ export default function TrackPedidoPage() {
               const actual = index === estadoIndex;
 
               return (
-                <div key={estado} className="flex flex-col items-center flex-1">
+                <div
+                  key={estado}
+                  className="flex flex-col items-center flex-1"
+                >
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all
                       ${
@@ -150,69 +236,77 @@ export default function TrackPedidoPage() {
               );
             })}
           </div>
+
         </div>
+      </div>
 
-        {/* ESTADO ACTUAL */}
-        <div className="bg-indigo-50 border border-indigo-200 rounded-3xl p-6 shadow-sm">
-          <div className="flex justify-between items-center">
-            <p className="font-semibold text-indigo-900">
-              Estado actual
-            </p>
+      {/* ESTADO ACTUAL */}
+      <div className="bg-indigo-50 border border-indigo-200 rounded-[28px] p-5 md:p-6 shadow-sm">
 
-            <span className="bg-indigo-600 text-white text-sm px-3 py-1 rounded-full">
-              {ESTADOS_LABEL[pedido.estado] || pedido.estado}
-            </span>
-          </div>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 
-          <p className="text-sm text-indigo-800 mt-2">
-            Fecha de creación: {fechaCreacion}
+          <p className="font-semibold text-indigo-900">
+            Estado actual
           </p>
 
-          {pedido.estado === "pendiente_aprobacion_establecimiento" && (
-            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
-              ⏳ El establecimiento está revisando tu pedido. Te avisaremos en cuanto sea aceptado.
-            </div>
-          )}
+          <span className="inline-flex w-fit bg-indigo-600 text-white text-xs md:text-sm px-3 py-2 rounded-full">
+            {ESTADOS_LABEL[pedido.estado] || pedido.estado}
+          </span>
         </div>
 
-        {/* HISTORIAL TIMELINE */}
-        <div className="bg-white rounded-3xl shadow-lg border border-slate-200 p-6">
-          <h3 className="font-semibold text-slate-800 mb-6">
-            Historial del pedido
-          </h3>
+        <p className="text-sm text-indigo-800 mt-3">
+          Fecha de creación: {fechaCreacion}
+        </p>
 
-          {eventos.length === 0 ? (
-            <p className="text-sm text-slate-600">
-              Aún no hay eventos registrados.
-            </p>
-          ) : (
-            <div className="relative pl-8 space-y-8">
-              <div className="absolute left-3 top-0 bottom-0 w-[2px] bg-slate-200 rounded-full" />
-
-              {eventos.map((e: any, idx: number) => (
-                <div key={idx} className="relative">
-                  <div className="absolute left-1 top-1 w-4 h-4 bg-indigo-600 rounded-full ring-4 ring-white shadow" />
-
-                  <div className="flex justify-between items-start ml-8">
-                    <div>
-                      <p className="font-medium text-slate-800">
-                        {ESTADOS_LABEL[e.estado] ?? e.estado}
-                      </p>
-                    </div>
-
-                    <p className="text-sm text-slate-500 whitespace-nowrap">
-                      {e.fecha
-                        ? new Date(e.fecha).toLocaleString()
-                        : "—"}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
+        {pedido.estado === "pendiente_aprobacion_establecimiento" && (
+          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
+            ⏳ El establecimiento está revisando tu pedido. Te avisaremos en cuanto sea aceptado.
+          </div>
+        )}
       </div>
+
+      {/* HISTORIAL */}
+      <div className="bg-white rounded-[28px] shadow-lg border border-slate-200 p-5 md:p-6">
+
+        <h3 className="font-semibold text-slate-800 mb-6">
+          Historial del pedido
+        </h3>
+
+        {eventos.length === 0 ? (
+          <p className="text-sm text-slate-600">
+            Aún no hay eventos registrados.
+          </p>
+        ) : (
+          <div className="relative pl-6 md:pl-8 space-y-6">
+
+            <div className="absolute left-3 top-0 bottom-0 w-[2px] bg-slate-200 rounded-full" />
+
+            {eventos.map((e: any, idx: number) => (
+              <div key={idx} className="relative">
+
+                <div className="absolute left-1 top-1 w-4 h-4 bg-indigo-600 rounded-full ring-4 ring-white shadow" />
+
+                <div className="flex flex-col gap-1 ml-8">
+
+                  <p className="font-medium text-slate-800 text-sm md:text-base">
+                    {ESTADOS_LABEL[e.estado] ?? e.estado}
+                  </p>
+
+                  <p className="text-xs text-slate-500">
+                    {e.fecha
+                      ? new Date(e.fecha).toLocaleString()
+                      : "—"}
+                  </p>
+
+                </div>
+              </div>
+            ))}
+
+          </div>
+        )}
+      </div>
+
     </div>
-  );
+  </div>
+);
 }

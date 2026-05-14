@@ -131,15 +131,21 @@ export default function EstablecimientoEstadoPage() {
     return "bg-gray-100 text-gray-600";
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 py-10 px-6">
-      <div className="max-w-6xl mx-auto space-y-8">
+ return (
+  <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">
+    <div className="max-w-6xl mx-auto space-y-5 md:space-y-8">
 
-        {/* HEADER */}
-        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-3xl p-8 shadow-xl flex justify-between items-center">
+      {/* HEADER */}
+      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-[28px] p-5 md:p-8 shadow-xl">
+
+        <div className="flex items-start justify-between gap-4">
+
           <div>
-            <h1 className="text-3xl font-bold">Panel Multi-Local</h1>
-            <p className="text-sm opacity-90">
+            <h1 className="text-2xl md:text-3xl font-bold">
+              Panel Multi-Local
+            </h1>
+
+            <p className="text-sm text-white/80 mt-1">
               Gestión de pedidos en tiempo real
             </p>
           </div>
@@ -153,66 +159,122 @@ export default function EstablecimientoEstadoPage() {
                   router.push("/establecimiento/aprobaciones");
                 }
               }}
-              className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-xl cursor-pointer hover:bg-white/20 transition"
+              className="
+                shrink-0
+                flex
+                items-center
+                justify-center
+                min-w-[54px]
+                h-[54px]
+                rounded-2xl
+                bg-white/15
+                backdrop-blur
+                text-lg
+                font-semibold
+                cursor-pointer
+                active:scale-95
+                transition
+              "
             >
               🔔 {pendientesGlobales.length}
             </div>
           )}
+
+        </div>
+      </div>
+
+      {/* SELECT */}
+      <div className="bg-white p-4 md:p-6 rounded-[28px] shadow border border-slate-200">
+
+        <label className="text-sm font-medium text-gray-600">
+          Establecimiento
+        </label>
+
+        <select
+          className="
+            w-full
+            h-12
+            px-4
+            mt-2
+            rounded-2xl
+            border
+            border-slate-200
+            bg-white
+            text-sm
+            focus:ring-2
+            focus:ring-indigo-500
+          "
+          value={selectedEstId || ""}
+          onChange={(e) => setSelectedEstId(e.target.value)}
+        >
+          {establecimientos.map((e) => (
+            <option key={e.uuid} value={e.uuid}>
+              {e.nombre}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* STATS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+        <div className="bg-white p-4 rounded-[24px] shadow border border-slate-200">
+          <p className="text-xs text-gray-500">
+            Total
+          </p>
+
+          <p className="text-2xl font-bold mt-1">
+            {stats.total}
+          </p>
         </div>
 
-        {/* SELECT */}
-        <div className="bg-white p-6 rounded-2xl shadow border">
-          <label className="text-sm font-medium text-gray-600">
-            Establecimiento
-          </label>
-          <select
-            className="w-full h-11 px-4 mt-2 rounded-xl border focus:ring-2 focus:ring-indigo-500"
-            value={selectedEstId || ""}
-            onChange={(e) => setSelectedEstId(e.target.value)}
-          >
-            {establecimientos.map((e) => (
-              <option key={e.uuid} value={e.uuid}>
-                {e.nombre}
-              </option>
-            ))}
-          </select>
+        <div className="bg-amber-50 p-4 rounded-[24px] shadow-sm border border-amber-200">
+          <p className="text-xs text-amber-700">
+            Por aprobar
+          </p>
+
+          <p className="text-2xl font-bold text-amber-600 mt-1">
+            {stats.pendientes}
+          </p>
         </div>
 
-        {/* STATS */}
-        <div className="grid md:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-2xl shadow border">
-            <p className="text-sm text-gray-500">Total</p>
-            <p className="text-2xl font-bold">{stats.total}</p>
-          </div>
+        <div className="bg-blue-50 p-4 rounded-[24px] shadow-sm border border-blue-200">
+          <p className="text-xs text-blue-700">
+            En tránsito
+          </p>
 
-          <div className="bg-white p-6 rounded-2xl shadow border">
-            <p className="text-sm text-gray-500">Por aprobar</p>
-            <p className="text-2xl font-bold text-amber-600">
-              {stats.pendientes}
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl shadow border">
-            <p className="text-sm text-gray-500">En tránsito</p>
-            <p className="text-2xl font-bold text-blue-600">
-              {stats.transito}
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl shadow border">
-            <p className="text-sm text-gray-500">Entregados</p>
-            <p className="text-2xl font-bold text-green-600">
-              {stats.entregados}
-            </p>
-          </div>
+          <p className="text-2xl font-bold text-blue-600 mt-1">
+            {stats.transito}
+          </p>
         </div>
 
-        {/* PENDIENTES */}
-        {pendientes.length > 0 && (
-          <div className="bg-white p-6 rounded-2xl shadow border">
-            <h2 className="font-semibold mb-4 text-lg">
+        <div className="bg-green-50 p-4 rounded-[24px] shadow-sm border border-green-200">
+          <p className="text-xs text-green-700">
+            Entregados
+          </p>
+
+          <p className="text-2xl font-bold text-green-600 mt-1">
+            {stats.entregados}
+          </p>
+        </div>
+
+      </div>
+
+      {/* PENDIENTES */}
+      {pendientes.length > 0 && (
+        <div className="bg-white p-4 md:p-6 rounded-[28px] shadow border border-slate-200">
+
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-base md:text-lg">
               Pendientes de aprobación
             </h2>
+
+            <span className="text-xs text-slate-400">
+              {pendientes.length} pendientes
+            </span>
+          </div>
+
+          <div className="space-y-3">
 
             {pendientes.map((p) => (
               <div
@@ -220,11 +282,37 @@ export default function EstablecimientoEstadoPage() {
                 onClick={() =>
                   router.push(`/establecimiento/aprobar/${p.id}`)
                 }
-                className="cursor-pointer border p-4 rounded-xl mb-3 flex justify-between items-center hover:bg-gray-50 transition"
+                className="
+                  cursor-pointer
+                  border
+                  border-slate-200
+                  p-4
+                  rounded-2xl
+                  flex
+                  items-center
+                  justify-between
+                  gap-3
+                  hover:bg-slate-50
+                  active:scale-[0.99]
+                  transition
+                "
               >
-                <div>
-                  <p className="font-medium">{p.folio}</p>
-                  <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700">
+                <div className="min-w-0">
+
+                  <p className="font-semibold truncate">
+                    {p.folio}
+                  </p>
+
+                  <span className="
+                    inline-flex
+                    mt-2
+                    text-[11px]
+                    px-2.5
+                    py-1
+                    rounded-full
+                    bg-amber-100
+                    text-amber-700
+                  ">
                     Esperando aprobación
                   </span>
                 </div>
@@ -234,55 +322,90 @@ export default function EstablecimientoEstadoPage() {
                     e.stopPropagation();
                     router.push(`/establecimiento/aprobar/${p.id}`);
                   }}
-                  className="text-xs bg-indigo-600 text-white px-4 py-1 rounded-lg"
+                  className="
+                    shrink-0
+                    text-xs
+                    bg-indigo-600
+                    text-white
+                    px-4
+                    py-2
+                    rounded-xl
+                  "
                 >
                   Revisar
                 </button>
               </div>
             ))}
-          </div>
-        )}
 
-        {/* TABLA */}
-        <div className="bg-white p-6 rounded-2xl shadow border">
-          <h2 className="font-semibold mb-4 text-lg">
+          </div>
+        </div>
+      )}
+
+      {/* PEDIDOS */}
+      <div className="bg-white p-4 md:p-6 rounded-[28px] shadow border border-slate-200">
+
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-semibold text-base md:text-lg">
             Todos los pedidos
           </h2>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-gray-500 border-b">
-                <tr>
-                  <th className="py-3">Folio</th>
-                  <th>Estado</th>
-                  <th>Fecha</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {pedidos.map((p) => (
-                  <tr key={p.id} className="border-b hover:bg-gray-50 transition">
-                    <td className="py-3 font-medium">{p.folio}</td>
-
-                    <td>
-                      <span className={`px-3 py-1 rounded-full text-xs ${getBadge(p.estado)}`}>
-                        {p.estado.replaceAll("_", " ")}
-                      </span>
-                    </td>
-
-                    <td className="text-gray-500 text-xs">
-                      {p.created_at
-                        ? new Date(p.created_at).toLocaleDateString()
-                        : "-"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <span className="text-xs text-slate-400">
+            {pedidos.length} registros
+          </span>
         </div>
 
+        <div className="space-y-3">
+
+          {pedidos.map((p) => (
+            <div
+              key={p.id}
+              className="
+                border
+                border-slate-200
+                rounded-2xl
+                p-4
+                flex
+                items-center
+                justify-between
+                gap-4
+              "
+            >
+              <div className="min-w-0">
+
+                <p className="font-semibold truncate">
+                  {p.folio}
+                </p>
+
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+
+                  <span
+                    className={`
+                      px-3
+                      py-1
+                      rounded-full
+                      text-[11px]
+                      whitespace-nowrap
+                      ${getBadge(p.estado)}
+                    `}
+                  >
+                    {p.estado.replaceAll("_", " ")}
+                  </span>
+
+                  <span className="text-[11px] text-slate-400">
+                    {p.created_at
+                      ? new Date(p.created_at).toLocaleDateString()
+                      : "-"}
+                  </span>
+                </div>
+              </div>
+
+            </div>
+          ))}
+
+        </div>
       </div>
+
     </div>
-  );
+  </div>
+);
 }
