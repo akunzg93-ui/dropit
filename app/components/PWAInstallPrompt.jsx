@@ -52,7 +52,7 @@ export default function PWAInstallPrompt() {
       <div
         className="
           fixed
-          bottom-24
+          bottom-36
           left-1/2
           -translate-x-1/2
           z-50
@@ -105,7 +105,7 @@ export default function PWAInstallPrompt() {
     <div
       className="
         fixed
-        bottom-24
+        bottom-36
         left-1/2
         -translate-x-1/2
         z-50
