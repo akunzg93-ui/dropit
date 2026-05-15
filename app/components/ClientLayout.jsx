@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import PWAInstallPrompt from "./PWAInstallPrompt";
 
 const Navbar = dynamic(() => import("./Navbar"), {
   ssr: false,
@@ -25,6 +26,8 @@ export default function ClientLayout({ children }) {
       >
         {children}
       </main>
+
+      <PWAInstallPrompt />
     </>
   );
 }
