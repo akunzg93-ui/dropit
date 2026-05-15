@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Download, Smartphone } from "lucide-react";
+import { Download, Smartphone, X } from "lucide-react";
 
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -19,16 +19,21 @@ export default function PWAInstallPrompt() {
     setIsIOS(ios);
     setIsStandalone(standalone);
 
+    const timer = setTimeout(() => {
+      if (!standalone) {
+        setShowInstall(true);
+      }
+    }, 5000);
+
     const handler = (e) => {
       e.preventDefault();
-
       setDeferredPrompt(e);
-      setShowInstall(true);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("beforeinstallprompt", handler);
     };
   }, []);
@@ -45,122 +50,101 @@ export default function PWAInstallPrompt() {
     }
   }
 
-  if (isStandalone) return null;
-
-  if (isIOS) {
-    return (
-      <div
-        className="
-          fixed
-          bottom-36
-          left-1/2
-          -translate-x-1/2
-          z-50
-          w-[92%]
-          max-w-sm
-          rounded-3xl
-          border
-          border-blue-100
-          bg-white/95
-          backdrop-blur-xl
-          shadow-2xl
-          p-4
-        "
-      >
-        <div className="flex items-start gap-3">
-          <div
-            className="
-              flex
-              h-11
-              w-11
-              items-center
-              justify-center
-              rounded-2xl
-              bg-blue-100
-            "
-          >
-            <Smartphone className="h-5 w-5 text-blue-600" />
-          </div>
-
-          <div className="flex-1">
-            <h3 className="font-semibold text-slate-900">
-              Instala Dropit
-            </h3>
-
-            <p className="mt-1 text-sm text-slate-600 leading-relaxed">
-              Presiona compartir y luego{" "}
-              <span className="font-medium text-blue-600">
-                “Agregar a pantalla de inicio”
-              </span>
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+  function closePrompt() {
+    setShowInstall(false);
   }
 
-  if (!showInstall) return null;
+  if (isStandalone || !showInstall) return null;
 
   return (
     <div
       className="
         fixed
-        bottom-36
+        bottom-32
         left-1/2
         -translate-x-1/2
         z-50
-        w-[92%]
-        max-w-sm
-        rounded-3xl
+        w-[90%]
+        max-w-xs
+        rounded-2xl
         border
-        border-blue-100
-        bg-white/95
-        backdrop-blur-xl
+        border-white/60
+        bg-white/85
+        backdrop-blur-2xl
         shadow-2xl
-        p-4
+        px-4
+        py-3
+        animate-in
+        fade-in
+        slide-in-from-bottom-4
+        duration-300
       "
     >
-      <div className="flex items-center gap-3">
+      <button
+        onClick={closePrompt}
+        className="
+          absolute
+          right-2
+          top-2
+          rounded-full
+          p-1
+          text-slate-400
+          transition
+          hover:bg-slate-100
+          hover:text-slate-600
+        "
+      >
+        <X className="h-4 w-4" />
+      </button>
+
+      <div className="flex items-center gap-3 pr-5">
         <div
           className="
             flex
-            h-11
-            w-11
+            h-10
+            w-10
+            shrink-0
             items-center
             justify-center
             rounded-2xl
             bg-blue-100
           "
         >
-          <Download className="h-5 w-5 text-blue-600" />
+          {isIOS ? (
+            <Smartphone className="h-5 w-5 text-blue-600" />
+          ) : (
+            <Download className="h-5 w-5 text-blue-600" />
+          )}
         </div>
 
-        <div className="flex-1">
-          <h3 className="font-semibold text-slate-900">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold text-slate-900">
             Instala Dropit
           </h3>
 
-          <p className="text-sm text-slate-600">
-            Accede más rápido desde tu pantalla principal.
-          </p>
+          {isIOS ? (
+            <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+              Compartir →{" "}
+              <span className="font-medium text-blue-600">
+                Agregar a inicio
+              </span>
+            </p>
+          ) : (
+            <button
+              onClick={handleInstall}
+              className="
+                mt-1
+                text-xs
+                font-medium
+                text-blue-600
+                transition
+                hover:text-blue-700
+              "
+            >
+              Instalar aplicación
+            </button>
+          )}
         </div>
-
-        <button
-          onClick={handleInstall}
-          className="
-            rounded-xl
-            bg-blue-600
-            px-4
-            py-2
-            text-sm
-            font-medium
-            text-white
-            transition
-            hover:bg-blue-700
-          "
-        >
-          Instalar
-        </button>
       </div>
     </div>
   );
