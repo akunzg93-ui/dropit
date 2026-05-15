@@ -1,13 +1,6 @@
-"use client";
-
 import "./globals.css";
-import dynamic from "next/dynamic";
-
-const Navbar = dynamic(() => import("./components/Navbar"), {
-  ssr: false,
-});
-
 import { Geist, Geist_Mono } from "next/font/google";
+import ClientLayout from "./components/ClientLayout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,6 +11,20 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const metadata = {
+  title: "Dropit",
+  description: "Dropit - logística inteligente",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Dropit",
+  },
+  icons: {
+    apple: "/icons/apple-icon.png",
+  },
+};
 
 export default function RootLayout({ children }) {
   return (
@@ -36,22 +43,7 @@ export default function RootLayout({ children }) {
           antialiased
         `}
       >
-        <Navbar />
-
-        <main
-          className="
-            w-full
-            max-w-7xl
-            mx-auto
-            px-4
-            sm:px-6
-            lg:px-8
-            pt-24
-            pb-10
-          "
-        >
-          {children}
-        </main>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );
