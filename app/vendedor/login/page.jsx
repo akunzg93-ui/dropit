@@ -76,27 +76,54 @@ export default function Login() {
       extraButtons={
         <div className="space-y-3">
 
+          {/* 🔥 CAMBIO DE MODO */}
+          <button
+            onClick={() => router.push("/login")}
+            className="
+              w-full
+              flex
+              items-center
+              justify-center
+              gap-2
+              py-2
+              rounded-xl
+              bg-gradient-to-r
+              from-indigo-50
+              to-blue-50
+              text-indigo-600
+              text-sm
+              font-medium
+              hover:from-indigo-100
+              hover:to-blue-100
+              transition
+            "
+          >
+            Cambiar a modo establecimiento
+          </button>
+
           {/* Google */}
           <button
             onClick={loginGoogle}
-            className="w-full flex items-center justify-center gap-3 border border-slate-300 rounded-xl py-3 bg-white hover:bg-slate-50 transition"
+            className="
+              w-full
+              flex
+              items-center
+              justify-center
+              gap-3
+              border
+              border-slate-300
+              rounded-xl
+              py-3
+              bg-white
+              hover:bg-slate-50
+              transition
+            "
           >
             <img
               src="https://www.svgrepo.com/show/475656/google-color.svg"
               className="w-5 h-5"
             />
             Continuar con Google
-          </button>
-
-          {/* 🔥 CAMBIO DE MODO */}
-          <button
-            onClick={() => router.push("/login")}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl 
-bg-gradient-to-r from-indigo-50 to-blue-50 
-text-indigo-600 text-sm font-medium
-hover:from-indigo-100 hover:to-blue-100 transition"
-          >
-            Cambiar a modo establecimiento
           </button>
 
         </div>

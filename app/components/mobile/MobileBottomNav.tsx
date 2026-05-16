@@ -98,16 +98,10 @@ export default function MobileBottomNav({ role }) {
     ];
   }
 
-  // BUYER / PUBLIC
-  else {
-    items = [
-      {
-        href: "/comprador/validar-pedido",
-        label: "Rastrear",
-        icon: Package,
-      },
-    ];
-  }
+  // PUBLIC
+else {
+  return null;
+}
 
   return (
     <div
