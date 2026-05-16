@@ -370,16 +370,16 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* TERMINOS */}
-            <Link
-              href="/terminos"
-              className={`flex items-center gap-2 transition hover:text-[#2d6cdf] ${active(
-                "/terminos"
-              )}`}
-            >
-              <FileText size={16} />
-              Términos
-            </Link>
+        {/* TERMINOS */}
+<Link
+  href="/terminos"
+  className={`flex items-center gap-2 transition hover:text-[#2d6cdf] ${active(
+    "/terminos"
+  )}`}
+>
+  <FileText size={16} />
+  Términos
+</Link>
 
             {/* USER */}
             {user ? (

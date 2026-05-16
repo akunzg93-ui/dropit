@@ -32,7 +32,7 @@ export default function AdminLayout({ children }: any) {
         return;
       }
 
-      const { data: profile }: any = await supabase
+      const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)

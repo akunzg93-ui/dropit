@@ -32,7 +32,7 @@ export default function RegisterEstablecimiento() {
     }
 
     if (!aceptaTerminos) {
-      setMensaje("Debes aceptar los Términos y Condiciones.");
+      setMensaje("Debes aceptar los Términos y el Aviso de Privacidad.");
       return;
     }
 
@@ -105,6 +105,7 @@ export default function RegisterEstablecimiento() {
             <label className="block text-sm font-medium mb-2 text-slate-700">
               Nombre del responsable
             </label>
+
             <Input
               className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
               value={nombre}
@@ -117,6 +118,7 @@ export default function RegisterEstablecimiento() {
             <label className="block text-sm font-medium mb-2 text-slate-700">
               Correo electrónico
             </label>
+
             <Input
               type="email"
               className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
@@ -130,6 +132,7 @@ export default function RegisterEstablecimiento() {
             <label className="block text-sm font-medium mb-2 text-slate-700">
               Contraseña
             </label>
+
             <Input
               type="password"
               className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
@@ -143,6 +146,7 @@ export default function RegisterEstablecimiento() {
             <label className="block text-sm font-medium mb-2 text-slate-700">
               Confirmar contraseña
             </label>
+
             <Input
               type="password"
               className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
@@ -157,6 +161,7 @@ export default function RegisterEstablecimiento() {
             </div>
           )}
 
+          {/* ACEPTACIÓN LEGAL */}
           <div className="flex items-start gap-2 text-sm text-slate-600 mt-2">
             <input
               type="checkbox"
@@ -165,14 +170,25 @@ export default function RegisterEstablecimiento() {
               className="mt-1"
             />
 
-            <span>
+            <span className="leading-relaxed">
               Acepto los{" "}
+
               <Link
                 href="/terminos"
-                className="text-indigo-600 underline"
+                className="text-indigo-600 underline hover:text-indigo-700 transition"
                 target="_blank"
               >
-                Términos y Condiciones
+                Términos
+              </Link>
+
+              {" "}y el{" "}
+
+              <Link
+                href="/privacidad"
+                className="text-indigo-600 underline hover:text-indigo-700 transition"
+                target="_blank"
+              >
+                Aviso de Privacidad
               </Link>
             </span>
           </div>
@@ -186,8 +202,25 @@ export default function RegisterEstablecimiento() {
           </Button>
         </div>
 
-        <p className="text-center text-xs text-slate-500">
-          Al registrarte aceptas nuestros términos y condiciones.
+        {/* LEGAL */}
+        <p className="text-xs text-slate-500 text-center leading-relaxed">
+          Al registrarte aceptas nuestros{" "}
+
+          <Link
+            href="/terminos"
+            className="text-indigo-600 hover:underline"
+          >
+            Términos
+          </Link>
+
+          {" "}y el{" "}
+
+          <Link
+            href="/privacidad"
+            className="text-indigo-600 hover:underline"
+          >
+            Aviso de Privacidad
+          </Link>.
         </p>
       </div>
     </div>

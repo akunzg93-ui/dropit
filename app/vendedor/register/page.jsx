@@ -12,7 +12,7 @@ export default function RegisterVendedor() {
 
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
-  const [socialUrl, setSocialUrl] = useState(""); // ✅ NUEVO
+  const [socialUrl, setSocialUrl] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [mensaje, setMensaje] = useState("");
@@ -33,7 +33,7 @@ export default function RegisterVendedor() {
     }
 
     if (!aceptaTerminos) {
-      setMensaje("Debes aceptar los Términos y Condiciones.");
+      setMensaje("Debes aceptar los Términos y el Aviso de Privacidad.");
       return;
     }
 
@@ -49,7 +49,7 @@ export default function RegisterVendedor() {
         data: {
           role: "vendor",
           nombre_responsable: nombre,
-          social_url: socialUrl, // ✅ NUEVO
+          social_url: socialUrl,
         },
       },
     });
@@ -106,12 +106,14 @@ export default function RegisterVendedor() {
             <label className="block text-sm font-medium mb-2 text-slate-700">
               Nombre completo
             </label>
+
             <Input
               className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Ej. María López"
             />
+
             <p className="text-xs text-slate-500 mt-1">
               Este será el titular de la cuenta.
             </p>
@@ -121,6 +123,7 @@ export default function RegisterVendedor() {
             <label className="block text-sm font-medium mb-2 text-slate-700">
               Correo electrónico
             </label>
+
             <Input
               type="email"
               className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
@@ -130,17 +133,19 @@ export default function RegisterVendedor() {
             />
           </div>
 
-          {/* ✅ NUEVO CAMPO */}
+          {/* RED SOCIAL */}
           <div>
             <label className="block text-sm font-medium mb-2 text-slate-700">
               Red social / sitio web
             </label>
+
             <Input
               className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
               value={socialUrl}
               onChange={(e) => setSocialUrl(e.target.value)}
               placeholder="https://instagram/facebook.com/tu_tienda"
             />
+
             <p className="text-xs text-slate-500 mt-1">
               Esto ayudará a los establecimientos a confiar en ti.
             </p>
@@ -150,6 +155,7 @@ export default function RegisterVendedor() {
             <label className="block text-sm font-medium mb-2 text-slate-700">
               Contraseña
             </label>
+
             <Input
               type="password"
               className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
@@ -163,6 +169,7 @@ export default function RegisterVendedor() {
             <label className="block text-sm font-medium mb-2 text-slate-700">
               Confirmar contraseña
             </label>
+
             <Input
               type="password"
               className="rounded-xl border-slate-300 focus:ring-2 focus:ring-indigo-500"
@@ -177,7 +184,7 @@ export default function RegisterVendedor() {
             </div>
           )}
 
-          {/* ACEPTACIÓN DE TÉRMINOS */}
+          {/* ACEPTACIÓN LEGAL */}
           <div className="flex items-start gap-2 text-sm text-slate-600 mt-2">
             <input
               type="checkbox"
@@ -186,14 +193,25 @@ export default function RegisterVendedor() {
               className="mt-1"
             />
 
-            <span>
+            <span className="leading-relaxed">
               Acepto los{" "}
+
               <Link
                 href="/terminos"
-                className="text-indigo-600 underline"
+                className="text-indigo-600 underline hover:text-indigo-700 transition"
                 target="_blank"
               >
-                Términos y Condiciones
+                Términos
+              </Link>
+
+              {" "}y el{" "}
+
+              <Link
+                href="/privacidad"
+                className="text-indigo-600 underline hover:text-indigo-700 transition"
+                target="_blank"
+              >
+                Aviso de Privacidad
               </Link>
             </span>
           </div>
@@ -210,6 +228,7 @@ export default function RegisterVendedor() {
         {/* LOGIN LINK */}
         <p className="text-sm text-center text-slate-600">
           ¿Ya tienes cuenta?{" "}
+
           <span
             onClick={() => router.push("/vendedor/login")}
             className="text-indigo-600 font-medium cursor-pointer hover:underline"
@@ -219,8 +238,24 @@ export default function RegisterVendedor() {
         </p>
 
         {/* LEGAL */}
-        <p className="text-xs text-slate-500 text-center">
-          Al registrarte aceptas nuestros Términos y Política de privacidad.
+        <p className="text-xs text-slate-500 text-center leading-relaxed">
+          Al registrarte aceptas nuestros{" "}
+
+          <Link
+            href="/terminos"
+            className="text-indigo-600 hover:underline"
+          >
+            Términos
+          </Link>
+
+          {" "}y el{" "}
+
+          <Link
+            href="/privacidad"
+            className="text-indigo-600 hover:underline"
+          >
+            Aviso de Privacidad
+          </Link>.
         </p>
 
       </div>

@@ -193,9 +193,25 @@ export default function LoginCard({
           </span>
         </p>
 
-        <p className="text-xs text-muted-foreground mt-4 text-center">
-          Al continuar aceptas nuestros Términos y Política de privacidad.
-        </p>
+        <p className="text-xs text-muted-foreground mt-4 text-center leading-relaxed">
+  Al continuar aceptas nuestros{" "}
+  
+  <a
+    href="/terminos"
+    className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition"
+  >
+    Términos
+  </a>{" "}
+  
+  y{" "}
+  
+  <a
+    href="/privacidad"
+    className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition"
+  >
+    Aviso de Privacidad
+  </a>.
+</p>
 
       </div>
     </main>
