@@ -40,7 +40,7 @@ export default function AdminHome() {
       .eq("status", "pendiente");
 
     const saldoPendiente =
-      saldoData?.reduce((acc, i) => acc + Number(i.neto_establecimiento || 0), 0) || 0;
+      saldoData?.reduce((acc: number, i: any) => acc + Number(i.neto_establecimiento || 0), 0) || 0;
 
     // ⏳ retiros pendientes
     const { count: retirosPendientes } = await supabase
