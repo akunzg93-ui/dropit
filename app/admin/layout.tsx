@@ -15,7 +15,7 @@ import {
   Wallet,
 } from "lucide-react";
 
-import "./admin.css";
+// import "./admin.css";
 
 export default function AdminLayout({ children }: any) {
   const router = useRouter();
@@ -32,7 +32,7 @@ export default function AdminLayout({ children }: any) {
         return;
       }
 
-      const { data: profile } = await supabase
+      const { data: profile }: any = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
