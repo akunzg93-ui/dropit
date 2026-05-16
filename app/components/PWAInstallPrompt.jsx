@@ -124,10 +124,10 @@ export default function PWAInstallPrompt() {
 
           {isIOS ? (
             <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
-              Toca ⬆️ y luego{" "}
-<span className="font-medium text-blue-600">
-  “Agregar a inicio”
-</span>
+              Toca Compartir →{" "}
+              <span className="font-medium text-blue-600">
+                Agregar a inicio
+              </span>
             </p>
           ) : (
             <button
