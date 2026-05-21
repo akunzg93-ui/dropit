@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -31,8 +31,37 @@ export default function MapaEstablecimientos({
 }) {
   const [mounted, setMounted] = useState(false);
 
+  // 🔥 referencia real del mapa Leaflet
+  const mapRef = useRef(null);
+
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // 🔥 Fix cuando usuario sale de la app y vuelve
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (
+        document.visibilityState === "visible" &&
+        mapRef.current
+      ) {
+        setTimeout(() => {
+          mapRef.current.invalidateSize();
+        }, 300);
+      }
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibility
+    );
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibility
+      );
+    };
   }, []);
 
   const center =
@@ -49,11 +78,13 @@ export default function MapaEstablecimientos({
 
   return (
     <MapContainer
-      key={JSON.stringify(establecimientos)}
       center={center}
       zoom={12}
       style={{ height: "100%", width: "100%" }}
       scrollWheelZoom
+      whenCreated={(map) => {
+        mapRef.current = map;
+      }}
     >
       <TileLayer
         attribution="© Mapbox © OpenStreetMap"

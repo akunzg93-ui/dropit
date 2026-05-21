@@ -291,7 +291,12 @@ export default function Navbar() {
                   >
                     Entregar pedido
                   </Link>
-
+<Link
+  href="/establecimiento"
+  className="px-4 py-3 hover:bg-slate-50"
+>
+  Registrar establecimiento
+</Link>
                   <Link
                     href="/establecimiento/balance"
                     className="px-4 py-3 hover:bg-slate-50"

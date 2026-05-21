@@ -39,6 +39,7 @@ export default function CrearPedido() {
 
   const [establecimientos, setEstablecimientos] = useState([]);
   const [seleccionados, setSeleccionados] = useState([]);
+  const [zonaFiltro, setZonaFiltro] = useState("todas");
 
   const [coinsDisponibles, setCoinsDisponibles] = useState({
     small: 0,
@@ -104,25 +105,42 @@ export default function CrearPedido() {
   }, [tamano]);
 
   async function cargarEstablecimientos() {
-    const columnaCap =
-      tamano === "small" ? "capacidad_small" : "capacidad_medium";
+  console.log("🚀 cargando establecimientos...");
+  console.log("📦 tamaño seleccionado:", tamano);
 
-    const { data, error } = await supabase
-      .from("establecimientos")
-      .select("*");
+  const columnaCap =
+    tamano === "small"
+      ? "capacidad_small"
+      : "capacidad_medium";
 
-    if (error) {
-      setMensaje("Error cargando establecimientos");
-      return;
-    }
+  const { data, error } = await supabase
+    .from("establecimientos")
+    .select("*");
 
-    const disponibles = data.filter(
-      (e) => Number(e[columnaCap]) > 0
-    );
+  console.log("📥 respuesta establecimientos:", data);
+  console.log("❌ error establecimientos:", error);
 
-    setEstablecimientos(disponibles);
-    setSeleccionados([]);
+  if (error) {
+    setMensaje("Error cargando establecimientos");
+    return;
   }
+
+  const disponibles = data.filter(
+    (e) => Number(e[columnaCap]) > 0
+  );
+
+  console.log("✅ disponibles:", disponibles);
+
+  setEstablecimientos(disponibles);
+  setSeleccionados([]);
+}
+
+const establecimientosFiltrados =
+  zonaFiltro === "todas"
+    ? establecimientos
+    : establecimientos.filter(
+        (e) => e.zona === zonaFiltro
+      );
 
   function toggleEstablecimiento(est) {
     setSeleccionados((prev) =>
@@ -251,9 +269,7 @@ await fetch("/api/orders/email/pedido-creado", {
     }
   }
 
-
- 
- return (
+return (
   <div className="min-h-screen bg-slate-50 px-6 py-16">
     <div className="max-w-4xl mx-auto space-y-10">
 
@@ -262,6 +278,7 @@ await fetch("/api/orders/email/pedido-creado", {
         <h1 className="text-4xl font-bold text-indigo-900">
           Crear Pedido
         </h1>
+
         <p className="text-slate-600 mt-2">
           Registra un nuevo envío usando tus coins disponibles.
         </p>
@@ -273,6 +290,7 @@ await fetch("/api/orders/email/pedido-creado", {
           <p className="text-sm text-sky-600 mb-2">
             Coins Small disponibles
           </p>
+
           <p className="text-2xl font-bold text-sky-700">
             {coinsDisponibles.small}
           </p>
@@ -282,6 +300,7 @@ await fetch("/api/orders/email/pedido-creado", {
           <p className="text-sm text-indigo-600 mb-2">
             Coins Medium disponibles
           </p>
+
           <p className="text-2xl font-bold text-indigo-700">
             {coinsDisponibles.medium}
           </p>
@@ -309,10 +328,12 @@ await fetch("/api/orders/email/pedido-creado", {
           <SelectTrigger className="h-12 rounded-xl focus:ring-2 focus:ring-indigo-500">
             <SelectValue placeholder="Selecciona tamaño" />
           </SelectTrigger>
-          <SelectContent>
+
+          <SelectContent className="z-[9999]">
             <SelectItem value="small">
               Pequeño (hasta 3 kg · máx 40 cm por lado)
             </SelectItem>
+
             <SelectItem value="medium">
               Mediano (hasta 10 kg · máx 70 cm por lado)
             </SelectItem>
@@ -320,9 +341,9 @@ await fetch("/api/orders/email/pedido-creado", {
         </Select>
 
         <p className="text-xs text-amber-600 mt-2">
-  ⚠️ El paquete no debe exceder el peso o tamaño indicado. 
-  El establecimiento puede rechazarlo.
-</p>
+          ⚠️ El paquete no debe exceder el peso o tamaño indicado.
+          El establecimiento puede rechazarlo.
+        </p>
 
         {/* ALERTA SIN COINS */}
         {tamano && coinsDisponibles[tamano] === 0 && (
@@ -340,14 +361,57 @@ await fetch("/api/orders/email/pedido-creado", {
             </Button>
           </div>
         )}
-
       </div>
+
+      {/* FILTRO ZONAS */}
+      {establecimientos.length > 0 && (
+        <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl p-4 shadow-sm">
+          <p className="text-sm font-medium text-slate-700 mb-3">
+            Filtrar por zona
+          </p>
+
+          <Select
+            value={zonaFiltro}
+            onValueChange={setZonaFiltro}
+          >
+            <SelectTrigger className="h-11 rounded-xl bg-white">
+              <SelectValue placeholder="Selecciona zona" />
+            </SelectTrigger>
+
+            <SelectContent className="z-[9999]">
+              <SelectItem value="todas">
+                Todas las zonas
+              </SelectItem>
+
+              <SelectItem value="Norte">
+                Zona Norte
+              </SelectItem>
+
+              <SelectItem value="Sur">
+                Zona Sur
+              </SelectItem>
+
+              <SelectItem value="Oriente">
+                Zona Oriente
+              </SelectItem>
+
+              <SelectItem value="Poniente">
+                Zona Poniente
+              </SelectItem>
+
+              <SelectItem value="Centro">
+                Zona Centro
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* MAPA */}
       {establecimientos.length > 0 && (
-        <div className="h-[400px] w-full rounded-3xl overflow-hidden border border-slate-200 shadow-sm">
+        <div className="relative z-0 h-[420px] w-full rounded-3xl overflow-hidden border border-indigo-100 shadow-2xl ring-1 ring-indigo-100">
           <MapaEstablecimientos
-            establecimientos={establecimientos}
+            establecimientos={establecimientosFiltrados}
             seleccionados={seleccionados}
             onMarkerClick={toggleEstablecimiento}
           />
@@ -357,11 +421,12 @@ await fetch("/api/orders/email/pedido-creado", {
       {/* ESTABLECIMIENTOS */}
       {establecimientos.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-slate-800">
+
+          <h2 className="text-2xl font-bold text-indigo-900">
             Establecimientos permitidos
           </h2>
 
-          {establecimientos.map((est) => {
+          {establecimientosFiltrados.map((est) => {
             const activo = seleccionados.some(
               (e) => e.id === est.id
             );
@@ -370,26 +435,26 @@ await fetch("/api/orders/email/pedido-creado", {
               <div
                 key={est.id}
                 onClick={() => toggleEstablecimiento(est)}
-                className={`border rounded-2xl p-6 cursor-pointer transition-all duration-200 shadow-sm ${
+                className={`border rounded-2xl p-6 cursor-pointer transition-all duration-200 ${
                   activo
-                    ? "border-indigo-500 bg-indigo-600 text-white shadow-md"
-                    : "bg-white hover:shadow-md border-slate-200"
+                    ? "border-transparent bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-xl scale-[1.01]"
+                    : "bg-white/90 backdrop-blur hover:shadow-xl hover:border-indigo-200 border-slate-200"
                 }`}
               >
                 <h3 className="font-semibold text-lg">
-  {est.nombre}
-</h3>
+                  {est.nombre}
+                </h3>
 
-<div className="mt-2">
-  <StarsPromedio
-    evaluado_id={est.uuid}
-    tipo="establecimiento"
-  />
-</div>
+                <div className="mt-2">
+                  <StarsPromedio
+                    evaluado_id={est.uuid}
+                    tipo="establecimiento"
+                  />
+                </div>
 
-<p className="text-sm mt-2 opacity-80">
-  {est.direccion}
-</p>
+                <p className="text-sm mt-2 opacity-80">
+                  {est.direccion}
+                </p>
 
                 <p className="text-xs mt-2 opacity-70">
                   Small: {est.capacidad_small} — Medium:{" "}
@@ -401,24 +466,28 @@ await fetch("/api/orders/email/pedido-creado", {
         </div>
       )}
 
-{/* DECLARACIÓN LEGAL */}
-<div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-4">
-  <input
-    type="checkbox"
-    checked={declaracionLegal}
-    onChange={(e) => setDeclaracionLegal(e.target.checked)}
-    className="mt-1"
-  />
+      {/* DECLARACIÓN LEGAL */}
+      <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+        <input
+          type="checkbox"
+          checked={declaracionLegal}
+          onChange={(e) => setDeclaracionLegal(e.target.checked)}
+          className="mt-1"
+        />
 
-  <p className="text-sm text-slate-600">
-    Declaro que el paquete no contiene artículos ilegales,
-    sustancias prohibidas, armas, dinero en efectivo u otros
-    bienes restringidos según los{" "}
-    <Link href="/terminos" className="text-indigo-600 underline">
-      Términos y Condiciones
-    </Link>.
-  </p>
-</div>
+        <p className="text-sm text-slate-600">
+          Declaro que el paquete no contiene artículos ilegales,
+          sustancias prohibidas, armas, dinero en efectivo u otros
+          bienes restringidos según los{" "}
+
+          <Link
+            href="/terminos"
+            className="text-indigo-600 underline"
+          >
+            Términos y Condiciones
+          </Link>.
+        </p>
+      </div>
 
       {/* BOTÓN */}
       <Button
@@ -426,7 +495,9 @@ await fetch("/api/orders/email/pedido-creado", {
         onClick={crearPedido}
         disabled={loading}
       >
-        {loading ? "Creando pedido..." : "Crear Pedido"}
+        {loading
+          ? "Creando pedido..."
+          : "Crear Pedido"}
       </Button>
 
       {/* MENSAJE */}
@@ -441,12 +512,13 @@ await fetch("/api/orders/email/pedido-creado", {
           {mensaje}
         </p>
       )}
-       {pedidoCreado && (
-  <SharePedidoCard
-    folio={pedidoCreado.folio}
-    codigo={pedidoCreado.codigo}
-  />
-)}
+
+      {pedidoCreado && (
+        <SharePedidoCard
+          folio={pedidoCreado.folio}
+          codigo={pedidoCreado.codigo}
+        />
+      )}
 
     </div>
   </div>

@@ -71,6 +71,7 @@ export default function EstablecimientoPage() {
   const [horario, setHorario] = useState("");
   const [instruccionesLlegada, setInstruccionesLlegada] = useState("");
   const [googleMapsUrl, setGoogleMapsUrl] = useState("");
+  const [zona, setZona] = useState("");
 
   const [horaApertura, setHoraApertura] = useState("");
 const [horaCierre, setHoraCierre] = useState("");
@@ -99,7 +100,8 @@ const [horaCierre, setHoraCierre] = useState("");
   const [cargandoSugerencias, setCargandoSugerencias] = useState(false);
 
   // 🔄 Cargar establecimientos
- useEffect(() => {
+ // 🔄 Cargar establecimientos
+useEffect(() => {
   const cargar = async () => {
 
     const { data: authData } = await supabase.auth.getUser();
@@ -122,6 +124,26 @@ const [horaCierre, setHoraCierre] = useState("");
   };
 
   cargar();
+}, []);
+
+useEffect(() => {
+  const handleVisibility = () => {
+    if (document.visibilityState === "visible") {
+      setCargando(false);
+    }
+  };
+
+  document.addEventListener(
+    "visibilitychange",
+    handleVisibility
+  );
+
+  return () => {
+    document.removeEventListener(
+      "visibilitychange",
+      handleVisibility
+    );
+  };
 }, []);
 
   // 🔍 Autocomplete
@@ -153,24 +175,32 @@ const [horaCierre, setHoraCierre] = useState("");
     }
 
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        const punto = { lat: latitude, lng: longitude };
-        setSelectedPoint(punto);
+  async (pos) => {
+    const { latitude, longitude } = pos.coords;
 
-        const rev = await reverseGeocodificar(latitude, longitude);
+    const punto = {
+      lat: latitude,
+      lng: longitude,
+    };
 
-        if (rev) {
-          setDireccion(rev.direccion);
-          if (rev.cp) setCp(rev.cp);
-          setBusqueda(rev.direccion);
-        }
+    setSelectedPoint(punto);
 
-        setMensaje("Ubicación detectada.");
-      },
-      () => setMensaje("No pude obtener tu ubicación.")
-    );
-  };
+    const rev = await reverseGeocodificar(latitude, longitude);
+
+    if (rev) {
+      setDireccion(rev.direccion);
+
+      if (rev.cp) setCp(rev.cp);
+
+      setBusqueda(rev.direccion);
+    }
+
+    setMensaje("Ubicación detectada.");
+  },
+  () => setMensaje("No pude obtener tu ubicación.")
+);
+
+};
 
   // 🗺 Click en mapa
   const manejarClickMapa = (punto) => {
@@ -240,6 +270,7 @@ if (horario === "custom" && horaApertura && horaCierre) {
         usuario_id: user.id,
         instrucciones_llegada: instruccionesLlegada,
         google_maps_url: googleMapsUrl,
+        zona,
       };
 
       if (editandoId) {
@@ -296,6 +327,7 @@ if (horario === "custom" && horaApertura && horaCierre) {
       setSugerencias([]);
       setInstruccionesLlegada("");
       setGoogleMapsUrl("");
+      setZona("");
     } catch (err) {
       setMensaje("Ocurrió un error: " + (err?.message || "desconocido"));
     } finally {
@@ -315,7 +347,7 @@ if (horario === "custom" && horaApertura && horaCierre) {
     setSelectedPoint({ lat: est.lat, lng: est.lng });
     setInstruccionesLlegada(est.instrucciones_llegada || "");
     setGoogleMapsUrl(est.google_maps_url || "");
-
+    setZona(est.zona || "");
     setMensaje(`Editando: ${est.nombre}`);
   };
 
@@ -562,6 +594,30 @@ if (horario === "custom" && horaApertura && horaCierre) {
             Puedes pegar un link de Google Maps para abrir la ruta directamente.
           </p>
         </div>
+
+        {/* ZONA */}
+<div>
+  <label className="block text-sm font-medium mb-2 text-slate-700">
+    Zona 
+  </label>
+
+  <Select
+    value={zona}
+    onValueChange={setZona}
+  >
+    <SelectTrigger className="rounded-2xl border-slate-300 h-12">
+      <SelectValue placeholder="Selecciona una zona" />
+    </SelectTrigger>
+
+    <SelectContent>
+      <SelectItem value="Norte">Norte</SelectItem>
+      <SelectItem value="Sur">Sur</SelectItem>
+      <SelectItem value="Oriente">Oriente</SelectItem>
+      <SelectItem value="Poniente">Poniente</SelectItem>
+      <SelectItem value="Centro">Centro</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
 
         {/* HORARIO */}
         <div>
@@ -912,6 +968,7 @@ if (horario === "custom" && horaApertura && horaCierre) {
                 <th className="pb-3">Dirección</th>
                 <th className="pb-3">CP</th>
                 <th className="pb-3">Horario</th>
+                <th className="pb-3">Zona</th>
                 <th className="pb-3">Capacidades</th>
                 <th className="pb-3">Distancia</th>
                 <th className="pb-3">Acciones</th>
@@ -952,6 +1009,10 @@ if (horario === "custom" && horaApertura && horaCierre) {
                   <td className="text-slate-700">
                     {est.horario || "—"}
                   </td>
+                  
+                  <td className="text-slate-700">
+  {est.zona || "—"}
+</td>
 
                   <td>
                     <div className="text-xs text-slate-600">

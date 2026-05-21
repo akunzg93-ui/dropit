@@ -52,15 +52,24 @@ export default function BalanceEstablecimiento() {
   }, []);
 
   async function init() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const {
+  data: { user },
+} = await supabase.auth.getUser();
+
+if (!user) {
+  setLoading(false);
+  return;
+}
 
     const { data } = await supabase
       .from("establecimientos")
       .select("uuid, nombre")
       .eq("usuario_id", user.id);
 
-    if (!data || data.length === 0) return;
+    if (!data || data.length === 0) {
+  setLoading(false);
+  return;
+}
 
     setEstablecimientos(data);
     setEstablecimientoActivo(data[0].uuid);

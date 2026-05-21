@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import StarsPromedio from "@/app/components/StarsPromedio";
 
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+
 const MapaEstablecimientos = dynamic(
   () => import("../components/MapaEstablecimientos"),
   { ssr: false }
@@ -35,14 +43,29 @@ function calcularDistanciaKm(p1, p2) {
 export default function CompradorPage() {
   const [pedidoId, setPedidoId] = useState(null);
   const [pedido, setPedido] = useState(null);
+
   const [establecimientos, setEstablecimientos] = useState([]);
   const [seleccion, setSeleccion] = useState(null);
+
   const [ubicacion, setUbicacion] = useState(null);
+
   const [mensaje, setMensaje] = useState("");
+
+  const [zonaFiltro, setZonaFiltro] =
+    useState("todas");
+
   const router = useRouter();
+
+  const establecimientosFiltrados =
+    zonaFiltro === "todas"
+      ? establecimientos
+      : establecimientos.filter(
+          (e) => e.zona === zonaFiltro
+        );
 
   useEffect(() => {
     const pid = sessionStorage.getItem("pedido_id");
+
     if (pid) setPedidoId(Number(pid));
   }, []);
 
@@ -51,7 +74,6 @@ export default function CompradorPage() {
     if (!pedidoId) return;
 
     async function cargarPedido() {
-      // 1. pedido normal
       const { data } = await supabase
         .from("pedidos")
         .select("*")
@@ -63,28 +85,34 @@ export default function CompradorPage() {
       let vendedor = null;
       let vendedor_rating = null;
 
-      // 2. traer vendedor manual
-      if (data.vendedor_id !== null && data.vendedor_id !== undefined) {
-        const res = await fetch("/api/orders/users/get-vendedor", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            vendedor_id: data.vendedor_id,
-          }),
-        });
+      if (
+        data.vendedor_id !== null &&
+        data.vendedor_id !== undefined
+      ) {
+        const res = await fetch(
+          "/api/orders/users/get-vendedor",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              vendedor_id: data.vendedor_id,
+            }),
+          }
+        );
 
         const json = await res.json();
         const vend = json.data;
 
         vendedor = vend;
 
-        console.log("vendedor_id:", data.vendedor_id);
-
-        // 3. traer rating
         if (vend?.id) {
           const { data: rating } = await supabase
             .from("ratings_resumen")
-            .select("rating_promedio, total_reviews")
+            .select(
+              "rating_promedio, total_reviews"
+            )
             .eq("user_id", vend.id)
             .maybeSingle();
 
@@ -116,7 +144,8 @@ export default function CompradorPage() {
           direccion,
           lat,
           lng,
-          horario
+          horario,
+          zona
         )
       `)
       .eq("pedido_id", pedidoId)
@@ -125,18 +154,23 @@ export default function CompradorPage() {
           .map((r) => r.establecimientos)
           .filter(Boolean);
 
-        // 🔥 traer ratings de establecimientos
         const { data: ratings } = await supabase
           .from("ratings_resumen")
-          .select("user_id, rating_promedio, total_reviews");
+          .select(
+            "user_id, rating_promedio, total_reviews"
+          );
 
         const estsConRating = ests.map((e) => {
-          const r = ratings?.find((x) => x.user_id === e.uuid);
+          const r = ratings?.find(
+            (x) => x.user_id === e.uuid
+          );
 
           return {
             ...e,
-            rating_promedio: r?.rating_promedio ?? 0,
-            total_reviews: r?.total_reviews ?? 0,
+            rating_promedio:
+              r?.rating_promedio ?? 0,
+            total_reviews:
+              r?.total_reviews ?? 0,
           };
         });
 
@@ -144,34 +178,51 @@ export default function CompradorPage() {
       });
   }, [pedidoId]);
 
-  const listaOrdenada = establecimientos
-    .map((e) => ({
-      ...e,
-      distancia: ubicacion
-        ? calcularDistanciaKm(ubicacion, { lat: e.lat, lng: e.lng })
-        : null,
-    }))
-    .sort((a, b) => (a.distancia ?? 999) - (b.distancia ?? 999));
+  const listaOrdenada =
+    establecimientosFiltrados
+      .map((e) => ({
+        ...e,
+        distancia: ubicacion
+          ? calcularDistanciaKm(ubicacion, {
+              lat: e.lat,
+              lng: e.lng,
+            })
+          : null,
+      }))
+      .sort(
+        (a, b) =>
+          (a.distancia ?? 999) -
+          (b.distancia ?? 999)
+      );
 
   async function confirmarSeleccion() {
     if (!pedidoId || !seleccion) return;
 
-    const res = await fetch("/api/orders/confirmado", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        pedido_id: pedidoId,
-        establecimiento_id: seleccion,
-      }),
-    });
+    const res = await fetch(
+      "/api/orders/confirmado",
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pedido_id: pedidoId,
+          establecimiento_id: seleccion,
+        }),
+      }
+    );
 
     if (!res.ok) {
-      setMensaje("❌ Error al confirmar el pedido");
+      setMensaje(
+        "❌ Error al confirmar el pedido"
+      );
       return;
     }
 
-    router.push(`/track/${pedido.folio}?confirmed=1`);
+    router.push(
+      `/track/${pedido.folio}?confirmed=1`
+    );
   }
 
   if (!pedidoId) {
@@ -205,11 +256,14 @@ export default function CompradorPage() {
           {pedido && (
             <>
               <p className="text-white/90">
-                Pedido <strong>{pedido.folio}</strong> — {pedido.producto}
+                Pedido{" "}
+                <strong>{pedido.folio}</strong> —{" "}
+                {pedido.producto}
               </p>
 
               {pedido?.vendedor && (
                 <div className="text-white/90 text-sm mt-2 space-y-2">
+
                   <p>
                     Vendedor:{" "}
                     <strong>
@@ -220,22 +274,73 @@ export default function CompradorPage() {
                   </p>
 
                   <StarsPromedio
-  evaluado_id={pedido.vendedor.id}
-  tipo="vendedor"
-/>
+                    evaluado_id={
+                      pedido.vendedor.id
+                    }
+                    tipo="vendedor"
+                  />
                 </div>
               )}
             </>
           )}
         </div>
 
+        {/* FILTRO ZONAS */}
+        {establecimientos.length > 0 && (
+          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl p-4 shadow-sm">
+
+            <p className="text-sm font-medium text-slate-700 mb-3">
+              Filtrar por zona
+            </p>
+
+            <Select
+              value={zonaFiltro}
+              onValueChange={setZonaFiltro}
+            >
+              <SelectTrigger className="h-11 rounded-xl bg-white">
+                <SelectValue placeholder="Selecciona zona" />
+              </SelectTrigger>
+
+              <SelectContent className="z-[9999]">
+                <SelectItem value="todas">
+                  Todas las zonas
+                </SelectItem>
+
+                <SelectItem value="Norte">
+                  Zona Norte
+                </SelectItem>
+
+                <SelectItem value="Sur">
+                  Zona Sur
+                </SelectItem>
+
+                <SelectItem value="Oriente">
+                  Zona Oriente
+                </SelectItem>
+
+                <SelectItem value="Poniente">
+                  Zona Poniente
+                </SelectItem>
+
+                <SelectItem value="Centro">
+                  Zona Centro
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {/* MAPA */}
-        <div className="rounded-3xl overflow-hidden shadow-xl border border-slate-200">
+        <div className="rounded-3xl overflow-hidden shadow-2xl border border-indigo-100 ring-1 ring-indigo-100">
           <div className="h-96">
             <MapaEstablecimientos
-              establecimientos={establecimientos}
+              establecimientos={
+                establecimientosFiltrados
+              }
               selectedPoint={ubicacion}
-              onLocationSelected={setUbicacion}
+              onLocationSelected={
+                setUbicacion
+              }
             />
           </div>
         </div>
@@ -247,52 +352,67 @@ export default function CompradorPage() {
           </div>
         )}
 
+        {/* ESTABLECIMIENTOS */}
+        <div className="space-y-4">
 
+          <h2 className="text-2xl font-bold text-indigo-900">
+            Establecimientos disponibles
+          </h2>
 
-        {/* LISTA */}
-        <div className="grid gap-5">
           {listaOrdenada.map((e, index) => {
-            const esMasCercano = index === 0 && e.distancia;
+            const esMasCercano =
+              index === 0 && e.distancia;
 
             return (
               <div
                 key={e.id}
-                onClick={() => setSeleccion(e.id)}
+                onClick={() =>
+                  setSeleccion(e.id)
+                }
                 className={`rounded-2xl p-6 cursor-pointer transition-all duration-300 border ${
                   seleccion === e.id
-                    ? "bg-indigo-50 border-indigo-500 ring-2 ring-indigo-500 shadow-lg scale-[1.01]"
-                    : "bg-white border-slate-200 hover:bg-slate-50 hover:shadow-md"
+                    ? "border-transparent bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-xl scale-[1.01]"
+                    : "bg-white/90 backdrop-blur hover:shadow-xl hover:border-indigo-200 border-slate-200"
                 }`}
               >
                 <div className="flex justify-between items-start">
+
                   <div>
-                    <h3 className="font-semibold text-lg text-slate-900">
+                    <h3 className="font-semibold text-lg">
                       {e.nombre}
                     </h3>
 
                     <div className="mt-2">
                       <StarsPromedio
-  evaluado_id={e.uuid}
-  tipo="establecimiento"
-/>
+                        evaluado_id={e.uuid}
+                        tipo="establecimiento"
+                      />
                     </div>
 
-                    <p className="text-sm text-slate-600 mt-1">
+                    <p className="text-sm mt-2 opacity-80">
                       {e.direccion}
                     </p>
 
-                    <p className="text-xs text-slate-500 mt-2">
-                      Horario: {e.horario || "Horario no especificado"}
+                    <p className="text-xs mt-2 opacity-70">
+                      Horario:{" "}
+                      {e.horario ||
+                        "Horario no especificado"}
+                    </p>
+
+                    <p className="text-xs mt-2 opacity-70">
+                      Zona:{" "}
+                      {e.zona || "No definida"}
                     </p>
 
                     {e.distancia && (
-                      <p className="text-xs text-slate-500 mt-2">
+                      <p className="text-xs mt-2 opacity-70">
                         {e.distancia.toFixed(2)} km
                       </p>
                     )}
                   </div>
 
                   <div className="flex flex-col gap-2 items-end">
+
                     {esMasCercano && (
                       <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
                         Más cercano
@@ -300,7 +420,7 @@ export default function CompradorPage() {
                     )}
 
                     {seleccion === e.id && (
-                      <span className="text-xs bg-indigo-600 text-white px-2 py-1 rounded-full">
+                      <span className="text-xs bg-white/20 text-white px-2 py-1 rounded-full">
                         Seleccionado
                       </span>
                     )}
@@ -329,6 +449,7 @@ export default function CompradorPage() {
             {mensaje}
           </p>
         )}
+
       </div>
     </div>
   );
