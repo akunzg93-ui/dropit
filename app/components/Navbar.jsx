@@ -115,6 +115,21 @@ export default function Navbar() {
     window.location.href = "/";
   };
 
+  const handleLoginClick = () => {
+    if (pathname.includes("/login")) {
+      document
+        .getElementById("login-form")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+
+      return;
+    }
+
+    window.location.href = "/login";
+  };
+
   return (
     <>
       <nav
@@ -159,17 +174,6 @@ export default function Navbar() {
 
           {/* DESKTOP */}
           <div className="hidden md:flex items-center gap-7 text-sm font-medium">
-
-            {/* PUBLICO */}
-            <Link
-              href="/comprador/validar-pedido"
-              className={`flex items-center gap-2 transition hover:text-[#2d6cdf] ${active(
-                "/comprador/validar-pedido"
-              )}`}
-            >
-              <Package size={16} />
-              Rastrear pedido
-            </Link>
 
             {user && <RoleSwitcher />}
 
@@ -234,6 +238,32 @@ export default function Navbar() {
               </div>
             )}
 
+            {/* RECIBIR */}
+            {role === "establishment" && (
+              <Link
+                href="/establecimiento/recibir-pedido"
+                className={`flex items-center gap-2 transition hover:text-[#2d6cdf] ${active(
+                  "/establecimiento/recibir-pedido"
+                )}`}
+              >
+                <Package size={16} />
+                Recibir pedido
+              </Link>
+            )}
+
+            {/* ENTREGAR */}
+            {role === "establishment" && (
+              <Link
+                href="/establecimiento/entregar"
+                className={`flex items-center gap-2 transition hover:text-[#2d6cdf] ${active(
+                  "/establecimiento/entregar"
+                )}`}
+              >
+                <Package size={16} />
+                Entregar pedido
+              </Link>
+            )}
+
             {/* ESTABLECIMIENTO */}
             {role === "establishment" && (
               <div className="relative group">
@@ -279,24 +309,12 @@ export default function Navbar() {
                   </Link>
 
                   <Link
-                    href="/establecimiento/recibir-pedido"
+                    href="/establecimiento"
                     className="px-4 py-3 hover:bg-slate-50"
                   >
-                    Recibir pedido
+                    Registrar establecimiento
                   </Link>
 
-                  <Link
-                    href="/establecimiento/entregar"
-                    className="px-4 py-3 hover:bg-slate-50"
-                  >
-                    Entregar pedido
-                  </Link>
-<Link
-  href="/establecimiento"
-  className="px-4 py-3 hover:bg-slate-50"
->
-  Registrar establecimiento
-</Link>
                   <Link
                     href="/establecimiento/balance"
                     className="px-4 py-3 hover:bg-slate-50"
@@ -375,16 +393,29 @@ export default function Navbar() {
               </div>
             )}
 
-        {/* TERMINOS */}
-<Link
-  href="/terminos"
-  className={`flex items-center gap-2 transition hover:text-[#2d6cdf] ${active(
-    "/terminos"
-  )}`}
->
-  <FileText size={16} />
-  Términos
-</Link>
+            {/* RASTREAR */}
+            {!user && (
+              <Link
+                href="/comprador/validar-pedido"
+                className={`flex items-center gap-2 transition hover:text-[#2d6cdf] ${active(
+                  "/comprador/validar-pedido"
+                )}`}
+              >
+                <Package size={16} />
+                Rastrear pedido
+              </Link>
+            )}
+
+            {/* TERMINOS */}
+            <Link
+              href="/terminos"
+              className={`flex items-center gap-2 transition hover:text-[#2d6cdf] ${active(
+                "/terminos"
+              )}`}
+            >
+              <FileText size={16} />
+              Términos
+            </Link>
 
             {/* USER */}
             {user ? (
@@ -443,8 +474,8 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              <Link
-                href="/login"
+              <button
+                onClick={handleLoginClick}
                 className="
                   rounded-xl
                   bg-[#2d6cdf]
@@ -456,7 +487,7 @@ export default function Navbar() {
                 "
               >
                 Iniciar sesión
-              </Link>
+              </button>
             )}
           </div>
 
@@ -497,22 +528,25 @@ export default function Navbar() {
               shadow-xl
             "
           >
-            <Link
-              href="/comprador/validar-pedido"
-              onClick={() => setOpen(false)}
-              className="
-                flex
-                items-center
-                gap-3
-                rounded-2xl
-                px-4
-                py-4
-                bg-slate-50
-              "
-            >
-              <Package size={18} />
-              Rastrear pedido
-            </Link>
+
+            {!user && (
+              <Link
+                href="/comprador/validar-pedido"
+                onClick={() => setOpen(false)}
+                className="
+                  flex
+                  items-center
+                  gap-3
+                  rounded-2xl
+                  px-4
+                  py-4
+                  bg-slate-50
+                "
+              >
+                <Package size={18} />
+                Rastrear pedido
+              </Link>
+            )}
 
             <Link
               href="/terminos"
@@ -556,9 +590,23 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <Link
-                href="/login"
-                onClick={() => setOpen(false)}
+              <button
+                onClick={() => {
+                  setOpen(false);
+
+                  if (pathname.includes("/login")) {
+                    document
+                      .getElementById("login-form")
+                      ?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
+
+                    return;
+                  }
+
+                  window.location.href = "/login";
+                }}
                 className="
                   flex
                   items-center
@@ -572,7 +620,7 @@ export default function Navbar() {
                 "
               >
                 Iniciar sesión
-              </Link>
+              </button>
             )}
           </div>
         )}

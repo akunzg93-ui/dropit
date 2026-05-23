@@ -24,10 +24,25 @@ import {
 
 // Badge por estado
 const estadoBadge = {
-  creado: "bg-gray-200 text-gray-700",
-  en_transito: "bg-blue-200 text-blue-700",
-  entregado: "bg-green-200 text-green-700",
-  devuelto: "bg-red-200 text-red-700",
+  creado: "bg-slate-100 text-slate-700",
+
+  pendiente_aprobacion_establecimiento:
+    "bg-amber-100 text-amber-700",
+
+  confirmado:
+    "bg-sky-100 text-sky-700",
+
+  pendiente_recoleccion:
+    "bg-indigo-100 text-indigo-700",
+
+  en_transito:
+    "bg-purple-100 text-purple-700",
+
+  entregado:
+    "bg-emerald-100 text-emerald-700",
+
+  devuelto:
+    "bg-red-100 text-red-700",
 };
 
 export default function MisPedidos() {
@@ -112,7 +127,9 @@ export default function MisPedidos() {
     }
 
     if (tamanoFiltro) f = f.filter((p) => p.tamano === tamanoFiltro);
-    if (estadoFiltro) f = f.filter((p) => p.estado === estadoFiltro);
+    if (estadoFiltro && estadoFiltro !== "todos") {
+  f = f.filter((p) => p.estado === estadoFiltro);
+}
 
     setFiltered(f);
   }, [busqueda, tamanoFiltro, estadoFiltro, pedidos]);
@@ -154,7 +171,7 @@ export default function MisPedidos() {
           font-medium
           w-fit
         ">
-          🚚 Dashboard operativo
+          
         </div>
 
       </div>
@@ -257,23 +274,39 @@ export default function MisPedidos() {
 
             <SelectContent>
 
-              <SelectItem value="creado">
-                Creado
-              </SelectItem>
+  <SelectItem value="todos">
+    Todos los estados
+  </SelectItem>
 
-              <SelectItem value="en_transito">
-                En tránsito
-              </SelectItem>
+  <SelectItem value="creado">
+    Creado
+  </SelectItem>
 
-              <SelectItem value="entregado">
-                Entregado
-              </SelectItem>
+  <SelectItem value="pendiente_aprobacion_establecimiento">
+    Pendiente aprobación
+  </SelectItem>
 
-              <SelectItem value="devuelto">
-                Devuelto
-              </SelectItem>
+  <SelectItem value="confirmado">
+    Confirmado
+  </SelectItem>
 
-            </SelectContent>
+  <SelectItem value="pendiente_recoleccion">
+    Pendiente recolección
+  </SelectItem>
+
+  <SelectItem value="en_transito">
+    En tránsito
+  </SelectItem>
+
+  <SelectItem value="entregado">
+    Entregado
+  </SelectItem>
+
+  <SelectItem value="devuelto">
+    Devuelto
+  </SelectItem>
+
+</SelectContent>
           </Select>
 
         </div>
@@ -334,7 +367,9 @@ export default function MisPedidos() {
                   ${estadoBadge[p.estado]}
                 `}
               >
-                {p.estado.replace("_", " ")}
+                {p.estado
+  ?.replaceAll("_", " ")
+  ?.replace(/\b\w/g, (l) => l.toUpperCase())}
               </span>
 
             </div>
@@ -460,7 +495,9 @@ export default function MisPedidos() {
                       ${estadoBadge[p.estado]}
                     `}
                   >
-                    {p.estado.replace("_", " ")}
+                    {p.estado
+  ?.replaceAll("_", " ")
+  ?.replace(/\b\w/g, (l) => l.toUpperCase())}
                   </span>
                 </td>
 
@@ -599,7 +636,9 @@ export default function MisPedidos() {
                     ${estadoBadge[pedidoSeleccionado.estado]}
                   `}
                 >
-                  {pedidoSeleccionado.estado.replace("_", " ")}
+                  {pedidoSeleccionado.estado
+  ?.replaceAll("_", " ")
+  ?.replace(/\b\w/g, (l) => l.toUpperCase())}
                 </span>
               </div>
 

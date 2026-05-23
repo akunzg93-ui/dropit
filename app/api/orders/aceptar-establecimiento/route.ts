@@ -69,19 +69,44 @@ export async function POST(req: Request) {
 
     // 5️⃣ 🔔 Notificar vendedor (AQUÍ ESTÁ LA CLAVE)
     try {
-      await fetch(
-        `${process.env.NEXT_PUBLIC_SITE_URL}/api/orders/notificar-vendedor`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ pedido_id }),
-        }
-      );
-    } catch (err) {
-      console.error("Error notificando vendedor:", err);
-    }
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "http://localhost:3000";
+
+  const finalUrl =
+    `${baseUrl}/api/orders/notificar-vendedor`;
+
+  console.log("URL notify:", finalUrl);
+
+  const notifyRes = await fetch(finalUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      folio: pedido.folio,
+    }),
+  });
+
+  const notifyText = await notifyRes.text();
+
+  console.log("STATUS notify:", notifyRes.status);
+  console.log("BODY notify:", notifyText);
+
+  if (!notifyRes.ok) {
+    console.error(
+      "Error notify vendedor:",
+      notifyRes.status,
+      notifyText
+    );
+  }
+
+} catch (err) {
+  console.error(
+    "Error notificando vendedor:",
+    err
+  );
+}
 
     return NextResponse.json({ ok: true });
 

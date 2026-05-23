@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import PWAInstallPrompt from "./PWAInstallPrompt";
 
 const Navbar = dynamic(() => import("./Navbar"), {
@@ -8,6 +9,8 @@ const Navbar = dynamic(() => import("./Navbar"), {
 });
 
 export default function ClientLayout({ children }) {
+  const pathname = usePathname();
+
   return (
     <>
       <Navbar />
@@ -27,7 +30,10 @@ export default function ClientLayout({ children }) {
         {children}
       </main>
 
-      <PWAInstallPrompt />
+      {(pathname === "/login" ||
+        pathname === "/comprador/validar-pedido") && (
+        <PWAInstallPrompt />
+      )}
     </>
   );
 }

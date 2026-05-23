@@ -5,7 +5,7 @@ console.log("🔥 API /orders/notificar-vendedor CARGADA");
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
-import { Resend } from "resend";
+import { sendEmail } from "@/lib/email";
 
 // 🔐 Generar código de vendedor (6 dígitos)
 function generarCodigoVendedor() {
@@ -110,18 +110,18 @@ export async function POST(req: Request) {
       });
 
     if (uploadError) {
-      console.error("❌ Storage upload error:", uploadError);
-      return NextResponse.json(
-        { error: "Error subiendo QR a storage" },
-        { status: 500 }
-      );
-    }
+  console.error(
+    "❌ Storage upload error:",
+    uploadError
+  );
+}
 
     const { data: publicUrlData } = supabase.storage
       .from("qr-codes")
       .getPublicUrl(fileName);
 
-    const qrUrl = publicUrlData.publicUrl;
+    const qrUrl =
+  publicUrlData?.publicUrl || "";
 
     const establecimiento =
       pedidoAny.pedido_establecimientos?.[0]?.establecimientos;
@@ -129,8 +129,6 @@ export async function POST(req: Request) {
     const establecimientoNombre = establecimiento?.nombre ?? "—";
     const direccionEstablecimiento = establecimiento?.direccion ?? "—";
 
-    // ✅ Resend
-    const resend = new Resend(process.env.RESEND_API_KEY);
 
     const subject = "📦 Pedido confirmado – Llévalo al establecimiento";
 
@@ -236,12 +234,12 @@ export async function POST(req: Request) {
       </div>
     `;
 
-    const { data, error: resendError } = await resend.emails.send({
-      from: "Dropit <no-reply@drop-itt.com>",
-      to: pedidoAny.email_vendedor,
-      subject,
-      html,
-    });
+    const { data, error: resendError } =
+  await sendEmail({
+    to: pedidoAny.email_vendedor,
+    subject,
+    html,
+  });
 
     if (resendError) {
       console.error("❌ RESEND ERROR:", resendError);
@@ -252,6 +250,10 @@ export async function POST(req: Request) {
     }
 
     console.log("✅ Resend enviado:", data);
+
+    console.log("EMAIL DATA:", data);
+console.log("EMAIL ERROR:", resendError);
+console.log("EMAIL:", pedidoAny.email_vendedor);
 
     // 6️⃣ Marcar correo enviado
     await supabase

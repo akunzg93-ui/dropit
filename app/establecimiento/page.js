@@ -295,7 +295,12 @@ if (horario === "custom" && horaApertura && horaCierre) {
         );
 
         setMensaje("✅ Establecimiento actualizado.");
-        setEditandoId(null);
+setEditandoId(null);
+
+window.scrollTo({
+  top: 0,
+  behavior: "smooth",
+});
       } else {
         const { data, error } = await withTimeout(
           supabase
@@ -313,7 +318,12 @@ if (horario === "custom" && horaApertura && horaCierre) {
         }
 
         setEstablecimientos((prev) => [data, ...prev]);
-        setMensaje("✅ Establecimiento guardado.");
+setMensaje("✅ Establecimiento guardado.");
+
+window.scrollTo({
+  top: 0,
+  behavior: "smooth",
+});
       }
 
       setNombre("");

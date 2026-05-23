@@ -1,6 +1,7 @@
+
 export function emailPedidoCreado({ folio }: { folio: string }) {
 
-  const trackUrl = `https://app.dropitt.net/track/${folio}`
+  const trackUrl = `https://app.dropitt.net/comprador/validar-pedido?folio=${folio}`
 
   return `
   <div style="background:#f8fafc;padding:40px 0;font-family:Arial,Helvetica,sans-serif">
@@ -27,15 +28,18 @@ export function emailPedidoCreado({ folio }: { folio: string }) {
             margin-bottom:10px;
             font-size:22px;
           ">
-            Tu pedido está listo
+            Tu pedido fue creado
           </h2>
 
           <p style="
             color:#64748b;
             font-size:14px;
             margin-bottom:30px;
+            line-height:22px;
           ">
             Un vendedor creó un pedido para ti en Dropit.
+            Ahora debes validar el pedido y seleccionar un establecimiento
+            para la entrega.
           </p>
 
         </td>
@@ -110,7 +114,7 @@ export function emailPedidoCreado({ folio }: { folio: string }) {
             font-size:14px;
             "
           >
-            Ver seguimiento
+            Validar pedido
           </a>
 
         </td>
@@ -124,8 +128,9 @@ export function emailPedidoCreado({ folio }: { folio: string }) {
           line-height:18px;
         ">
 
-          Podrás ver el establecimiento asignado y el código de entrega
-          cuando el pedido sea confirmado.
+          Después de seleccionar un establecimiento,
+          podrás seguir el estado del pedido y recibir tu
+          código de entrega cuando sea confirmado.
 
         </td>
       </tr>

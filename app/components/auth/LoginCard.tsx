@@ -50,7 +50,10 @@ export default function LoginCard({
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6 py-16 bg-slate-50">
-      <div className="w-full max-w-xl bg-white border border-slate-200 shadow-xl rounded-3xl p-10 transition-all duration-500 animate-fade-in-up">
+      <div
+  id="login-form"
+  className="w-full max-w-xl bg-white border border-slate-200 shadow-xl rounded-3xl p-10 transition-all duration-500 animate-fade-in-up"
+>
         
         {/* Logo */}
         <div className="flex justify-center mb-8">
