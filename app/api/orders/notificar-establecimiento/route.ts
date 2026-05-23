@@ -140,7 +140,7 @@ export async function POST(req: Request) {
             </p>
 
             <div style="text-align:center;margin-top:24px;">
-              <a href="https://app.dropitt.net/establecimiento"
+              <a href="https://app.dropitt.net/establecimiento/estado"
                  style="
                   background:#2563eb;
                   color:#ffffff;

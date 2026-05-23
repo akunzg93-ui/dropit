@@ -9,6 +9,7 @@ export default function EstablecimientoEstadoPage() {
 
   const [establecimientos, setEstablecimientos] = useState([]);
   const [selectedEstId, setSelectedEstId] = useState(null);
+  const [loadingInicial, setLoadingInicial] = useState(true);
   const [vendedorInfo, setVendedorInfo] = useState(null);
   const [pedidos, setPedidos] = useState([]);
   const [selectedPedido, setSelectedPedido] = useState(null);
@@ -37,7 +38,11 @@ export default function EstablecimientoEstadoPage() {
         .eq("usuario_id", userId);
 
       setEstablecimientos(data || []);
-      if (data?.length) setSelectedEstId(data[0].uuid);
+      if (data?.length) {
+  setSelectedEstId(data[0].uuid);
+}
+
+setLoadingInicial(false);
     };
 
     cargar();
@@ -130,6 +135,17 @@ export default function EstablecimientoEstadoPage() {
       return "bg-green-100 text-green-700";
     return "bg-gray-100 text-gray-600";
   };
+
+if (loadingInicial) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="text-slate-500 text-sm">
+        Cargando panel...
+      </div>
+    </div>
+  );
+}
+
 
  return (
   <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">
