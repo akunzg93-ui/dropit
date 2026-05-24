@@ -26,32 +26,133 @@ export default function EstablecimientoEstadoPage() {
   // -------------------------------
   // CARGAR ESTABLECIMIENTOS
   // -------------------------------
-  useEffect(() => {
-    const cargar = async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData?.user?.id;
+ useEffect(() => {
+
+  const {
+    data: listener,
+  } = supabase.auth.onAuthStateChange(
+    async (_event, session) => {
+
+      const userId =
+        session?.user?.id;
+
+      console.log(
+        "🔥 AUTH READY:",
+        userId
+      );
+
       if (!userId) return;
 
-      const { data } = await supabase
-        .from("establecimientos")
-        .select("*")
-        .eq("usuario_id", userId);
+      console.log(
+        "🚀 entrando query establecimientos"
+      );
 
-      setEstablecimientos(data || []);
-      if (data?.length) {
-  setSelectedEstId(data[0].uuid);
-}
+      const { data, error } =
+        await supabase
+          .from("establecimientos")
+          .select("*")
+          .eq("usuario_id", userId);
 
-setLoadingInicial(false);
-    };
+      console.log(
+        "✅ query terminada"
+      );
 
-    cargar();
-  }, []);
+      console.log(
+        "🟢 ESTABLECIMIENTOS:",
+        data
+      );
+
+      console.log(
+        "🔴 ERROR ESTABLECIMIENTOS:",
+        error
+      );
+
+      if (error) {
+        console.error(error);
+        setLoadingInicial(false);
+        return;
+      }
+
+      const establecimientosData =
+        data || [];
+
+      setEstablecimientos(
+        establecimientosData
+      );
+
+      if (
+        establecimientosData.length > 0
+      ) {
+
+        const firstId =
+          establecimientosData[0].uuid;
+
+        console.log(
+          "🟣 FIRST ID:",
+          firstId
+        );
+
+        setSelectedEstId((prev) => {
+  if (prev) return prev;
+  return firstId;
+});
+
+        // 🔥 fuerza carga inmediata
+        const { data: pedidosData } =
+          await supabase
+            .from("pedidos")
+            .select(`
+              id,
+              folio,
+              estado,
+              email_vendedor,
+              vendedor_id,
+              establecimiento_uuid,
+              created_at
+            `)
+            .eq(
+              "establecimiento_uuid",
+              firstId
+            );
+
+        const list =
+          pedidosData || [];
+
+        setPedidos(list);
+
+        setStats({
+          total: list.length,
+          pendientes: list.filter(
+            (p) =>
+              p.estado ===
+              "pendiente_aprobacion_establecimiento"
+          ).length,
+          transito: list.filter(
+            (p) =>
+              p.estado === "en_transito"
+          ).length,
+          entregados: list.filter(
+            (p) =>
+              p.estado === "entregado"
+          ).length,
+        });
+      }
+
+      setLoadingInicial(false);
+    }
+  );
+
+  return () => {
+    listener.subscription.unsubscribe();
+  };
+
+}, []);
 
   // -------------------------------
   // CARGAR PEDIDOS
   // -------------------------------
   useEffect(() => {
+    console.log("🟡 selectedEstId:", selectedEstId);
     if (!selectedEstId) return;
 
     const cargarPedidos = async () => {
@@ -67,6 +168,8 @@ setLoadingInicial(false);
           created_at
         `)
         .eq("establecimiento_uuid", selectedEstId);
+
+        console.log("📦 PEDIDOS:", data);
 
       const list = data || [];
       setPedidos(list);
@@ -89,9 +192,17 @@ setLoadingInicial(false);
   // -------------------------------
   useEffect(() => {
     const cargarPendientesGlobales = async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData?.user?.id;
-      if (!userId) return;
+      const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+const userId = session?.user?.id;
+console.log("🔵 SESSION:", session);
+console.log("🔵 USER ID:", userId);
+      if (!userId) {
+
+  return;
+}
 
       const { data: ests } = await supabase
         .from("establecimientos")
@@ -135,17 +246,6 @@ setLoadingInicial(false);
       return "bg-green-100 text-green-700";
     return "bg-gray-100 text-gray-600";
   };
-
-if (loadingInicial) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="text-slate-500 text-sm">
-        Cargando panel...
-      </div>
-    </div>
-  );
-}
-
 
  return (
   <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">

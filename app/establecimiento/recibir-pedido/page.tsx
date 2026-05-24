@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
+import { useRouter } from "next/navigation";
 
 type PedidoPreview = {
   id: string;
@@ -11,6 +12,7 @@ type PedidoPreview = {
 };
 
 export default function RecibirPedidoPage() {
+  const router = useRouter();
   const [folio, setFolio] = useState("");
   const [codigo, setCodigo] = useState("");
   const [mensaje, setMensaje] = useState("");
@@ -18,6 +20,7 @@ export default function RecibirPedidoPage() {
 
   const [scannerActivo, setScannerActivo] = useState(false);
   const [pedido, setPedido] = useState<PedidoPreview | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const qrInstance = useRef<Html5Qrcode | null>(null);
 
@@ -158,9 +161,7 @@ export default function RecibirPedidoPage() {
         return;
       }
 
-      setMensaje(
-        "✅ Pedido recibido correctamente. El comprador fue notificado."
-      );
+      setShowSuccess(true);
 
       setPedido(null);
       setFolio("");
@@ -184,10 +185,134 @@ export default function RecibirPedidoPage() {
   // --------------------------------------------------
   // 🖥 UI
   // --------------------------------------------------
+const cerrarPopup = () => {
+  setShowSuccess(false);
+};
+
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">
 
       <div className="max-w-3xl mx-auto space-y-5 md:space-y-10">
+
+        {showSuccess && (
+  <div className="
+    fixed
+    inset-0
+    z-50
+    bg-black/40
+    backdrop-blur-sm
+    flex
+    items-center
+    justify-center
+    px-4
+  ">
+
+    <div className="
+      relative
+      max-w-md
+      w-full
+      bg-white
+      rounded-[32px]
+      shadow-2xl
+      border
+      border-slate-200
+      p-8
+      text-center
+      space-y-6
+      animate-in
+      fade-in
+      zoom-in-95
+      duration-300
+    ">
+
+      {/* CERRAR */}
+      <button
+        onClick={cerrarPopup}
+        className="
+          absolute
+          top-4
+          right-4
+          h-10
+          w-10
+          rounded-full
+          bg-slate-100
+          hover:bg-slate-200
+          transition
+          text-slate-500
+          font-bold
+        "
+      >
+        ✕
+      </button>
+
+      {/* ICONO */}
+      <div className="
+        h-20
+        w-20
+        rounded-full
+        bg-green-100
+        flex
+        items-center
+        justify-center
+        mx-auto
+        text-4xl
+      ">
+        📦
+      </div>
+
+      {/* TEXO */}
+      <div>
+        <h1 className="
+          text-2xl
+          font-bold
+          text-slate-800
+        ">
+          Felicidades! recibiste un paquete!
+        </h1>
+
+        <p className="
+          text-slate-500
+          mt-2
+          text-sm
+        ">
+          El comprador fue notificado correctamente.
+        </p>
+      </div>
+
+      {/* RECOMENDACIONES */}
+      <div className="
+        bg-slate-50
+        border
+        border-slate-200
+        rounded-2xl
+        p-4
+        text-left
+        text-sm
+        text-slate-600
+        space-y-2
+      ">
+
+        <p>
+          • Resguarda el paquete en un lugar seguro
+        </p>
+
+        <p>
+          • Verifica el folio antes de entregar
+        </p>
+
+        <p>
+          • Utiliza una eitiqueta para identificar el paquete
+        </p>
+
+        <p>
+          • Mantén el paquete protegido y seco
+        </p>
+
+      </div>
+
+    </div>
+  </div>
+)}
 
         {/* HEADER PREMIUM */}
         <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-[28px] p-5 md:p-8 shadow-lg space-y-3">
