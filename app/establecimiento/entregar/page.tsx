@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import { useRouter } from "next/navigation";
 
 type PedidoPreview = {
   id: string;
@@ -20,9 +19,26 @@ export default function EntregarPedidoPage() {
   const [scannerActivo, setScannerActivo] = useState(false);
   const [pedido, setPedido] = useState<PedidoPreview | null>(null);
 
-  const router = useRouter();
-
   const qrInstance = useRef<Html5Qrcode | null>(null);
+
+  // ⭐ EVALUACIÓN
+const [showEvaluation, setShowEvaluation] =
+  useState(false);
+
+const [rating, setRating] =
+  useState(5);
+
+const [comentario, setComentario] =
+  useState("");
+
+  const [successEval, setSuccessEval] =
+  useState(false);
+
+const [quickTags, setQuickTags] =
+  useState<string[]>([]);
+
+const [sendingEval, setSendingEval] =
+  useState(false);
 
   // --------------------------------------------------
   // 📷 INICIAR ESCÁNER
@@ -152,7 +168,7 @@ export default function EntregarPedidoPage() {
         return;
       }
 
-      router.push(`/establecimiento/evaluar/${pedido.id}`)
+      setShowEvaluation(true);
 
       setMensaje("✅ Pedido entregado correctamente");
       setPedido(null);
@@ -164,6 +180,75 @@ export default function EntregarPedidoPage() {
       setLoading(false);
     }
   };
+
+// --------------------------------------------------
+// ⭐ ENVIAR EVALUACIÓN
+// --------------------------------------------------
+
+const enviarEvaluacion = async () => {
+
+  try {
+
+    setSendingEval(true);
+
+    const comentarioFinal = [
+      ...quickTags,
+      comentario,
+    ]
+      .filter(Boolean)
+      .join(" • ");
+
+    await fetch(
+      "/api/orders/evaluaciones/create",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          pedido_id: pedido?.id,
+          rating,
+          comentario:
+            comentarioFinal,
+          tipo_evaluador:
+            "establecimiento",
+          tipo_evaluado:
+            "vendedor",
+        }),
+      }
+    );
+
+    setSuccessEval(true);
+
+    setTimeout(() => {
+
+      setShowEvaluation(false);
+
+      setSuccessEval(false);
+
+      setPedido(null);
+
+      setFolio("");
+      setCodigo("");
+
+      setComentario("");
+
+      setQuickTags([]);
+
+      setRating(5);
+
+    }, 1800);
+
+  } catch (err) {
+
+    console.error(err);
+
+  } finally {
+
+    setSendingEval(false);
+  }
+};
 
   // --------------------------------------------------
   // 🧹 CLEANUP
@@ -179,6 +264,248 @@ export default function EntregarPedidoPage() {
   // --------------------------------------------------
  return (
   <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">
+    {/* ⭐ MODAL EVALUACIÓN */}
+{showEvaluation && (
+  <div className="
+    fixed inset-0 z-50
+    bg-black/40
+    backdrop-blur-sm
+    flex items-center justify-center
+    px-4
+  ">
+
+    <div className="
+      relative
+      w-full
+      max-w-md
+      bg-white
+      rounded-[32px]
+      shadow-2xl
+      border border-slate-200
+      p-8
+      space-y-6
+    ">
+
+      {/* CERRAR */}
+      <button
+        onClick={() =>
+          setShowEvaluation(false)
+        }
+        className="
+          absolute
+          top-4
+          right-4
+          h-10
+          w-10
+          rounded-full
+          bg-slate-100
+        "
+      >
+        ✕
+      </button>
+
+      <div className="text-center">
+
+        <div className="
+          h-20
+          w-20
+          rounded-full
+          bg-yellow-100
+          flex
+          items-center
+          justify-center
+          mx-auto
+          text-4xl
+        ">
+          ⭐
+        </div>
+
+        <h2 className="
+          text-2xl
+          font-bold
+          text-slate-800
+          mt-4
+        ">
+          ¿Cómo fue tu experiencia?
+        </h2>
+
+        <p className="
+          text-sm
+          text-slate-500
+          mt-2
+        ">
+          Tu evaluación ayuda a mejorar
+          la calidad de Dropit.
+        </p>
+
+      </div>
+
+      {/* STARS */}
+      {/* STARS */}
+<div className="
+  flex
+  justify-center
+  gap-3
+">
+
+  {[1,2,3,4,5].map((n) => (
+
+    <button
+      key={n}
+      onClick={() =>
+        setRating(n)
+      }
+      className={`
+        transition-all
+        duration-200
+        hover:scale-125
+        ${
+          n <= rating
+            ? "text-yellow-400 scale-110 drop-shadow-lg"
+            : "text-slate-300"
+        }
+      `}
+    >
+      <span className="text-5xl">
+        ★
+      </span>
+    </button>
+
+  ))}
+
+</div>
+
+{/* QUICK TAGS */}
+<div className="
+  flex
+  flex-wrap
+  justify-center
+  gap-2
+">
+
+  {[
+    "Excelente servicio",
+    "Muy rápido",
+    "Buena atención",
+    "Muy amable",
+    "Entrega segura",
+  ].map((tag) => {
+
+    const active =
+      quickTags.includes(tag);
+
+    return (
+
+      <button
+        key={tag}
+        type="button"
+        onClick={() => {
+
+          if (active) {
+
+            setQuickTags(
+              quickTags.filter(
+                (t) => t !== tag
+              )
+            );
+
+          } else {
+
+            setQuickTags([
+              ...quickTags,
+              tag,
+            ]);
+          }
+        }}
+        className={`
+          px-4
+          py-2
+          rounded-full
+          text-sm
+          transition-all
+          duration-200
+          border
+          ${
+            active
+              ? "bg-indigo-600 text-white border-indigo-600 scale-105"
+              : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+          }
+        `}
+      >
+        {tag}
+      </button>
+    );
+  })}
+
+</div>
+
+{successEval && (
+  <div className="
+    rounded-2xl
+    bg-green-50
+    border
+    border-green-200
+    p-4
+    text-center
+    animate-pulse
+  ">
+
+    <div className="text-4xl">
+      ✅
+    </div>
+
+    <p className="
+      mt-2
+      text-green-700
+      font-semibold
+    ">
+      ¡Gracias por tu evaluación!
+    </p>
+
+  </div>
+)}
+
+      {/* COMENTARIO */}
+      <textarea
+        value={comentario}
+        onChange={(e) =>
+          setComentario(e.target.value)
+        }
+        placeholder="Comentario opcional..."
+        className="
+          w-full
+          border
+          border-slate-200
+          rounded-2xl
+          p-4
+          text-sm
+        "
+      />
+
+      {/* BOTÓN */}
+      <button
+        onClick={enviarEvaluacion}
+        disabled={sendingEval}
+        className="
+          w-full
+          py-4
+          rounded-2xl
+          bg-gradient-to-r
+          from-indigo-600
+          to-blue-600
+          text-white
+          font-semibold
+        "
+      >
+        {sendingEval
+          ? "Enviando..."
+          : "Enviar evaluación"}
+      </button>
+
+    </div>
+  </div>
+)}
+
     <div className="max-w-3xl mx-auto space-y-5 md:space-y-10">
 
       {/* HEADER PREMIUM */}
@@ -251,7 +578,7 @@ export default function EntregarPedidoPage() {
 
               <input
                 className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
-                placeholder="Código de entrega"
+                placeholder="Código de entrega (6 dígitos)"
                 value={codigo}
                 onChange={(e) => setCodigo(e.target.value)}
               />
