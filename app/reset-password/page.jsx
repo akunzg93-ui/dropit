@@ -9,8 +9,8 @@ export default function ResetPasswordPage() {
   const [cargando, setCargando] = useState(false);
 
   const handleReset = async (e) => {
-    e.preventDefault();
-    setMensaje("");
+  e.preventDefault();
+  setMensaje("");
 
     if (!email) {
       setMensaje("Escribe tu correo.");
@@ -20,7 +20,7 @@ export default function ResetPasswordPage() {
     setCargando(true);
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
+      redirectTo: `${window.location.origin}/auth/confirm`,
     });
 
     setCargando(false);
