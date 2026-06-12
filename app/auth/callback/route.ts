@@ -6,7 +6,9 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
 
-  const cookieStore = cookies() as any;
+  const cookieStore = await cookies();
+
+  const response = NextResponse.redirect(`${url.origin}/post-login`);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,15 +18,24 @@ export async function GET(request: Request) {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: any) {},
-        remove(name: string, options: any) {},
+        set(name: string, value: string, options: any) {
+          response.cookies.set(name, value, options);
+        },
+        remove(name: string, options: any) {
+          response.cookies.set(name, "", options);
+        },
       },
     }
   );
 
   if (code) {
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+      console.error("Error exchangeCodeForSession:", error);
+      return NextResponse.redirect(`${url.origin}/login?error=auth_callback`);
+    }
   }
 
-  return NextResponse.redirect(`${url.origin}/post-login`);
+  return response;
 }

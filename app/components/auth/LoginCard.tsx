@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Mail,
   Lock,
@@ -25,7 +26,7 @@ interface LoginCardProps {
   footerText: string;
   footerLinkText: string;
   onFooterClick: () => void;
-  extraButtons?: React.ReactNode; // ✅ NUEVO
+  extraButtons?: React.ReactNode;
 }
 
 export default function LoginCard({
@@ -37,8 +38,10 @@ export default function LoginCard({
   footerText,
   footerLinkText,
   onFooterClick,
-  extraButtons, // ✅ NUEVO
+  extraButtons,
 }: LoginCardProps) {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
@@ -51,10 +54,9 @@ export default function LoginCard({
   return (
     <main className="min-h-screen flex items-center justify-center px-6 py-16 bg-slate-50">
       <div
-  id="login-form"
-  className="w-full max-w-xl bg-white border border-slate-200 shadow-xl rounded-3xl p-10 transition-all duration-500 animate-fade-in-up"
->
-        
+        id="login-form"
+        className="w-full max-w-xl bg-white border border-slate-200 shadow-xl rounded-3xl p-10 transition-all duration-500 animate-fade-in-up"
+      >
         {/* Logo */}
         <div className="flex justify-center mb-8">
           <img
@@ -79,7 +81,6 @@ export default function LoginCard({
 
         {/* Beneficios rápidos */}
         <div className="flex justify-center gap-8 text-xs font-medium mb-8">
-
           <div className="flex items-center gap-2 text-indigo-600">
             <Zap size={15} className="text-indigo-500" />
             <span>Rápido</span>
@@ -94,7 +95,6 @@ export default function LoginCard({
             <Truck size={15} className="text-sky-500" />
             <span>Profesional</span>
           </div>
-
         </div>
 
         {/* Badge modo */}
@@ -110,19 +110,18 @@ export default function LoginCard({
         </p>
 
         {/* 👇 BOTONES EXTRA (Google / Microsoft) */}
-{extraButtons && (
-  <div className="mb-6 space-y-3">
-    {extraButtons}
-    <div className="flex items-center gap-3">
-      <div className="h-px bg-slate-200 flex-1"></div>
-      <span className="text-xs text-slate-400">o</span>
-      <div className="h-px bg-slate-200 flex-1"></div>
-    </div>
-  </div>
-)}
+        {extraButtons && (
+          <div className="mb-6 space-y-3">
+            {extraButtons}
+            <div className="flex items-center gap-3">
+              <div className="h-px bg-slate-200 flex-1"></div>
+              <span className="text-xs text-slate-400">o</span>
+              <div className="h-px bg-slate-200 flex-1"></div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          
           {/* Email */}
           <div className="relative group">
             <Mail
@@ -157,6 +156,16 @@ export default function LoginCard({
               className="absolute right-4 top-3.5 text-muted-foreground hover:text-primary transition"
             >
               {show ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+
+          <div className="text-right -mt-2">
+            <button
+              type="button"
+              onClick={() => router.push("/reset-password")}
+              className="text-sm text-indigo-600 hover:text-indigo-700 hover:underline font-medium transition"
+            >
+              ¿Olvidaste tu contraseña?
             </button>
           </div>
 
@@ -197,25 +206,22 @@ export default function LoginCard({
         </p>
 
         <p className="text-xs text-muted-foreground mt-4 text-center leading-relaxed">
-  Al continuar aceptas nuestros{" "}
-  
-  <a
-    href="/terminos"
-    className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition"
-  >
-    Términos
-  </a>{" "}
-  
-  y{" "}
-  
-  <a
-    href="/privacidad"
-    className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition"
-  >
-    Aviso de Privacidad
-  </a>.
-</p>
-
+          Al continuar aceptas nuestros{" "}
+          <a
+            href="/terminos"
+            className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition"
+          >
+            Términos
+          </a>{" "}
+          y{" "}
+          <a
+            href="/privacidad"
+            className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition"
+          >
+            Aviso de Privacidad
+          </a>
+          .
+        </p>
       </div>
     </main>
   );

@@ -49,25 +49,28 @@ export default function Navbar() {
 
     cargar();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_, session) => {
-        const u = session?.user || null;
+    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
+  const u = session?.user || null;
 
-        setUser(u);
+  setUser(u);
 
-        if (u) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", u.id)
-            .single();
+  if (!u) {
+    setRole(null);
+    return;
+  }
 
-          if (profile?.role) {
-            setRole(profile.role);
-          }
-        }
-      }
-    );
+  setTimeout(async () => {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", u.id)
+      .maybeSingle();
+
+    if (profile?.role) {
+      setRole(profile.role);
+    }
+  }, 0);
+});
 
     return () => listener.subscription.unsubscribe();
   }, []);
