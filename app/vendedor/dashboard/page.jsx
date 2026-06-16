@@ -130,11 +130,11 @@ export default function DashboardVendedor() {
 
                 <div className="flex gap-8 mt-4 text-lg font-bold">
                   <div>
-                    <p className="text-white/70 text-sm font-medium">Small</p>
+                    <p className="text-white/70 text-sm font-medium"> Paquetes Pequeños</p>
                     <p>{smallCoins}</p>
                   </div>
                   <div>
-                    <p className="text-white/70 text-sm font-medium">Medium</p>
+                    <p className="text-white/70 text-sm font-medium">Paquetes Medianos</p>
                     <p>{mediumCoins}</p>
                   </div>
                 </div>

@@ -94,12 +94,12 @@ export default function ComprarCoinsPage() {
 
         <div className="grid md:grid-cols-2 gap-6">
           <SaldoCard
-            label="Coins Small disponibles"
+            label="Coins disponibles (paquetes pequeños)"
             value={coinsDisponibles.small}
             variant="small"
           />
           <SaldoCard
-            label="Coins Medium disponibles"
+            label="Coins disponibles (paquetes medianos)"
             value={coinsDisponibles.medium}
             variant="medium"
           />
@@ -107,14 +107,14 @@ export default function ComprarCoinsPage() {
 
         <div className="space-y-6">
           <CoinSelector
-            title="Coin Small"
+            title="Coin paquete pequeño"
             price={PRECIO_SMALL}
             qty={small}
             setQty={setSmall}
             variant="small"
           />
           <CoinSelector
-            title="Coin Medium"
+            title="Coin paquete mediano"
             price={PRECIO_MEDIUM}
             qty={medium}
             setQty={setMedium}

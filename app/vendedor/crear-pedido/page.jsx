@@ -298,7 +298,7 @@ return (
       <div className="grid md:grid-cols-2 gap-6">
         <div className="bg-sky-50 border border-sky-200 rounded-2xl p-6 shadow-sm">
           <p className="text-sm text-sky-600 mb-2">
-            Coins Small disponibles
+            Coins disponibles (Paquetes pequeños)
           </p>
 
           <p className="text-2xl font-bold text-sky-700">
@@ -308,7 +308,7 @@ return (
 
         <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 shadow-sm">
           <p className="text-sm text-indigo-600 mb-2">
-            Coins Medium disponibles
+            Coins disponibles (Paquetes medianos)
           </p>
 
           <p className="text-2xl font-bold text-indigo-700">
@@ -328,7 +328,7 @@ return (
         />
 
         <Input
-          placeholder="Correo del comprador"
+          placeholder="Correo del cliente"
           value={correoComprador}
           onChange={(e) => setCorreoComprador(e.target.value)}
           className="h-12 rounded-xl focus:ring-2 focus:ring-indigo-500"
@@ -467,9 +467,8 @@ return (
                 </p>
 
                 <p className="text-xs mt-2 opacity-70">
-                  Small: {est.capacidad_small} — Medium:{" "}
-                  {est.capacidad_medium}
-                </p>
+  Pequeño: {est.capacidad_small} — Mediano: {est.capacidad_medium}
+</p>
               </div>
             );
           })}

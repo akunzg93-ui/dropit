@@ -218,7 +218,7 @@ useEffect(() => {
     }
 
     if (!capSmall || !capMedium) {
-      setMensaje("Debes ingresar capacidad SMALL y MEDIUM.");
+      setMensaje("Debes ingresar capacidad para paquete pequeño y mediano.");
       return;
     }
 
@@ -703,11 +703,11 @@ window.scrollTo({
           </p>
 
           <p>
-            Small: hasta 3 kg · máx 40 cm por lado
+            Paquete pequeño: hasta 3 kg · máx 40 cm por lado
           </p>
 
           <p>
-            Medium: hasta 10 kg · máx 70 cm por lado
+            Paquete mediano: hasta 10 kg · máx 70 cm por lado
           </p>
         </div>
 
@@ -716,7 +716,7 @@ window.scrollTo({
 
           <div>
             <label className="block text-sm font-medium mb-2 text-slate-700">
-              Capacidad SMALL
+              Capacidad paquetes pequeños
             </label>
 
             <input
@@ -731,7 +731,7 @@ window.scrollTo({
 
           <div>
             <label className="block text-sm font-medium mb-2 text-slate-700">
-              Capacidad MEDIUM
+              Capacidad paquete mediano
             </label>
 
             <input
@@ -897,7 +897,7 @@ window.scrollTo({
 
               <div>
                 <p className="text-slate-400 text-xs">
-                  SMALL
+                  Pequeño
                 </p>
 
                 <p className="font-medium">
@@ -907,7 +907,7 @@ window.scrollTo({
 
               <div>
                 <p className="text-slate-400 text-xs">
-                  MEDIUM
+                  Mediano
                 </p>
 
                 <p className="font-medium">
@@ -1026,8 +1026,8 @@ window.scrollTo({
 
                   <td>
                     <div className="text-xs text-slate-600">
-                      S: {est.capacidad_small ?? "—"} <br />
-                      M: {est.capacidad_medium ?? "—"}
+                      Pequeño: {est.capacidad_small ?? "—"} <br />
+Mediano: {est.capacidad_medium ?? "—"}
                     </div>
                   </td>
 

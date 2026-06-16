@@ -275,7 +275,7 @@ const cerrarPopup = () => {
           mt-2
           text-sm
         ">
-          El comprador fue notificado correctamente.
+          El cliente fue notificado correctamente.
         </p>
       </div>
 

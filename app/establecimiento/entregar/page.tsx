@@ -513,7 +513,7 @@ const enviarEvaluacion = async () => {
 
         <div className="flex items-center justify-between text-sm opacity-90">
           <span>Proceso operativo</span>
-          <span>Entrega al comprador</span>
+          <span>Entrega al cliente</span>
         </div>
 
         <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
@@ -525,7 +525,7 @@ const enviarEvaluacion = async () => {
         </h1>
 
         <p className="text-white/90 text-sm">
-          Valida el código del comprador para confirmar la entrega final del paquete.
+          Valida el código del cliente para confirmar la entrega final del paquete.
         </p>
       </div>
 
@@ -545,7 +545,7 @@ const enviarEvaluacion = async () => {
             >
               {scannerActivo
                 ? "📡 Cámara activa"
-                : "📷 Escanear QR del comprador"}
+                : "📷 Escanear QR del cliente"}
             </button>
 
             <div

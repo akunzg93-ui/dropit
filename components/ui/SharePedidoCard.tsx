@@ -59,7 +59,7 @@ ${linkSeguimiento}
 
   async function enviarCorreo() {
     if (!correo) {
-      mostrarFeedback("No se encontró el correo del comprador");
+      mostrarFeedback("No se encontró el correo del cliente");
       return;
     }
 
@@ -102,7 +102,7 @@ ${linkSeguimiento}
           <div className="text-left">
             <h2 className="text-xl font-bold">Pedido creado correctamente</h2>
             <p className="text-sm text-white/80">
-              El comprador recibirá el folio y el link de seguimiento.
+              El cliente recibirá el folio y el link de seguimiento.
             </p>
           </div>
         </div>
@@ -127,7 +127,7 @@ ${linkSeguimiento}
 
           <div className="pt-5 border-t border-slate-200">
             <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
-              Correo del comprador
+              Correo del cliente
             </p>
 
             <p className="text-sm text-slate-700 mt-1 break-all">
