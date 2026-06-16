@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,7 @@ export default function CrearPedido() {
   const [tamano, setTamano] = useState("");
   const [correoComprador, setCorreoComprador] = useState("");
   const [pedidoCreado, setPedidoCreado] = useState(null);
+  const topRef = useRef(null);
 
   const [establecimientos, setEstablecimientos] = useState([]);
   const [seleccionados, setSeleccionados] = useState([]);
@@ -245,6 +246,12 @@ if (relError) {
       setPedidoCreado({
   folio,
   codigo: pedido.codigo_vendedor || "N/A",
+  correo: correoComprador,
+});
+
+topRef.current?.scrollIntoView({
+  behavior: "smooth",
+  block: "start",
 });
 
 await fetch("/api/orders/email/pedido-creado", {
@@ -270,7 +277,10 @@ await fetch("/api/orders/email/pedido-creado", {
   }
 
 return (
-  <div className="min-h-screen bg-slate-50 px-6 py-16">
+  <div
+  ref={topRef}
+  className="min-h-screen bg-slate-50 px-6 py-16"
+>
     <div className="max-w-4xl mx-auto space-y-10">
 
       {/* HEADER */}
@@ -515,9 +525,10 @@ return (
 
       {pedidoCreado && (
         <SharePedidoCard
-          folio={pedidoCreado.folio}
-          codigo={pedidoCreado.codigo}
-        />
+  folio={pedidoCreado.folio}
+  codigo={pedidoCreado.codigo}
+  correo={pedidoCreado.correo}
+/>
       )}
 
     </div>

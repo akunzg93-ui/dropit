@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { supabase } from "@/lib/supabaseClient";
@@ -13,6 +14,8 @@ const PRECIO_SMALL = 60;
 const PRECIO_MEDIUM = 90;
 
 export default function ComprarCoinsPage() {
+  const router = useRouter();
+
   const [small, setSmall] = useState(0);
   const [medium, setMedium] = useState(0);
   const [mensajeExito, setMensajeExito] = useState(false);
@@ -22,11 +25,7 @@ export default function ComprarCoinsPage() {
     medium: 0,
   });
 
-  // ----------------------------
-  // 💰 CÁLCULOS (NO MODIFICADOS)
-  // ----------------------------
-  const subtotal =
-    small * PRECIO_SMALL + medium * PRECIO_MEDIUM;
+  const subtotal = small * PRECIO_SMALL + medium * PRECIO_MEDIUM;
 
   const cantidadTotal = small + medium;
   const descuento =
@@ -39,9 +38,6 @@ export default function ComprarCoinsPage() {
     ...(medium > 0 ? [{ tipo: "medium", cantidad: medium }] : []),
   ];
 
-  // ----------------------------
-  // 🔵 CARGAR COINS REALES (NO MODIFICADO)
-  // ----------------------------
   const cargarCoins = async () => {
     const { data } = await supabase.auth.getUser();
     if (!data?.user) return;
@@ -72,21 +68,21 @@ export default function ComprarCoinsPage() {
     setSmall(0);
     setMedium(0);
     cargarCoins();
-    setTimeout(() => setMensajeExito(false), 4000);
+
+    setTimeout(() => {
+      router.push("/vendedor/crear-pedido?coins=ok");
+    }, 1200);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 px-6 py-16">
       <div className="max-w-4xl mx-auto space-y-10">
-
-        {/* MENSAJE */}
         {mensajeExito && (
           <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl p-4 font-semibold shadow-sm">
-            ✅ Coins compradas correctamente
+            ✅ Coins compradas correctamente. Te llevaremos a crear tu pedido.
           </div>
         )}
 
-        {/* HEADER */}
         <div>
           <h1 className="text-4xl font-bold text-indigo-900">
             Comprar Coins
@@ -96,7 +92,6 @@ export default function ComprarCoinsPage() {
           </p>
         </div>
 
-        {/* SALDO ACTUAL */}
         <div className="grid md:grid-cols-2 gap-6">
           <SaldoCard
             label="Coins Small disponibles"
@@ -110,7 +105,6 @@ export default function ComprarCoinsPage() {
           />
         </div>
 
-        {/* SELECTORES */}
         <div className="space-y-6">
           <CoinSelector
             title="Coin Small"
@@ -128,9 +122,7 @@ export default function ComprarCoinsPage() {
           />
         </div>
 
-        {/* RESUMEN PREMIUM */}
         <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-3xl p-8 shadow-lg space-y-3">
-
           <div className="flex justify-between opacity-90">
             <span>Subtotal</span>
             <span>${subtotal} MXN</span>
@@ -160,13 +152,10 @@ export default function ComprarCoinsPage() {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
 }
-
-/* ---------------- COMPONENTES VISUALES ---------------- */
 
 function SaldoCard({ label, value, variant }) {
   const styles =
@@ -194,7 +183,9 @@ function CoinSelector({ title, price, qty, setQty, variant }) {
       : "bg-indigo-100 hover:bg-indigo-200 text-indigo-700";
 
   return (
-    <div className={`border rounded-2xl p-6 shadow-sm flex justify-between items-center ${containerStyle}`}>
+    <div
+      className={`border rounded-2xl p-6 shadow-sm flex justify-between items-center ${containerStyle}`}
+    >
       <div>
         <p className="font-semibold text-slate-900">{title}</p>
         <p className="text-sm text-slate-600">${price} MXN</p>
