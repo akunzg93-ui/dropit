@@ -24,7 +24,8 @@ export default function EntregarPedidoPage() {
   // ⭐ EVALUACIÓN
 const [showEvaluation, setShowEvaluation] =
   useState(false);
-
+const [showDelivered, setShowDelivered] =
+  useState(false);
 const [rating, setRating] =
   useState(5);
 
@@ -168,12 +169,17 @@ const [sendingEval, setSendingEval] =
         return;
       }
 
-      setShowEvaluation(true);
+      setShowDelivered(true);
 
-      setMensaje("✅ Pedido entregado correctamente");
-      setPedido(null);
-      setFolio("");
-      setCodigo("");
+setMensaje("✅ Pedido entregado correctamente");
+setPedido(null);
+setFolio("");
+setCodigo("");
+
+setTimeout(() => {
+  setShowDelivered(false);
+  setShowEvaluation(true);
+}, 1800);
     } catch (err) {
       setMensaje("Error de red");
     } finally {
@@ -264,6 +270,69 @@ const enviarEvaluacion = async () => {
   // --------------------------------------------------
  return (
   <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">
+
+{/* ✅ MODAL ENTREGA EXITOSA */}
+{showDelivered && (
+  <div
+    className="
+      fixed inset-0 z-50
+      bg-black/40
+      backdrop-blur-sm
+      flex items-center justify-center
+      px-4
+    "
+  >
+    <div
+      className="
+        w-full
+        max-w-md
+        bg-white
+        rounded-[32px]
+        shadow-2xl
+        border border-slate-200
+        p-8
+        text-center
+      "
+    >
+      <div
+        className="
+          h-24
+          w-24
+          mx-auto
+          rounded-full
+          bg-green-100
+          flex
+          items-center
+          justify-center
+          text-5xl
+        "
+      >
+        ✅
+      </div>
+
+      <h2
+        className="
+          mt-6
+          text-2xl
+          font-bold
+          text-slate-800
+        "
+      >
+        Pedido entregado
+      </h2>
+
+      <p
+        className="
+          mt-3
+          text-slate-500
+        "
+      >
+        El pedido se entregó correctamente.
+      </p>
+    </div>
+  </div>
+)}
+
     {/* ⭐ MODAL EVALUACIÓN */}
 {showEvaluation && (
   <div className="
