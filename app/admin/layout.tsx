@@ -60,13 +60,13 @@ export default function AdminLayout({ children }: any) {
   return (
     <div className="flex h-screen bg-slate-50">
       {/* SIDEBAR */}
-      <aside className="w-64 bg-gradient-to-b from-blue-600 to-blue-800 text-white flex flex-col">
-        <div className="p-6">
+      <aside className="w-50 bg-gradient-to-b from-blue-600 to-blue-800 text-white flex flex-col">
+        <div className="p-4">
           <p className="text-xs text-blue-200">Dropit</p>
           <p className="text-xl font-semibold">Admin</p>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2">
+        <nav className="flex-1 px-3 space-y-1">
           <SidebarItem icon={<Home size={18} />} text="Dashboard" href="/admin" />
           <SidebarItem
             icon={<Wallet size={18} />}

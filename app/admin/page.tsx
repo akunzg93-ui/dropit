@@ -121,6 +121,11 @@ export default function AdminHome() {
           desc="Monitoreo de operaciones"
           href="/admin/pedidos"
         />
+        <QuickCard
+  title="Coins"
+  desc="Asignar coins manualmente a vendedores"
+  href="/admin/coins"
+/>
 
       </div>
 
