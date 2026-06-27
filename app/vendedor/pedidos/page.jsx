@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -11,9 +10,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
 import {
   Drawer,
   DrawerContent,
@@ -21,29 +18,30 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from "@/components/ui/drawer";
+import {
+  Package,
+  Truck,
+  CheckCircle,
+  RotateCcw,
+  Search,
+  Download,
+  Eye,
+} from "lucide-react";
 
-// Badge por estado
 const estadoBadge = {
-  creado: "bg-slate-100 text-slate-700",
-
+  creado: "bg-blue-50 text-[#2563eb] border-blue-100",
   pendiente_aprobacion_establecimiento:
-    "bg-amber-100 text-amber-700",
-
-  confirmado:
-    "bg-sky-100 text-sky-700",
-
-  pendiente_recoleccion:
-    "bg-indigo-100 text-indigo-700",
-
-  en_transito:
-    "bg-purple-100 text-purple-700",
-
-  entregado:
-    "bg-emerald-100 text-emerald-700",
-
-  devuelto:
-    "bg-red-100 text-red-700",
+    "bg-amber-50 text-amber-700 border-amber-100",
+  confirmado: "bg-sky-50 text-sky-700 border-sky-100",
+  pendiente_recoleccion: "bg-indigo-50 text-indigo-700 border-indigo-100",
+  en_transito: "bg-purple-50 text-purple-700 border-purple-100",
+  entregado: "bg-emerald-50 text-emerald-700 border-emerald-100",
+  devuelto: "bg-red-50 text-red-700 border-red-100",
 };
+
+function formatEstado(estado) {
+  return estado?.replaceAll("_", " ")?.replace(/\b\w/g, (l) => l.toUpperCase());
+}
 
 export default function MisPedidos() {
   const [pedidos, setPedidos] = useState([]);
@@ -86,7 +84,6 @@ export default function MisPedidos() {
     setFiltered(data || []);
   }
 
-  // 🔥 DESCARGAR ETIQUETA
   async function descargarEtiqueta(folio, codigo) {
     try {
       const res = await fetch("http://localhost:4000/generar-etiqueta", {
@@ -114,7 +111,6 @@ export default function MisPedidos() {
     }
   }
 
-  // 🔹 Filtros
   useEffect(() => {
     let f = [...pedidos];
 
@@ -126,10 +122,13 @@ export default function MisPedidos() {
       );
     }
 
-    if (tamanoFiltro) f = f.filter((p) => p.tamano === tamanoFiltro);
+    if (tamanoFiltro && tamanoFiltro !== "todos") {
+      f = f.filter((p) => p.tamano === tamanoFiltro);
+    }
+
     if (estadoFiltro && estadoFiltro !== "todos") {
-  f = f.filter((p) => p.estado === estadoFiltro);
-}
+      f = f.filter((p) => p.estado === estadoFiltro);
+    }
 
     setFiltered(f);
   }, [busqueda, tamanoFiltro, estadoFiltro, pedidos]);
@@ -142,513 +141,384 @@ export default function MisPedidos() {
   };
 
   return (
-  <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50 px-5 py-12 pb-36">
+      <div className="max-w-6xl mx-auto space-y-8">
+        <section className="bg-white border border-slate-200 rounded-3xl p-7 md:p-10 shadow-sm">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-bold text-[#1e3a8a] leading-tight">
+              Mis pedidos <span className="inline-block">📦</span>
+            </h1>
 
-      {/* HEADER */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
-            Mis pedidos
-          </h1>
-
-          <p className="text-slate-500 mt-1">
-            Gestiona y rastrea todos tus envíos.
-          </p>
-        </div>
-
-        <div className="
-          inline-flex
-          items-center
-          gap-2
-          px-4
-          py-2
-          rounded-full
-          bg-indigo-50
-          text-indigo-600
-          text-sm
-          font-medium
-          w-fit
-        ">
-          
-        </div>
-
-      </div>
-
-      {/* MÉTRICAS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-        {[
-          [
-            "Total",
-            metricas.total,
-            "bg-white border-slate-200",
-            "text-slate-900",
-          ],
-
-          [
-            "En tránsito",
-            metricas.en_transito,
-            "bg-blue-50 border-blue-200",
-            "text-blue-700",
-          ],
-
-          [
-            "Entregado",
-            metricas.entregado,
-            "bg-emerald-50 border-emerald-200",
-            "text-emerald-700",
-          ],
-
-          [
-            "Devuelto",
-            metricas.devuelto,
-            "bg-red-50 border-red-200",
-            "text-red-700",
-          ],
-
-        ].map(([label, value, bg, color]) => (
-          <div
-            key={label}
-            className={`
-              rounded-[28px]
-              border
-              p-5
-              shadow-sm
-              ${bg}
-            `}
-          >
-            <p className="text-sm text-slate-500">
-              {label}
-            </p>
-
-            <p className={`text-3xl font-bold mt-2 ${color}`}>
-              {value}
+            <p className="text-slate-600 mt-4 max-w-2xl text-lg">
+              Consulta el estado de todos tus envíos y da seguimiento a cada
+              pedido desde un solo lugar.
             </p>
           </div>
-        ))}
+        </section>
 
-      </div>
-
-      {/* FILTROS */}
-      <div className="
-        bg-white
-        rounded-[28px]
-        border
-        border-slate-200
-        shadow-sm
-        p-4
-        md:p-5
-      ">
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-
-          <Input
-            placeholder="Buscar por folio o producto..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="h-12 rounded-2xl"
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <MetricCard
+            icon={<Package size={20} />}
+            label="Total"
+            value={metricas.total}
+            tone="blue"
           />
 
-          <Select onValueChange={setTamanoFiltro}>
-            <SelectTrigger className="h-12 rounded-2xl">
-              <SelectValue placeholder="Tamaño" />
-            </SelectTrigger>
+          <MetricCard
+            icon={<Truck size={20} />}
+            label="En tránsito"
+            value={metricas.en_transito}
+            tone="purple"
+          />
 
-            <SelectContent>
-              <SelectItem value="small">
-                Pequeño
-              </SelectItem>
+          <MetricCard
+            icon={<CheckCircle size={20} />}
+            label="Entregados"
+            value={metricas.entregado}
+            tone="emerald"
+          />
 
-              <SelectItem value="medium">
-                Mediano
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <MetricCard
+            icon={<RotateCcw size={20} />}
+            label="Devueltos"
+            value={metricas.devuelto}
+            tone="red"
+          />
+        </section>
 
-          <Select onValueChange={setEstadoFiltro}>
-            <SelectTrigger className="h-12 rounded-2xl">
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-
-            <SelectContent>
-
-  <SelectItem value="todos">
-    Todos los estados
-  </SelectItem>
-
-  <SelectItem value="creado">
-    Creado
-  </SelectItem>
-
-  <SelectItem value="pendiente_aprobacion_establecimiento">
-    Pendiente aprobación
-  </SelectItem>
-
-  <SelectItem value="confirmado">
-    Confirmado
-  </SelectItem>
-
-  <SelectItem value="pendiente_recoleccion">
-    Pendiente recolección
-  </SelectItem>
-
-  <SelectItem value="en_transito">
-    En tránsito
-  </SelectItem>
-
-  <SelectItem value="entregado">
-    Entregado
-  </SelectItem>
-
-  <SelectItem value="devuelto">
-    Devuelto
-  </SelectItem>
-
-</SelectContent>
-          </Select>
-
-        </div>
-      </div>
-
-      {/* MOBILE CARDS */}
-      <div className="md:hidden space-y-4">
-
-        {filtered.length === 0 && (
-          <div className="
-            bg-white
-            rounded-[28px]
-            border
-            border-slate-200
-            p-8
-            text-center
-            text-slate-500
-          ">
-            No se encontraron pedidos.
+        <section className="bg-white border border-slate-200 rounded-3xl p-5 md:p-6 shadow-sm">
+          <div className="mb-5">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">
+              Filtros
+            </p>
+            <h2 className="text-xl font-bold text-[#1e3a8a] mt-1">
+              Encuentra rápidamente un pedido
+            </h2>
           </div>
-        )}
 
-        {filtered.map((p) => (
-          <div
-            key={p.id}
-            className="
-              bg-white
-              rounded-[28px]
-              border
-              border-slate-200
-              p-5
-              shadow-sm
-              space-y-4
-            "
-          >
-
-            <div className="flex items-start justify-between gap-3">
-
-              <div className="min-w-0">
-
-                <p className="font-bold text-lg text-slate-900 break-words">
-                  {p.folio}
-                </p>
-
-                <p className="text-sm text-slate-500 mt-1">
-                  {p.producto}
-                </p>
-
-              </div>
-
-              <span
-                className={`
-                  px-3
-                  py-1.5
-                  rounded-full
-                  text-xs
-                  whitespace-nowrap
-                  ${estadoBadge[p.estado]}
-                `}
-              >
-                {p.estado
-  ?.replaceAll("_", " ")
-  ?.replace(/\b\w/g, (l) => l.toUpperCase())}
-              </span>
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="relative">
+              <Search
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <Input
+                placeholder="Buscar por folio o producto..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="h-12 rounded-xl pl-11 border-slate-300 bg-white focus:ring-2 focus:ring-blue-100"
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <Select onValueChange={setTamanoFiltro} value={tamanoFiltro}>
+              <SelectTrigger className="h-12 rounded-xl border-slate-300 bg-white">
+                <SelectValue placeholder="Tamaño" />
+              </SelectTrigger>
 
-              <div>
-                <p className="text-slate-400 text-xs">
-                  Tamaño
-                </p>
+              <SelectContent>
+                <SelectItem value="todos">Todos los tamaños</SelectItem>
+                <SelectItem value="small">Paquete mediano</SelectItem>
+                <SelectItem value="medium">Paquete grande</SelectItem>
+              </SelectContent>
+            </Select>
 
-                <p className="font-medium capitalize">
-                  {p.tamano}
-                </p>
-              </div>
+            <Select onValueChange={setEstadoFiltro} value={estadoFiltro}>
+              <SelectTrigger className="h-12 rounded-xl border-slate-300 bg-white">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
 
-              <div>
-                <p className="text-slate-400 text-xs">
-                  Fecha
-                </p>
-
-                <p className="font-medium">
-                  {new Date(p.created_at).toLocaleDateString()}
-                </p>
-              </div>
-
-            </div>
-
-            <div className="flex gap-2">
-
-              <Button
-                variant="outline"
-                className="flex-1 h-11 rounded-2xl"
-                onClick={() =>
-                  descargarEtiqueta(
-                    p.folio,
-                    p.codigo_vendedor
-                  )
-                }
-                disabled={!p.codigo_vendedor}
-              >
-                Etiqueta
-              </Button>
-
-              <Button
-                className="
-                  flex-1
-                  h-11
-                  rounded-2xl
-                  bg-indigo-600
-                  hover:bg-indigo-700
-                "
-                onClick={() =>
-                  setPedidoSeleccionado(p)
-                }
-              >
-                Ver pedido
-              </Button>
-
-            </div>
-
+              <SelectContent>
+                <SelectItem value="todos">Todos los estados</SelectItem>
+                <SelectItem value="creado">Creado</SelectItem>
+                <SelectItem value="pendiente_aprobacion_establecimiento">
+                  Pendiente aprobación
+                </SelectItem>
+                <SelectItem value="confirmado">Confirmado</SelectItem>
+                <SelectItem value="pendiente_recoleccion">
+                  Pendiente recolección
+                </SelectItem>
+                <SelectItem value="en_transito">En tránsito</SelectItem>
+                <SelectItem value="entregado">Entregado</SelectItem>
+                <SelectItem value="devuelto">Devuelto</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        ))}
+        </section>
 
-      </div>
-
-      {/* TABLA DESKTOP */}
-      <div className="
-        hidden
-        md:block
-        bg-white
-        border
-        border-slate-200
-        rounded-[28px]
-        overflow-hidden
-        shadow-sm
-      ">
-
-        <table className="w-full text-sm">
-
-          <thead className="bg-slate-50 text-slate-500 uppercase text-xs">
-            <tr>
-              <th className="p-5 text-left">Folio</th>
-              <th className="p-5 text-left">Producto</th>
-              <th className="p-5 text-left">Tamaño</th>
-              <th className="p-5 text-left">Estado</th>
-              <th className="p-5 text-left">Fecha</th>
-              <th className="p-5 text-right">Acciones</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {filtered.map((p) => (
-              <tr
-                key={p.id}
-                className="
-                  border-t
-                  hover:bg-slate-50
-                  transition
-                "
-              >
-
-                <td className="p-5 font-semibold">
-                  {p.folio}
-                </td>
-
-                <td className="p-5">
-                  {p.producto}
-                </td>
-
-                <td className="p-5 capitalize">
-                  {p.tamano}
-                </td>
-
-                <td className="p-5">
-                  <span
-                    className={`
-                      px-3
-                      py-1.5
-                      rounded-full
-                      text-xs
-                      ${estadoBadge[p.estado]}
-                    `}
-                  >
-                    {p.estado
-  ?.replaceAll("_", " ")
-  ?.replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </span>
-                </td>
-
-                <td className="p-5">
-                  {new Date(p.created_at).toLocaleDateString()}
-                </td>
-
-                <td className="p-5">
-
-                  <div className="flex gap-2 justify-end">
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="rounded-xl"
-                      onClick={() =>
-                        descargarEtiqueta(
-                          p.folio,
-                          p.codigo_vendedor
-                        )
-                      }
-                      disabled={!p.codigo_vendedor}
-                    >
-                      Etiqueta
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      className="
-                        rounded-xl
-                        bg-indigo-600
-                        hover:bg-indigo-700
-                      "
-                      onClick={() =>
-                        setPedidoSeleccionado(p)
-                      }
-                    >
-                      Ver
-                    </Button>
-
-                  </div>
-
-                </td>
-
-              </tr>
-            ))}
-
-            {filtered.length === 0 && (
-              <tr>
-                <td
-                  colSpan="6"
-                  className="
-                    p-8
-                    text-center
-                    text-slate-500
-                  "
-                >
-                  No se encontraron pedidos.
-                </td>
-              </tr>
-            )}
-
-          </tbody>
-        </table>
-      </div>
-
-      {/* DRAWER */}
-      <Drawer
-        open={!!pedidoSeleccionado}
-        onOpenChange={() =>
-          setPedidoSeleccionado(null)
-        }
-      >
-        <DrawerContent className="p-6">
-
-          <DrawerHeader>
-
-            <DrawerTitle>
-              Detalle del Pedido
-            </DrawerTitle>
-
-            <DrawerDescription>
-              Información básica del pedido
-            </DrawerDescription>
-
-          </DrawerHeader>
-
-          {pedidoSeleccionado && (
-            <div className="space-y-4 mt-4">
-
-              <div className="bg-slate-50 rounded-2xl p-4">
-                <p className="text-xs text-slate-400">
-                  Folio
-                </p>
-
-                <p className="font-semibold text-lg">
-                  {pedidoSeleccionado.folio}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-
-                <div className="bg-slate-50 rounded-2xl p-4">
-                  <p className="text-xs text-slate-400">
-                    Producto
-                  </p>
-
-                  <p className="font-medium">
-                    {pedidoSeleccionado.producto}
-                  </p>
-                </div>
-
-                <div className="bg-slate-50 rounded-2xl p-4">
-                  <p className="text-xs text-slate-400">
-                    Tamaño
-                  </p>
-
-                  <p className="font-medium capitalize">
-                    {pedidoSeleccionado.tamano}
-                  </p>
-                </div>
-
-              </div>
-
-              <div className="bg-slate-50 rounded-2xl p-4">
-                <p className="text-xs text-slate-400 mb-2">
-                  Estado
-                </p>
-
-                <span
-                  className={`
-                    px-3
-                    py-1.5
-                    rounded-full
-                    text-xs
-                    ${estadoBadge[pedidoSeleccionado.estado]}
-                  `}
-                >
-                  {pedidoSeleccionado.estado
-  ?.replaceAll("_", " ")
-  ?.replace(/\b\w/g, (l) => l.toUpperCase())}
-                </span>
-              </div>
-
-            </div>
+        <div className="md:hidden space-y-4">
+          {filtered.length === 0 && (
+            <EmptyState />
           )}
 
-        </DrawerContent>
-      </Drawer>
+          {filtered.map((p) => (
+            <div
+              key={p.id}
+              className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-lg text-[#1e3a8a] break-words">
+                    {p.folio}
+                  </p>
 
+                  <p className="text-sm text-slate-600 mt-1">{p.producto}</p>
+                </div>
+
+                <EstadoBadge estado={p.estado} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <InfoBox
+                  label="Tamaño"
+                  value={p.tamano === "small" ? "Paquete mediano" : "Paquete grande"}
+                />
+
+                <InfoBox
+                  label="Fecha"
+                  value={new Date(p.created_at).toLocaleDateString()}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-11 rounded-xl"
+                  onClick={() => descargarEtiqueta(p.folio, p.codigo_vendedor)}
+                  disabled={!p.codigo_vendedor}
+                >
+                  <Download size={16} className="mr-2" />
+                  Etiqueta
+                </Button>
+
+                <Button
+                  className="flex-1 h-11 rounded-xl bg-[#2563eb] hover:bg-[#1e40af]"
+                  onClick={() => setPedidoSeleccionado(p)}
+                >
+                  <Eye size={16} className="mr-2" />
+                  Ver
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <section className="hidden md:block bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-slate-500 uppercase text-xs">
+              <tr>
+                <th className="p-5 text-left">Folio</th>
+                <th className="p-5 text-left">Producto</th>
+                <th className="p-5 text-left">Tamaño</th>
+                <th className="p-5 text-left">Estado</th>
+                <th className="p-5 text-left">Fecha</th>
+                <th className="p-5 text-right">Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {filtered.map((p) => (
+                <tr
+                  key={p.id}
+                  className="border-t border-slate-100 hover:bg-blue-50/40 transition"
+                >
+                  <td className="p-5 font-bold text-[#1e3a8a]">{p.folio}</td>
+
+                  <td className="p-5 font-medium text-slate-900">
+                    {p.producto}
+                  </td>
+
+                  <td className="p-5 text-slate-600">
+                    {p.tamano === "small" ? "Paquete mediano" : "Paquete grande"}
+                  </td>
+
+                  <td className="p-5">
+                    <EstadoBadge estado={p.estado} />
+                  </td>
+
+                  <td className="p-5 text-slate-500">
+                    {new Date(p.created_at).toLocaleDateString()}
+                  </td>
+
+                  <td className="p-5">
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl"
+                        onClick={() =>
+                          descargarEtiqueta(p.folio, p.codigo_vendedor)
+                        }
+                        disabled={!p.codigo_vendedor}
+                      >
+                        <Download size={15} className="mr-1" />
+                        Etiqueta
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        className="rounded-xl bg-[#2563eb] hover:bg-[#1e40af]"
+                        onClick={() => setPedidoSeleccionado(p)}
+                      >
+                        Ver
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="p-8">
+                    <EmptyState />
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </section>
+
+        <Drawer
+          open={!!pedidoSeleccionado}
+          onOpenChange={() => setPedidoSeleccionado(null)}
+        >
+          <DrawerContent className="p-6">
+            <DrawerHeader>
+              <DrawerTitle className="text-2xl font-bold text-[#1e3a8a]">
+                Detalle del pedido 📦
+              </DrawerTitle>
+
+              <DrawerDescription>
+                Información básica del pedido seleccionado.
+              </DrawerDescription>
+            </DrawerHeader>
+
+            {pedidoSeleccionado && (
+              <div className="space-y-4 mt-4">
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide">
+                    Folio
+                  </p>
+
+                  <p className="font-bold text-xl text-[#1e3a8a]">
+                    {pedidoSeleccionado.folio}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <InfoBox
+                    label="Producto"
+                    value={pedidoSeleccionado.producto}
+                  />
+
+                  <InfoBox
+                    label="Tamaño"
+                    value={
+                      pedidoSeleccionado.tamano === "small"
+                        ? "Paquete mediano"
+                        : "Paquete grande"
+                    }
+                  />
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide mb-2">
+                    Estado
+                  </p>
+
+                  <EstadoBadge estado={pedidoSeleccionado.estado} />
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide">
+                    Fecha de creación
+                  </p>
+
+                  <p className="font-semibold text-slate-900">
+                    {new Date(
+                      pedidoSeleccionado.created_at
+                    ).toLocaleDateString()}
+                  </p>
+                </div>
+
+                <Button
+                  className="w-full h-12 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] text-white font-semibold"
+                  onClick={() =>
+                    descargarEtiqueta(
+                      pedidoSeleccionado.folio,
+                      pedidoSeleccionado.codigo_vendedor
+                    )
+                  }
+                  disabled={!pedidoSeleccionado.codigo_vendedor}
+                >
+                  <Download size={16} className="mr-2" />
+                  Descargar etiqueta
+                </Button>
+              </div>
+            )}
+          </DrawerContent>
+        </Drawer>
+      </div>
     </div>
-  </div>
-);
+  );
+}
+
+function MetricCard({ icon, label, value, tone }) {
+  const toneClass =
+    tone === "purple"
+      ? "bg-purple-50 text-purple-600 border-purple-100"
+      : tone === "emerald"
+      ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+      : tone === "red"
+      ? "bg-red-50 text-red-600 border-red-100"
+      : "bg-blue-50 text-[#2563eb] border-blue-100";
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+      <div className="flex items-center gap-3 mb-3">
+        <div
+          className={`h-10 w-10 rounded-xl flex items-center justify-center border ${toneClass}`}
+        >
+          {icon}
+        </div>
+
+        <span className="text-sm font-medium text-slate-500">{label}</span>
+      </div>
+
+      <p className="text-3xl font-bold text-[#1e3a8a]">{value}</p>
+    </div>
+  );
+}
+
+function EstadoBadge({ estado }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+        estadoBadge[estado] || "bg-slate-100 text-slate-700 border-slate-200"
+      }`}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      {formatEstado(estado)}
+    </span>
+  );
+}
+
+function InfoBox({ label, value }) {
+  return (
+    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+      <p className="text-xs text-slate-400 uppercase tracking-wide">{label}</p>
+      <p className="font-semibold text-slate-900 mt-1">{value}</p>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center text-slate-500">
+      <p className="text-3xl mb-2">📦</p>
+      <p className="font-semibold text-[#1e3a8a]">No se encontraron pedidos.</p>
+      <p className="text-sm mt-1">
+        Ajusta los filtros o crea un nuevo pedido para comenzar.
+      </p>
+    </div>
+  );
 }

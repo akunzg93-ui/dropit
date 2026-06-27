@@ -284,17 +284,17 @@ export default function CrearPedido() {
           });
 
         if (proteccionError) {
-  console.error(
-    "Error guardando protección:",
-    JSON.stringify(proteccionError, null, 2)
-  );
+          console.error(
+            "Error guardando protección:",
+            JSON.stringify(proteccionError, null, 2)
+          );
 
-  setMensaje(
-    `Error protección: ${proteccionError.message || "desconocido"}`
-  );
+          setMensaje(
+            `Error protección: ${proteccionError.message || "desconocido"}`
+          );
 
-  return;
-}
+          return;
+        }
       }
 
       setMensaje(`✅ Pedido creado correctamente. Folio: ${folio}`);
@@ -337,321 +337,372 @@ export default function CrearPedido() {
   }
 
   return (
-    <div ref={topRef} className="min-h-screen bg-slate-50 px-6 py-16">
-      <div className="max-w-4xl mx-auto space-y-3">
-        <div>
-          <h1 className="text-4xl font-bold text-indigo-900">Crear Pedido</h1>
-
-          <p className="text-slate-600 mt-2">
-            Registra un nuevo envío usando tus coins disponibles.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-sky-50 border border-sky-200 rounded-2xl p-6 shadow-sm">
-            <p className="text-sm text-sky-600 mb-2">
-              Coins disponibles (Paquetes pequeños)
-            </p>
-
-            <p className="text-2xl font-bold text-sky-700">
-              {coinsDisponibles.small}
-            </p>
-          </div>
-
-          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 shadow-sm">
-            <p className="text-sm text-indigo-600 mb-2">
-              Coins disponibles (Paquetes medianos)
-            </p>
-
-            <p className="text-2xl font-bold text-indigo-700">
-              {coinsDisponibles.medium}
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-6">
-          <Input
-            placeholder="Nombre del producto"
-            value={producto}
-            onChange={(e) => setProducto(e.target.value)}
-            className="h-12 rounded-xl focus:ring-2 focus:ring-indigo-500"
-          />
-
-          <Input
-            placeholder="Correo del cliente"
-            value={correoComprador}
-            onChange={(e) => setCorreoComprador(e.target.value)}
-            className="h-12 rounded-xl focus:ring-2 focus:ring-indigo-500"
-          />
-
-          <Select onValueChange={setTamano} value={tamano}>
-            <SelectTrigger className="h-12 rounded-xl focus:ring-2 focus:ring-indigo-500">
-              <SelectValue placeholder="Selecciona tamaño" />
-            </SelectTrigger>
-
-            <SelectContent className="z-[9999]">
-              <SelectItem value="small">
-                Pequeño (hasta 3 kg · máx 40 cm por lado)
-              </SelectItem>
-
-              <SelectItem value="medium">
-                Mediano (hasta 10 kg · máx 70 cm por lado)
-              </SelectItem>
-            </SelectContent>
-          </Select>
-
-          <p className="text-xs text-amber-600 mt-2">
-            ⚠️ El paquete no debe exceder el peso o tamaño indicado. El
-            establecimiento puede rechazarlo.
-          </p>
-
-          {tamano && coinsDisponibles[tamano] === 0 && (
-            <div className="border border-amber-300 bg-amber-50 rounded-2xl p-4 flex items-center justify-between">
-              <p className="text-sm text-amber-800">
-                No tienes coins <b>{tamano}</b> disponibles.
-              </p>
-
-              <Button
-                variant="outline"
-                className="border-amber-400 text-amber-800 hover:bg-amber-100 rounded-xl"
-                onClick={() => (window.location.href = "/vendedor/coins")}
-              >
-                Comprar coins
-              </Button>
-            </div>
-          )}
-
-        {proteccionEnabled && (
-  <div className="rounded-3xl border border-indigo-100 bg-white p-6 shadow-sm">
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-2xl">
-          🛡️
-        </div>
-
-        <div>
-          <h3 className="text-lg font-bold text-indigo-900">
-            Protección Dropit
-          </h3>
-          <p className="text-sm text-slate-600">
-            Cubre robo, extravío o daño mientras el pedido esté bajo custodia.
-          </p>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => setProtegerPedido(!protegerPedido)}
-        className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition ${
-          protegerPedido ? "bg-indigo-600" : "bg-slate-300"
-        }`}
-      >
-        <span
-          className={`inline-block h-6 w-6 transform rounded-full bg-white transition ${
-            protegerPedido ? "translate-x-7" : "translate-x-1"
-          }`}
-        />
-      </button>
-    </div>
-
-    {protegerPedido && (
-      <div className="mt-5 space-y-3">
-        <div>
-          <label className="text-sm font-semibold text-slate-700">
-            Valor declarado
-          </label>
-
-          <div className="mt-2 flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4">
-            <span className="text-slate-500">$</span>
-            <input
-              type="number"
-              min="500"
-              placeholder="500"
-              value={valorDeclarado}
-              onChange={(e) => setValorDeclarado(e.target.value)}
-              className="h-12 w-full bg-transparent px-2 text-lg font-semibold outline-none"
-            />
-            <span className="text-sm text-slate-500">MXN</span>
-          </div>
-
-          {toNumber(valorDeclarado) > 0 && toNumber(valorDeclarado) < 500 && (
-            <p className="mt-2 text-sm font-medium text-amber-600">
-              El valor mínimo asegurable es $500 MXN.
-            </p>
-          )}
-        </div>
-
-        <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 p-5 text-white">
-          <div className="flex items-end justify-between gap-4">
+    <div ref={topRef} className="min-h-screen bg-slate-50 px-5 py-12">
+      <div className="max-w-6xl mx-auto space-y-8">
+        <section className="bg-white border border-slate-200 rounded-3xl p-7 md:p-10 shadow-sm">
+          <div className="grid md:grid-cols-[1.4fr_.8fr] gap-8 items-start">
             <div>
-              <p className="text-xs uppercase tracking-wide opacity-80">
-                Costo de protección
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400 font-semibold">
+                Logística Fácil y sin dramas
               </p>
-              <p className="mt-1 text-3xl font-bold">
-                ${montoProteccion} MXN
+
+              <h1 className="text-4xl md:text-5xl font-bold text-[#1e3a8a] mt-3 leading-tight">
+                Crea un nuevo envío <span className="inline-block">📦</span>
+              </h1>
+
+              <p className="text-slate-600 mt-4 max-w-xl text-lg">
+                Usa tus coins para elegir los
+                establecimientos donde podrán recoger tu paquete.
               </p>
             </div>
 
-            <div className="text-right">
-              <p className="text-xs uppercase tracking-wide opacity-80">
-                Cobertura hasta
-              </p>
-              <p className="mt-1 text-xl font-bold">
-                ${toNumber(valorDeclarado) || 0} MXN
-              </p>
+            <div className="grid grid-cols-2 gap-3">
+              <CoinBalanceCard
+                label="Paquetes medianos"
+                value={coinsDisponibles.small}
+              />
+
+              <CoinBalanceCard
+                label="Paquetes grandes"
+                value={coinsDisponibles.medium}
+              />
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-slate-700">
-              Protección aplicada
-            </span>
-            <span className="font-bold text-indigo-700">
-              {porcentajeProteccion}%
-            </span>
-          </div>
-
-          <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-2">
-            <p>✓ Robo dentro del establecimiento</p>
-            <p>✓ Extravío bajo custodia</p>
-            <p>✓ Daño bajo custodia</p>
-            <p>✕ No cubre robo fuera del establecimiento</p>
-            <p className="md:col-span-2">
-              ✕ No cubre falta de pago entre comprador y vendedor
+        <section className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-8">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">
+              Paso 1
+            </p>
+            <h2 className="text-2xl md:text-3xl font-bold text-[#1e3a8a] mt-2">
+              Información del paquete
+            </h2>
+            <p className="text-slate-500 mt-2">
+              Agrega la siguiente información.
             </p>
           </div>
 
-          <p className="mt-3 border-t pt-3 text-xs text-slate-500">
-            Mínimo asegurable: $500 MXN · Máximo asegurable: $
-            {valorMaximoProteccion} MXN
-          </p>
-        </div>
+          <div className="grid gap-5">
+            <Input
+              placeholder="Nombre del producto"
+              value={producto}
+              onChange={(e) => setProducto(e.target.value)}
+              className="h-12 rounded-xl border-slate-300 bg-white focus:ring-2 focus:ring-blue-100"
+            />
 
-      </div>
-    )}
-  </div>
-)}
-</div>
+            <Input
+              placeholder="Correo del cliente"
+              value={correoComprador}
+              onChange={(e) => setCorreoComprador(e.target.value)}
+              className="h-12 rounded-xl border-slate-300 bg-white focus:ring-2 focus:ring-blue-100"
+            />
 
-        {establecimientos.length > 0 && (
-          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl p-4 shadow-sm">
-            <p className="text-sm font-medium text-slate-700 mb-3">
-              Filtrar por zona
-            </p>
-
-            <Select value={zonaFiltro} onValueChange={setZonaFiltro}>
-              <SelectTrigger className="h-11 rounded-xl bg-white">
-                <SelectValue placeholder="Selecciona zona" />
+            <Select onValueChange={setTamano} value={tamano}>
+              <SelectTrigger className="h-12 rounded-xl border-slate-300 bg-white focus:ring-2 focus:ring-blue-100">
+                <SelectValue placeholder="Selecciona tamaño" />
               </SelectTrigger>
 
               <SelectContent className="z-[9999]">
-                <SelectItem value="todas">Todas las zonas</SelectItem>
-                <SelectItem value="Norte">Zona Norte</SelectItem>
-                <SelectItem value="Sur">Zona Sur</SelectItem>
-                <SelectItem value="Oriente">Zona Oriente</SelectItem>
-                <SelectItem value="Poniente">Zona Poniente</SelectItem>
-                <SelectItem value="Centro">Zona Centro</SelectItem>
+                <SelectItem value="small">
+                  Paquete mediano · hasta 3 kg · máx 40 cm por lado
+                </SelectItem>
+
+                <SelectItem value="medium">
+                  Paquete grande · hasta 10 kg · máx 70 cm por lado
+                </SelectItem>
               </SelectContent>
             </Select>
-          </div>
-        )}
 
-        {establecimientos.length > 0 && (
-          <div className="relative z-0 h-[420px] w-full rounded-3xl overflow-hidden border border-indigo-100 shadow-2xl ring-1 ring-indigo-100">
-            <MapaEstablecimientos
-              establecimientos={establecimientosFiltrados}
-              seleccionados={seleccionados}
-              onMarkerClick={toggleEstablecimiento}
-            />
-          </div>
-        )}
+            <p className="text-xs text-amber-600">
+              ⚠️ El paquete no debe exceder el peso o tamaño indicado. El
+              establecimiento puede rechazarlo.
+            </p>
 
-        {establecimientos.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-indigo-900">
-              Establecimientos permitidos
-            </h2>
+            {tamano && coinsDisponibles[tamano] === 0 && (
+              <div className="border border-amber-300 bg-amber-50 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <p className="text-sm text-amber-800">
+                  No tienes coins disponibles para este tipo de paquete.
+                </p>
 
-            {establecimientosFiltrados.map((est) => {
-              const activo = seleccionados.some((e) => e.id === est.id);
-
-              return (
-                <div
-                  key={est.id}
-                  onClick={() => toggleEstablecimiento(est)}
-                  className={`border rounded-2xl p-6 cursor-pointer transition-all duration-200 ${
-                    activo
-                      ? "border-transparent bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-xl scale-[1.01]"
-                      : "bg-white/90 backdrop-blur hover:shadow-xl hover:border-indigo-200 border-slate-200"
-                  }`}
+                <Button
+                  variant="outline"
+                  className="border-amber-400 text-amber-800 hover:bg-amber-100 rounded-xl"
+                  onClick={() => (window.location.href = "/vendedor/coins")}
                 >
-                  <h3 className="font-semibold text-lg">{est.nombre}</h3>
+                  Comprar coins
+                </Button>
+              </div>
+            )}
+          </div>
 
-                  <div className="mt-2">
-                    <StarsPromedio
-                      evaluado_id={est.uuid}
-                      tipo="establecimiento"
-                    />
+          {proteccionEnabled && (
+            <div className="rounded-3xl border border-blue-100 bg-slate-50 p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-2xl">
+                    🛡️
                   </div>
 
-                  <p className="text-sm mt-2 opacity-80">{est.direccion}</p>
-
-                  <p className="text-xs mt-2 opacity-70">
-                    Pequeño: {est.capacidad_small} — Mediano:{" "}
-                    {est.capacidad_medium}
-                  </p>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">
+                      Paso 2
+                    </p>
+                    <h3 className="text-lg font-bold text-[#1e3a8a] mt-1">
+                      Protección Dropit
+                    </h3>
+                    <p className="text-sm text-slate-600">
+                      Cubre robo, extravío o daño mientras el pedido esté bajo
+                      custodia.
+                    </p>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
 
+                <button
+                  type="button"
+                  onClick={() => setProtegerPedido(!protegerPedido)}
+                  className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition ${
+                    protegerPedido ? "bg-[#2563eb]" : "bg-slate-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition ${
+                      protegerPedido ? "translate-x-7" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
 
+              {protegerPedido && (
+                <div className="mt-5 space-y-3">
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700">
+                      Valor declarado
+                    </label>
 
-        {!protegerPedido && (
-          <Button
-            className="w-full h-12 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold shadow hover:shadow-lg transition-all"
-            onClick={() => crearPedido()}
-            disabled={loading}
-          >
-            {loading ? "Creando pedido..." : "Crear Pedido"}
-          </Button>
-        )}
+                    <div className="mt-2 flex items-center rounded-2xl border border-slate-200 bg-white px-4">
+                      <span className="text-slate-500">$</span>
+                      <input
+                        type="number"
+                        min="500"
+                        placeholder="500"
+                        value={valorDeclarado}
+                        onChange={(e) => setValorDeclarado(e.target.value)}
+                        className="h-12 w-full bg-transparent px-2 text-lg font-semibold outline-none"
+                      />
+                      <span className="text-sm text-slate-500">MXN</span>
+                    </div>
 
-        <div className="mt-3 flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-4">
-          <input
-            type="checkbox"
-            checked={declaracionLegal}
-            onChange={(e) => setDeclaracionLegal(e.target.checked)}
-            className="mt-1"
-          />
+                    {toNumber(valorDeclarado) > 0 &&
+                      toNumber(valorDeclarado) < 500 && (
+                        <p className="mt-2 text-sm font-medium text-amber-600">
+                          El valor mínimo asegurable es $500 MXN.
+                        </p>
+                      )}
+                  </div>
 
-          <p className="text-sm text-slate-600">
-            Declaro que el paquete no contiene artículos ilegales, sustancias
-            prohibidas, armas, dinero en efectivo u otros bienes restringidos
-            según los{" "}
-            <Link href="/terminos" className="text-indigo-600 underline">
-              Términos y Condiciones
-            </Link>
-            .
-          </p>
-        </div>
+                  <div className="rounded-2xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] p-5 text-white">
+                    <div className="flex items-end justify-between gap-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide opacity-80">
+                          Costo de protección
+                        </p>
+                        <p className="mt-1 text-3xl font-bold">
+                          ${montoProteccion} MXN
+                        </p>
+                      </div>
 
-        {protegerPedido && stripePromise && (
-  <div className="mt-3 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-            <Elements stripe={stripePromise}>
-              <ProteccionCheckoutForm
-                valorDeclarado={toNumber(valorDeclarado)}
-                montoProteccion={montoProteccion}
-                onPaymentSuccess={(paymentIntentId) =>
-                  crearPedido(paymentIntentId)
-                }
+                      <div className="text-right">
+                        <p className="text-xs uppercase tracking-wide opacity-80">
+                          Cobertura hasta
+                        </p>
+                        <p className="mt-1 text-xl font-bold">
+                          ${toNumber(valorDeclarado) || 0} MXN
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-semibold text-slate-700">
+                        Protección aplicada
+                      </span>
+                      <span className="font-bold text-[#2563eb]">
+                        {porcentajeProteccion}%
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-2">
+                      <p>✓ Robo dentro del establecimiento</p>
+                      <p>✓ Extravío bajo custodia</p>
+                      <p>✓ Daño bajo custodia</p>
+                      <p>✕ No cubre robo fuera del establecimiento</p>
+                      <p className="md:col-span-2">
+                        ✕ No cubre falta de pago entre comprador y vendedor
+                      </p>
+                    </div>
+
+                    <p className="mt-3 border-t pt-3 text-xs text-slate-500">
+                      Mínimo asegurable: $500 MXN · Máximo asegurable: $
+                      {valorMaximoProteccion} MXN
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
+        {establecimientos.length > 0 && (
+          <section className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">
+                  Paso 3
+                </p>
+                <h2 className="text-2xl md:text-3xl font-bold text-[#1e3a8a] mt-2">
+                  Selecciona establecimientos
+                </h2>
+                <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+  <span className="text-base">⚠️</span>
+
+  <p className="text-sm text-amber-700">
+    El cliente elegirá uno de los establecimientos que selecciones para recoger
+    su pedido.
+  </p>
+</div>
+
+<p className="mt-3 text-sm text-slate-500">
+  Selecciona todas las ubicaciones donde estarías dispuesto a entregar este
+  pedido. El cliente elegirá la que le resulte más conveniente.
+</p>
+              </div>
+
+              <div className="w-full md:w-64">
+                <Select value={zonaFiltro} onValueChange={setZonaFiltro}>
+                  <SelectTrigger className="h-11 rounded-xl bg-white border-slate-300">
+                    <SelectValue placeholder="Selecciona zona" />
+                  </SelectTrigger>
+
+                  <SelectContent className="z-[9999]">
+                    <SelectItem value="todas">Todas las zonas</SelectItem>
+                    <SelectItem value="Norte">Zona Norte</SelectItem>
+                    <SelectItem value="Sur">Zona Sur</SelectItem>
+                    <SelectItem value="Oriente">Zona Oriente</SelectItem>
+                    <SelectItem value="Poniente">Zona Poniente</SelectItem>
+                    <SelectItem value="Centro">Zona Centro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="relative z-0 h-[420px] w-full rounded-3xl overflow-hidden border border-blue-100 shadow-sm ring-1 ring-blue-50">
+              <MapaEstablecimientos
+                establecimientos={establecimientosFiltrados}
+                seleccionados={seleccionados}
+                onMarkerClick={toggleEstablecimiento}
               />
-            </Elements>
-          </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-[#1e3a8a]">
+                Establecimientos disponibles
+              </h3>
+
+              {establecimientosFiltrados.map((est) => {
+                const activo = seleccionados.some((e) => e.id === est.id);
+
+                return (
+                  <div
+                    key={est.id}
+                    onClick={() => toggleEstablecimiento(est)}
+                    className={`border rounded-2xl p-5 cursor-pointer transition-all duration-200 ${
+                      activo
+                        ? "border-[#2563eb] bg-blue-50 shadow-sm"
+                        : "bg-white hover:bg-slate-50 hover:border-blue-200 border-slate-200"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h4 className="font-semibold text-lg text-slate-900">
+                          {est.nombre}
+                        </h4>
+
+                        <div className="mt-2">
+                          <StarsPromedio
+                            evaluado_id={est.uuid}
+                            tipo="establecimiento"
+                          />
+                        </div>
+
+                        <p className="text-sm mt-2 text-slate-600">
+                          {est.direccion}
+                        </p>
+
+                        <p className="text-xs mt-2 text-slate-500">
+                          Paquete mediano: {est.capacidad_small} — Paquete
+                          grande: {est.capacidad_medium}
+                        </p>
+                      </div>
+
+                      {activo && (
+                        <span className="shrink-0 rounded-full bg-[#2563eb] px-3 py-1 text-xs font-semibold text-white">
+                          Seleccionado
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
         )}
+
+        <section className="bg-white border border-slate-200 rounded-3xl p-5 md:p-6 shadow-sm space-y-5">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={declaracionLegal}
+              onChange={(e) => setDeclaracionLegal(e.target.checked)}
+              className="mt-1"
+            />
+
+            <span className="text-sm text-slate-600">
+              Confirmo que el paquete no contiene artículos ilegales,
+              sustancias prohibidas, armas, dinero en efectivo u otros bienes
+              restringidos.{" "}
+              <Link href="/terminos" className="text-[#2563eb] underline">
+                Ver Términos y Condiciones
+              </Link>
+              .
+            </span>
+          </label>
+
+          {!protegerPedido && (
+            <Button
+              className="w-full h-12 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] text-white font-semibold shadow hover:shadow-lg transition-all"
+              onClick={() => crearPedido()}
+              disabled={loading}
+            >
+              {loading ? "Creando pedido..." : "Crear Pedido"}
+            </Button>
+          )}
+
+          {protegerPedido && stripePromise && (
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+              <Elements stripe={stripePromise}>
+                <ProteccionCheckoutForm
+                  valorDeclarado={toNumber(valorDeclarado)}
+                  montoProteccion={montoProteccion}
+                  onPaymentSuccess={(paymentIntentId) =>
+                    crearPedido(paymentIntentId)
+                  }
+                />
+              </Elements>
+            </div>
+          )}
+        </section>
 
         {mensaje && (
           <p
@@ -672,6 +723,16 @@ export default function CrearPedido() {
         )}
       </div>
     </div>
-    
+  );
+}
+
+function CoinBalanceCard({ label, value }) {
+  return (
+    <div className="border border-blue-100 rounded-2xl p-5 bg-blue-50 text-[#1e3a8a]">
+      <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
+        {label}
+      </p>
+      <p className="text-3xl font-bold mt-2">{value}</p>
+    </div>
   );
 }

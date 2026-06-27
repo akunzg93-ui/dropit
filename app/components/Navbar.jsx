@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
 import {
@@ -11,7 +11,12 @@ import {
   User,
   LogOut,
   FileText,
-  ChevronDown,
+  Home,
+  PlusCircle,
+  ClipboardList,
+  Coins,
+  Wallet,
+  Users,
 } from "lucide-react";
 
 import { supabase } from "../../lib/supabaseClient";
@@ -23,6 +28,7 @@ export default function Navbar() {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const [userMenu, setUserMenu] = useState(false);
+  const userMenuRef = useRef(null);
 
   const pathname = usePathname();
 
@@ -50,30 +56,47 @@ export default function Navbar() {
     cargar();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
-  const u = session?.user || null;
+      const u = session?.user || null;
 
-  setUser(u);
+      setUser(u);
 
-  if (!u) {
-    setRole(null);
-    return;
-  }
+      if (!u) {
+        setRole(null);
+        return;
+      }
 
-  setTimeout(async () => {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", u.id)
-      .maybeSingle();
+      setTimeout(async () => {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", u.id)
+          .maybeSingle();
 
-    if (profile?.role) {
-      setRole(profile.role);
-    }
-  }, 0);
-});
+        if (profile?.role) {
+          setRole(profile.role);
+        }
+      }, 0);
+    });
 
     return () => listener.subscription.unsubscribe();
   }, []);
+
+useEffect(() => {
+  function handleClickOutside(event) {
+    if (
+      userMenuRef.current &&
+      !userMenuRef.current.contains(event.target)
+    ) {
+      setUserMenu(false);
+    }
+  }
+
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -86,8 +109,8 @@ export default function Navbar() {
 
   const active = (path) =>
     pathname.startsWith(path)
-      ? "text-[#2d6cdf] font-semibold"
-      : "text-slate-700";
+      ? "bg-blue-50 text-[#2563eb] font-semibold"
+      : "text-slate-700 hover:bg-blue-50 hover:text-[#2563eb]";
 
   const goHome = () => {
     if (!user) {
@@ -120,12 +143,10 @@ export default function Navbar() {
 
   const handleLoginClick = () => {
     if (pathname.includes("/login")) {
-      document
-        .getElementById("login-form")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
+      document.getElementById("login-form")?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
 
       return;
     }
@@ -135,39 +156,10 @@ export default function Navbar() {
 
   return (
     <>
-      <nav
-        className="
-          fixed
-          top-0
-          left-0
-          w-full
-          z-50
-          border-b
-          border-slate-200/80
-          bg-white/90
-          backdrop-blur-xl
-          shadow-sm
-          safe-top
-        "
-      >
-        <div
-          className="
-            max-w-7xl
-            mx-auto
-            px-4
-            sm:px-6
-            lg:px-8
-            h-20
-            flex
-            items-center
-            justify-between
-          "
-        >
+      <nav className="fixed top-0 left-0 w-full z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl shadow-sm safe-top">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           {/* LOGO */}
-          <button
-            onClick={goHome}
-            className="flex items-center shrink-0"
-          >
+          <button onClick={goHome} className="flex items-center shrink-0">
             <img
               src="/brand/logo-dropit.png"
               alt="DROPIT"
@@ -176,299 +168,171 @@ export default function Navbar() {
           </button>
 
           {/* DESKTOP */}
-          <div className="hidden md:flex items-center gap-7 text-sm font-medium">
-
-            {user && <RoleSwitcher />}
-
+          <div className="hidden md:flex items-center gap-2 text-sm font-medium">
             {/* ADMIN */}
             {role === "admin" && (
-              <div className="relative group">
-                <button
-                  className={`
-                    flex items-center gap-1 transition
-                    hover:text-[#2d6cdf]
-                    ${active("/admin")}
-                  `}
-                >
-                  Admin
-                  <ChevronDown size={14} />
-                </button>
+              <>
+                <NavItem
+                  href="/admin"
+                  icon={<Home size={16} />}
+                  label="Dashboard"
+                  className={active("/admin")}
+                />
 
-                <div
-                  className="
-                    absolute
-                    top-full
-                    left-0
-                    mt-3
-                    flex
-                    flex-col
-                    w-60
-                    rounded-2xl
-                    border
-                    bg-white
-                    shadow-2xl
-                    overflow-hidden
-                    z-50
-                    opacity-0
-                    invisible
-                    group-hover:opacity-100
-                    group-hover:visible
-                    transition-all
-                    duration-200
-                  "
-                >
-                  <Link
-                    href="/admin"
-                    className="px-4 py-3 hover:bg-slate-50"
-                  >
-                    Dashboard
-                  </Link>
+                <NavItem
+                  href="/admin/usuarios"
+                  icon={<Users size={16} />}
+                  label="Usuarios"
+                  className={active("/admin/usuarios")}
+                />
 
-                  <Link
-                    href="/admin/usuarios"
-                    className="px-4 py-3 hover:bg-slate-50"
-                  >
-                    Usuarios
-                  </Link>
-
-                  <Link
-                    href="/admin/retiros"
-                    className="px-4 py-3 hover:bg-slate-50"
-                  >
-                    Retiros
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            {/* RECIBIR */}
-            {role === "establishment" && (
-              <Link
-                href="/establecimiento/recibir-pedido"
-                className={`flex items-center gap-2 transition hover:text-[#2d6cdf] ${active(
-                  "/establecimiento/recibir-pedido"
-                )}`}
-              >
-                <Package size={16} />
-                Recibir pedido
-              </Link>
-            )}
-
-            {/* ENTREGAR */}
-            {role === "establishment" && (
-              <Link
-                href="/establecimiento/entregar"
-                className={`flex items-center gap-2 transition hover:text-[#2d6cdf] ${active(
-                  "/establecimiento/entregar"
-                )}`}
-              >
-                <Package size={16} />
-                Entregar pedido
-              </Link>
+                <NavItem
+                  href="/admin/retiros"
+                  icon={<Wallet size={16} />}
+                  label="Retiros"
+                  className={active("/admin/retiros")}
+                />
+              </>
             )}
 
             {/* ESTABLECIMIENTO */}
             {role === "establishment" && (
-              <div className="relative group">
-                <button
-                  className={`
-                    flex items-center gap-1 transition
-                    hover:text-[#2d6cdf]
-                    ${active("/establecimiento")}
-                  `}
-                >
-                  Establecimiento
-                  <ChevronDown size={14} />
-                </button>
+              <>
+                <NavItem
+                  href="/establecimiento/estado"
+                  icon={<Home size={16} />}
+                  label="Panel"
+                  className={active("/establecimiento/estado")}
+                />
 
-                <div
-                  className="
-                    absolute
-                    top-full
-                    left-0
-                    mt-3
-                    flex
-                    flex-col
-                    w-64
-                    rounded-2xl
-                    border
-                    bg-white
-                    shadow-2xl
-                    overflow-hidden
-                    z-50
-                    opacity-0
-                    invisible
-                    group-hover:opacity-100
-                    group-hover:visible
-                    transition-all
-                    duration-200
-                  "
-                >
-                  <Link
-                    href="/establecimiento/estado"
-                    className="px-4 py-3 hover:bg-slate-50"
-                  >
-                    Panel operativo
-                  </Link>
+                <NavItem
+                  href="/establecimiento/recibir-pedido"
+                  icon={<Package size={16} />}
+                  label="Recibir"
+                  className={active("/establecimiento/recibir-pedido")}
+                />
 
-                  <Link
-                    href="/establecimiento"
-                    className="px-4 py-3 hover:bg-slate-50"
-                  >
-                    Registrar establecimiento
-                  </Link>
+                <NavItem
+                  href="/establecimiento/entregar"
+                  icon={<Package size={16} />}
+                  label="Entregar"
+                  className={active("/establecimiento/entregar")}
+                />
 
-                  <Link
-                    href="/establecimiento/balance"
-                    className="px-4 py-3 hover:bg-slate-50"
-                  >
-                    Balance
-                  </Link>
-                </div>
-              </div>
+                <NavItem
+                  href="/establecimiento"
+                  icon={<PlusCircle size={16} />}
+                  label="Registrar"
+                  className={active("/establecimiento")}
+                />
+
+                <NavItem
+                  href="/establecimiento/balance"
+                  icon={<Wallet size={16} />}
+                  label="Balance"
+                  className={active("/establecimiento/balance")}
+                />
+              </>
             )}
 
             {/* VENDEDOR */}
             {role === "vendor" && (
-              <div className="relative group">
-                <button
-                  className={`
-                    flex items-center gap-1 transition
-                    hover:text-[#2d6cdf]
-                    ${active("/vendedor")}
-                  `}
-                >
-                  Vendedor
-                  <ChevronDown size={14} />
-                </button>
+              <>
+                <NavItem
+                  href="/vendedor/dashboard"
+                  icon={<Home size={16} />}
+                  label="Dashboard"
+                  className={active("/vendedor/dashboard")}
+                />
 
-                <div
-                  className="
-                    absolute
-                    top-full
-                    left-0
-                    mt-3
-                    flex
-                    flex-col
-                    w-64
-                    rounded-2xl
-                    border
-                    bg-white
-                    shadow-2xl
-                    overflow-hidden
-                    z-50
-                    opacity-0
-                    invisible
-                    group-hover:opacity-100
-                    group-hover:visible
-                    transition-all
-                    duration-200
-                  "
-                >
-                  <Link
-                    href="/vendedor/dashboard"
-                    className="px-4 py-3 hover:bg-slate-50"
-                  >
-                    Dashboard
-                  </Link>
+                <NavItem
+                  href="/vendedor/crear-pedido"
+                  icon={<PlusCircle size={16} />}
+                  label="Crear pedido"
+                  className={active("/vendedor/crear-pedido")}
+                />
 
-                  <Link
-                    href="/vendedor/pedidos"
-                    className="px-4 py-3 hover:bg-slate-50"
-                  >
-                    Pedidos
-                  </Link>
+                <NavItem
+                  href="/vendedor/pedidos"
+                  icon={<ClipboardList size={16} />}
+                  label="Pedidos"
+                  className={active("/vendedor/pedidos")}
+                />
 
-                  <Link
-                    href="/vendedor/crear-pedido"
-                    className="px-4 py-3 hover:bg-slate-50"
-                  >
-                    Crear pedido
-                  </Link>
+                <NavItem
+                  href="/vendedor/coins"
+                  icon={<Coins size={16} />}
+                  label="Coins"
+                  className={active("/vendedor/coins")}
+                />
+              </>
+            )}
 
-                  <Link
-                    href="/vendedor/coins"
-                    className="px-4 py-3 hover:bg-slate-50"
-                  >
-                    Coins
-                  </Link>
-                </div>
-              </div>
+            {/* BUYER */}
+            {role === "buyer" && (
+              <NavItem
+                href="/comprador"
+                icon={<Home size={16} />}
+                label="Inicio"
+                className={active("/comprador")}
+              />
             )}
 
             {/* RASTREAR */}
             {!user && (
-              <Link
+              <NavItem
                 href="/comprador/validar-pedido"
-                className={`flex items-center gap-2 transition hover:text-[#2d6cdf] ${active(
-                  "/comprador/validar-pedido"
-                )}`}
-              >
-                <Package size={16} />
-                Rastrear pedido
-              </Link>
+                icon={<Package size={16} />}
+                label="Rastrear pedido"
+                className={active("/comprador/validar-pedido")}
+              />
             )}
 
+            <div className="h-6 w-px bg-slate-200 mx-2" />
+
             {/* TERMINOS */}
-            <Link
+            <NavItem
               href="/terminos"
-              className={`flex items-center gap-2 transition hover:text-[#2d6cdf] ${active(
-                "/terminos"
-              )}`}
-            >
-              <FileText size={16} />
-              Términos
-            </Link>
+              icon={<FileText size={16} />}
+              label="Términos"
+              className={active("/terminos")}
+            />
+
+            {/* ROLE SWITCHER */}
+            {user && (
+              <div className="rounded-xl px-3 py-2 text-slate-700 hover:bg-blue-50 hover:text-[#2563eb] transition">
+                <RoleSwitcher />
+              </div>
+            )}
 
             {/* USER */}
             {user ? (
-              <div className="relative">
+  <div
+    className="relative"
+    ref={userMenuRef}
+  >
                 <button
                   onClick={() => setUserMenu(!userMenu)}
-                  className="
-                    flex
-                    items-center
-                    gap-2
-                    rounded-xl
-                    px-3
-                    py-2
-                    hover:bg-slate-100
-                    transition
-                  "
+                  className="flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-blue-50 hover:text-[#2563eb] transition text-slate-700"
                 >
                   <User size={18} />
-
-                  <span className="max-w-[180px] truncate">
-                    {user.email}
-                  </span>
+                  <span>Cuenta</span>
                 </button>
 
                 {userMenu && (
-                  <div
-                    className="
-                      absolute
-                      right-0
-                      mt-2
-                      w-56
-                      rounded-2xl
-                      border
-                      bg-white
-                      shadow-xl
-                      overflow-hidden
-                    "
-                  >
+                  <div className="absolute right-0 mt-2 w-64 rounded-2xl border bg-white shadow-xl overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-100">
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400 font-semibold">
+                        Mi cuenta
+                      </p>
+                      <p className="text-sm text-slate-700 mt-1 truncate">
+                        {user.email}
+                      </p>
+                    </div>
+
                     <button
                       onClick={handleLogout}
-                      className="
-                        flex
-                        items-center
-                        gap-2
-                        w-full
-                        px-4
-                        py-3
-                        text-left
-                        hover:bg-slate-50
-                      "
+                      className="flex items-center gap-2 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50"
                     >
                       <LogOut size={16} />
                       Cerrar sesión
@@ -479,15 +343,7 @@ export default function Navbar() {
             ) : (
               <button
                 onClick={handleLoginClick}
-                className="
-                  rounded-xl
-                  bg-[#2d6cdf]
-                  px-5
-                  py-2.5
-                  text-white
-                  hover:bg-blue-700
-                  transition
-                "
+                className="rounded-xl bg-[#2563eb] px-5 py-2.5 text-white hover:bg-[#1e40af] transition"
               >
                 Iniciar sesión
               </button>
@@ -497,19 +353,7 @@ export default function Navbar() {
           {/* MOBILE */}
           <button
             onClick={() => setOpen(!open)}
-            className="
-              md:hidden
-              flex
-              items-center
-              justify-center
-              h-11
-              w-11
-              rounded-xl
-              border
-              border-slate-200
-              bg-white
-              shadow-sm
-            "
+            className="md:hidden flex items-center justify-center h-11 w-11 rounded-xl border border-slate-200 bg-white shadow-sm"
           >
             {open ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -517,34 +361,12 @@ export default function Navbar() {
 
         {/* MOBILE MENU */}
         {open && (
-          <div
-            className="
-              md:hidden
-              border-t
-              border-slate-200
-              bg-white/95
-              backdrop-blur-xl
-              px-4
-              pb-6
-              pt-4
-              space-y-3
-              shadow-xl
-            "
-          >
-
+          <div className="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-xl px-4 pb-6 pt-4 space-y-3 shadow-xl">
             {!user && (
               <Link
                 href="/comprador/validar-pedido"
                 onClick={() => setOpen(false)}
-                className="
-                  flex
-                  items-center
-                  gap-3
-                  rounded-2xl
-                  px-4
-                  py-4
-                  bg-slate-50
-                "
+                className="flex items-center gap-3 rounded-2xl px-4 py-4 bg-slate-50"
               >
                 <Package size={18} />
                 Rastrear pedido
@@ -554,15 +376,7 @@ export default function Navbar() {
             <Link
               href="/terminos"
               onClick={() => setOpen(false)}
-              className="
-                flex
-                items-center
-                gap-3
-                rounded-2xl
-                px-4
-                py-4
-                bg-slate-50
-              "
+              className="flex items-center gap-3 rounded-2xl px-4 py-4 bg-slate-50"
             >
               <FileText size={18} />
               Términos y condiciones
@@ -576,17 +390,7 @@ export default function Navbar() {
 
                 <button
                   onClick={handleLogout}
-                  className="
-                    flex
-                    items-center
-                    gap-3
-                    rounded-2xl
-                    px-4
-                    py-4
-                    w-full
-                    bg-red-50
-                    text-red-600
-                  "
+                  className="flex items-center gap-3 rounded-2xl px-4 py-4 w-full bg-red-50 text-red-600"
                 >
                   <LogOut size={18} />
                   Cerrar sesión
@@ -598,29 +402,17 @@ export default function Navbar() {
                   setOpen(false);
 
                   if (pathname.includes("/login")) {
-                    document
-                      .getElementById("login-form")
-                      ?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
+                    document.getElementById("login-form")?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "center",
+                    });
 
                     return;
                   }
 
                   window.location.href = "/login";
                 }}
-                className="
-                  flex
-                  items-center
-                  justify-center
-                  rounded-2xl
-                  bg-[#2d6cdf]
-                  px-4
-                  py-4
-                  text-white
-                  font-medium
-                "
+                className="flex items-center justify-center rounded-2xl bg-[#2563eb] px-4 py-4 text-white font-medium"
               >
                 Iniciar sesión
               </button>
@@ -631,5 +423,17 @@ export default function Navbar() {
 
       <MobileBottomNav role={role} />
     </>
+  );
+}
+
+function NavItem({ href, icon, label, className }) {
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-2 rounded-xl px-3 py-2 transition ${className}`}
+    >
+      {icon}
+      <span>{label}</span>
+    </Link>
   );
 }

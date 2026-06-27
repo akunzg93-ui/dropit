@@ -31,7 +31,6 @@ export default function DashboardVendedor() {
 
       if (!user) return;
 
-      // 🔹 PEDIDOS
       const { data: pedidos } = await supabase
         .from("pedidos")
         .select("estado")
@@ -44,12 +43,9 @@ export default function DashboardVendedor() {
         setEnTransito(
           pedidos.filter((p) => p.estado === "en_transito").length
         );
-        setEntregados(
-          pedidos.filter((p) => p.estado === "entregado").length
-        );
+        setEntregados(pedidos.filter((p) => p.estado === "entregado").length);
       }
 
-      // 🔹 COINS
       const { data: lotes } = await supabase
         .from("coin_lotes")
         .select("tipo, cantidad_disponible")
@@ -73,149 +69,163 @@ export default function DashboardVendedor() {
   }, []);
 
   return (
-    <div className="min-h-screen px-6 py-16 bg-slate-50">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-slate-50 px-5 py-12">
+      <div className="max-w-6xl mx-auto space-y-8">
+        <section className="bg-white border border-slate-200 rounded-3xl p-7 md:p-10 shadow-sm">
+          <div className="grid md:grid-cols-[1.4fr_.8fr] gap-8 items-start">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold text-[#1e3a8a] leading-tight">
+                Panel del vendedor <span className="inline-block">📦</span>
+              </h1>
 
-        {/* Header */}
-        <div className="mb-14 text-center">
-          <span className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase tracking-wide">
-            <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-            Modo Emprendedor
-          </span>
+              <p className="text-slate-600 mt-4 max-w-xl text-lg">
+                Gestiona tus envíos, revisa tus coins y mantén tu operación en
+                movimiento desde un solo lugar.
+              </p>
+            </div>
 
-          <h1 className="text-4xl font-bold mt-6 text-indigo-900">
-            Panel del Vendedor
-          </h1>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold mb-3">
+                🪙 Coins disponibles
+              </p>
 
-          <p className="text-slate-600 mt-3 text-lg">
-            Gestiona tu operación logística desde un solo lugar.
-          </p>
-        </div>
+              <div className="grid grid-cols-2 gap-3">
+                <CoinBalanceCard label="Coins pequeñas" value={smallCoins} />
 
-        {/* MINI MÉTRICAS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-
-          <MetricCard
-            icon={<Clock className="text-amber-500" size={20} />}
-            label="Pendientes"
-            value={pendientes}
-          />
-
-          <MetricCard
-            icon={<Truck className="text-sky-500" size={20} />}
-            label="En tránsito"
-            value={enTransito}
-          />
-
-          <MetricCard
-            icon={<CheckCircle className="text-emerald-500" size={20} />}
-            label="Entregados"
-            value={entregados}
-          />
-
-        </div>
-
-        {/* COINS CARD */}
-        <div className="mb-12">
-          <div className="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-3xl p-8 shadow-lg text-white">
-            <div className="flex items-center justify-between flex-col md:flex-row gap-6">
-
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <Coins size={24} />
-                  <h2 className="text-xl font-semibold">
-                    Coins disponibles
-                  </h2>
-                </div>
-
-                <div className="flex gap-8 mt-4 text-lg font-bold">
-                  <div>
-                    <p className="text-white/70 text-sm font-medium"> Paquetes Pequeños</p>
-                    <p>{smallCoins}</p>
-                  </div>
-                  <div>
-                    <p className="text-white/70 text-sm font-medium">Paquetes Medianos</p>
-                    <p>{mediumCoins}</p>
-                  </div>
-                </div>
-
-                <p className="text-white/80 text-sm mt-3">
-                  Utiliza tus coins para registrar nuevos envíos.
-                </p>
+                <CoinBalanceCard label="Coins medianas" value={mediumCoins} />
               </div>
-
-              <Button
-                className="bg-white text-indigo-700 font-semibold hover:bg-slate-100"
-                onClick={() => router.push("/vendedor/coins")}
-              >
-                Comprar Coins
-              </Button>
-
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* ACTION CARDS */}
-        <div className="space-y-8">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <MetricCard
+            icon={<Clock size={20} />}
+            label="Pendientes"
+            value={pendientes}
+            tone="amber"
+          />
 
+          <MetricCard
+            icon={<Truck size={20} />}
+            label="En tránsito"
+            value={enTransito}
+            tone="blue"
+          />
+
+          <MetricCard
+            icon={<CheckCircle size={20} />}
+            label="Entregados"
+            value={entregados}
+            tone="emerald"
+          />
+        </section>
+
+        <section className="bg-gradient-to-r from-[#2563eb] to-[#1e40af] rounded-3xl p-6 md:p-8 shadow-sm text-white">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-3">
+                <Coins size={24} />
+                <h2 className="text-2xl font-bold">¿Necesitas más coins?</h2>
+              </div>
+
+              <p className="text-blue-100 mt-2">
+                Compra más coins para seguir creando pedidos sin interrupciones.
+              </p>
+            </div>
+
+            <Button
+              className="bg-white text-[#1e40af] font-semibold hover:bg-slate-100 rounded-xl"
+              onClick={() => router.push("/vendedor/coins")}
+            >
+              Comprar Coins
+            </Button>
+          </div>
+        </section>
+
+        <section className="grid md:grid-cols-2 gap-6">
           <ActionCard
-            icon={<PlusCircle className="text-indigo-600" size={24} />}
-            title="Crear Pedido"
-            description="Registra un nuevo envío y selecciona el establecimiento de entrega."
-            buttonLabel="Crear Pedido"
+            icon={<PlusCircle size={24} />}
+            title="Crear pedido"
+            description="Registra un nuevo envío y selecciona los establecimientos donde podrá recibirse."
+            buttonLabel="Crear pedido"
             onClick={() => router.push("/vendedor/crear-pedido")}
             primary
           />
 
           <ActionCard
-            icon={<ClipboardList className="text-slate-600" size={24} />}
+            icon={<ClipboardList size={24} />}
             title="Ver mis pedidos"
-            description="Consulta el estado y seguimiento de todos tus envíos."
+            description="Consulta el estado, seguimiento y detalle de todos tus envíos."
             buttonLabel="Ver mis pedidos"
             onClick={() => router.push("/vendedor/pedidos")}
           />
-
-        </div>
-
+        </section>
       </div>
     </div>
   );
 }
 
-/* COMPONENTES */
+function CoinBalanceCard({ label, value }) {
+  return (
+    <div className="border border-blue-100 rounded-2xl p-5 bg-blue-50 text-[#1e3a8a]">
+      <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
+        {label}
+      </p>
+      <p className="text-3xl font-bold mt-2">{value}</p>
+    </div>
+  );
+}
 
-function MetricCard({ icon, label, value }) {
+function MetricCard({ icon, label, value, tone }) {
+  const toneClass =
+    tone === "amber"
+      ? "bg-amber-50 text-amber-600 border-amber-100"
+      : tone === "emerald"
+      ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+      : "bg-blue-50 text-[#2563eb] border-blue-100";
+
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-center gap-3 mb-2">
-        {icon}
-        <span className="text-sm text-slate-500">{label}</span>
+      <div className="flex items-center gap-3 mb-3">
+        <div
+          className={`h-10 w-10 rounded-xl flex items-center justify-center border ${toneClass}`}
+        >
+          {icon}
+        </div>
+
+        <span className="text-sm font-medium text-slate-500">{label}</span>
       </div>
-      <p className="text-2xl font-bold text-slate-900">{value}</p>
+
+      <p className="text-3xl font-bold text-[#1e3a8a]">{value}</p>
     </div>
   );
 }
 
 function ActionCard({ icon, title, description, buttonLabel, onClick, primary }) {
   return (
-    <div className="bg-white border border-slate-200 p-10 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300">
-
+    <div className="bg-white border border-slate-200 p-7 md:p-8 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300">
       <div className="flex items-center gap-3 mb-3">
-        {icon}
-        <h2 className="text-xl font-semibold text-slate-900">
-          {title}
-        </h2>
+        <div
+          className={`h-11 w-11 rounded-2xl flex items-center justify-center ${
+            primary
+              ? "bg-blue-50 text-[#2563eb]"
+              : "bg-slate-100 text-slate-600"
+          }`}
+        >
+          {icon}
+        </div>
+
+        <h2 className="text-xl font-bold text-[#1e3a8a]">{title}</h2>
       </div>
 
-      <p className="text-slate-600 text-sm mb-8">
-        {description}
-      </p>
+      <p className="text-slate-600 text-sm mb-8">{description}</p>
 
       <Button
         className={`w-full h-12 text-base rounded-xl ${
           primary
-            ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold shadow hover:shadow-lg hover:scale-[1.01] transition-all"
-            : ""
+            ? "bg-gradient-to-r from-[#2563eb] to-[#1e40af] text-white font-semibold shadow hover:shadow-lg transition-all"
+            : "bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold"
         }`}
         variant={primary ? undefined : "secondary"}
         onClick={onClick}

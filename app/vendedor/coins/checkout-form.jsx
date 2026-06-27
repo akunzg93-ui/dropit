@@ -18,7 +18,6 @@ export default function CheckoutForm({ items, total, onSuccess }) {
     setError("");
 
     try {
-      // 1️⃣ Crear PaymentIntent
       const res = await fetch("/api/orders/payments/create-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -31,21 +30,16 @@ export default function CheckoutForm({ items, total, onSuccess }) {
         throw new Error("No se pudo crear el pago");
       }
 
-      // 2️⃣ Confirmar pago con tarjeta
-      const result = await stripe.confirmCardPayment(
-        intent.clientSecret,
-        {
-          payment_method: {
-            card: elements.getElement(CardElement),
-          },
-        }
-      );
+      const result = await stripe.confirmCardPayment(intent.clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement),
+        },
+      });
 
       if (result.error) {
         throw new Error(result.error.message || "Pago rechazado");
       }
 
-      // 3️⃣ Pago exitoso
       if (result.paymentIntent?.status === "succeeded") {
         const {
           data: { user },
@@ -87,35 +81,37 @@ export default function CheckoutForm({ items, total, onSuccess }) {
 
   return (
     <div className="space-y-4">
-
-      {/* 🔥 ÚNICO CAMBIO AQUÍ */}
       <CardElement
-        className="p-3 border rounded"
+        className="rounded-xl border border-slate-300 bg-white px-4 py-3 shadow-sm"
         options={{
+          hidePostalCode: true,
           style: {
             base: {
               fontSize: "16px",
-              color: "#ffffff",
+              color: "#0f172a",
+              fontFamily:
+                "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
               "::placeholder": {
-                color: "rgba(255,255,255,0.6)",
+                color: "#94a3b8",
               },
             },
             invalid: {
-              color: "#ff6b6b",
+              color: "#dc2626",
             },
           },
         }}
       />
 
       <button
+        type="button"
         onClick={handlePay}
         disabled={!stripe || loading}
-        className="w-full bg-black text-white py-2 rounded"
+        className="w-full rounded-xl bg-[#2563eb] px-5 py-3 font-semibold text-white transition hover:bg-[#1e40af] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? "Procesando..." : `Pagar $${total} MXN`}
       </button>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <p className="text-sm font-medium text-red-600">{error}</p>}
     </div>
   );
 }
