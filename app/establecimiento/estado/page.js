@@ -3,6 +3,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import {
+  Package,
+  Clock,
+  Truck,
+  CheckCircle,
+  Bell,
+  Store,
+  Eye,
+} from "lucide-react";
 
 export default function EstablecimientoEstadoPage() {
   const router = useRouter();
@@ -10,12 +19,9 @@ export default function EstablecimientoEstadoPage() {
   const [establecimientos, setEstablecimientos] = useState([]);
   const [selectedEstId, setSelectedEstId] = useState(null);
   const [loadingInicial, setLoadingInicial] = useState(true);
-  const [vendedorInfo, setVendedorInfo] = useState(null);
   const [pedidos, setPedidos] = useState([]);
-  const [selectedPedido, setSelectedPedido] = useState(null);
   const [pendientesGlobales, setPendientesGlobales] = useState([]);
 
-  // 🔥 stats
   const [stats, setStats] = useState({
     total: 0,
     pendientes: 0,
@@ -23,83 +29,36 @@ export default function EstablecimientoEstadoPage() {
     entregados: 0,
   });
 
-  // -------------------------------
-  // CARGAR ESTABLECIMIENTOS
-  // -------------------------------
- useEffect(() => {
+  useEffect(() => {
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        const userId = session?.user?.id;
 
-  const {
-    data: listener,
-  } = supabase.auth.onAuthStateChange(
-    async (_event, session) => {
+        if (!userId) return;
 
-      const userId =
-        session?.user?.id;
-
-      console.log(
-        "🔥 AUTH READY:",
-        userId
-      );
-
-      if (!userId) return;
-
-      console.log(
-        "🚀 entrando query establecimientos"
-      );
-
-      const { data, error } =
-        await supabase
+        const { data, error } = await supabase
           .from("establecimientos")
           .select("*")
           .eq("usuario_id", userId);
 
-      console.log(
-        "✅ query terminada"
-      );
+        if (error) {
+          console.error(error);
+          setLoadingInicial(false);
+          return;
+        }
 
-      console.log(
-        "🟢 ESTABLECIMIENTOS:",
-        data
-      );
+        const establecimientosData = data || [];
+        setEstablecimientos(establecimientosData);
 
-      console.log(
-        "🔴 ERROR ESTABLECIMIENTOS:",
-        error
-      );
+        if (establecimientosData.length > 0) {
+          const firstId = establecimientosData[0].uuid;
 
-      if (error) {
-        console.error(error);
-        setLoadingInicial(false);
-        return;
-      }
+          setSelectedEstId((prev) => {
+            if (prev) return prev;
+            return firstId;
+          });
 
-      const establecimientosData =
-        data || [];
-
-      setEstablecimientos(
-        establecimientosData
-      );
-
-      if (
-        establecimientosData.length > 0
-      ) {
-
-        const firstId =
-          establecimientosData[0].uuid;
-
-        console.log(
-          "🟣 FIRST ID:",
-          firstId
-        );
-
-        setSelectedEstId((prev) => {
-  if (prev) return prev;
-  return firstId;
-});
-
-        // 🔥 fuerza carga inmediata
-        const { data: pedidosData } =
-          await supabase
+          const { data: pedidosData } = await supabase
             .from("pedidos")
             .select(`
               id,
@@ -110,49 +69,31 @@ export default function EstablecimientoEstadoPage() {
               establecimiento_uuid,
               created_at
             `)
-            .eq(
-              "establecimiento_uuid",
-              firstId
-            );
+            .eq("establecimiento_uuid", firstId);
 
-        const list =
-          pedidosData || [];
+          const list = pedidosData || [];
+          setPedidos(list);
 
-        setPedidos(list);
+          setStats({
+            total: list.length,
+            pendientes: list.filter(
+              (p) => p.estado === "pendiente_aprobacion_establecimiento"
+            ).length,
+            transito: list.filter((p) => p.estado === "en_transito").length,
+            entregados: list.filter((p) => p.estado === "entregado").length,
+          });
+        }
 
-        setStats({
-          total: list.length,
-          pendientes: list.filter(
-            (p) =>
-              p.estado ===
-              "pendiente_aprobacion_establecimiento"
-          ).length,
-          transito: list.filter(
-            (p) =>
-              p.estado === "en_transito"
-          ).length,
-          entregados: list.filter(
-            (p) =>
-              p.estado === "entregado"
-          ).length,
-        });
+        setLoadingInicial(false);
       }
+    );
 
-      setLoadingInicial(false);
-    }
-  );
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
-  return () => {
-    listener.subscription.unsubscribe();
-  };
-
-}, []);
-
-  // -------------------------------
-  // CARGAR PEDIDOS
-  // -------------------------------
   useEffect(() => {
-    console.log("🟡 selectedEstId:", selectedEstId);
     if (!selectedEstId) return;
 
     const cargarPedidos = async () => {
@@ -168,8 +109,6 @@ export default function EstablecimientoEstadoPage() {
           created_at
         `)
         .eq("establecimiento_uuid", selectedEstId);
-
-        console.log("📦 PEDIDOS:", data);
 
       const list = data || [];
       setPedidos(list);
@@ -187,22 +126,14 @@ export default function EstablecimientoEstadoPage() {
     cargarPedidos();
   }, [selectedEstId]);
 
-  // -------------------------------
-  // PENDIENTES GLOBALES
-  // -------------------------------
   useEffect(() => {
     const cargarPendientesGlobales = async () => {
       const {
-  data: { session },
-} = await supabase.auth.getSession();
+        data: { session },
+      } = await supabase.auth.getSession();
 
-const userId = session?.user?.id;
-console.log("🔵 SESSION:", session);
-console.log("🔵 USER ID:", userId);
-      if (!userId) {
-
-  return;
-}
+      const userId = session?.user?.id;
+      if (!userId) return;
 
       const { data: ests } = await supabase
         .from("establecimientos")
@@ -222,306 +153,268 @@ console.log("🔵 USER ID:", userId);
 
     cargarPendientesGlobales();
     const interval = setInterval(cargarPendientesGlobales, 15000);
+
     return () => clearInterval(interval);
   }, []);
 
-  // -------------------------------
-  // FILTRO
-  // -------------------------------
   const pendientes = pedidos.filter(
     (p) => p.estado === "pendiente_aprobacion_establecimiento"
   );
 
-  // -------------------------------
-  // BADGES
-  // -------------------------------
-  const getBadge = (estado) => {
-    if (estado === "pendiente_aprobacion_establecimiento")
-      return "bg-amber-100 text-amber-700";
-    if (estado === "pendiente_recoleccion")
-      return "bg-indigo-100 text-indigo-700";
-    if (estado === "en_transito")
-      return "bg-blue-100 text-blue-700";
-    if (estado === "entregado")
-      return "bg-green-100 text-green-700";
-    return "bg-gray-100 text-gray-600";
-  };
+  const selectedEstablecimiento = establecimientos.find(
+    (e) => e.uuid === selectedEstId
+  );
 
- return (
-  <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">
-    <div className="max-w-6xl mx-auto space-y-5 md:space-y-8">
+  if (loadingInicial) {
+    return (
+      <div className="min-h-screen bg-slate-50 px-5 py-12">
+        <div className="mx-auto max-w-6xl rounded-3xl border border-slate-200 bg-white p-8 text-slate-500 shadow-sm">
+          Cargando panel...
+        </div>
+      </div>
+    );
+  }
 
-      {/* HEADER */}
-      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-[28px] p-5 md:p-8 shadow-xl">
+  return (
+    <div className="min-h-screen bg-slate-50 px-5 py-12 pb-36">
+      <div className="mx-auto max-w-6xl space-y-8">
+        <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm md:p-10">
+          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h1 className="text-4xl font-bold leading-tight text-[#1e3a8a] md:text-5xl">
+                Panel del establecimiento 🏪
+              </h1>
 
-        <div className="flex items-start justify-between gap-4">
+              <p className="mt-4 max-w-2xl text-lg text-slate-600">
+                Gestiona pedidos, revisa aprobaciones y mantén tu operación en
+                tiempo real.
+              </p>
+            </div>
 
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold">
-              Panel Multi-Local
-            </h1>
+            {pendientesGlobales.length > 0 && (
+              <button
+                onClick={() => {
+                  if (pendientes.length === 1) {
+                    router.push(`/establecimiento/aprobar/${pendientes[0].id}`);
+                  } else {
+                    router.push("/establecimiento/aprobaciones");
+                  }
+                }}
+                className="flex w-fit items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 font-semibold text-amber-700 transition hover:bg-amber-100"
+              >
+                <Bell size={20} />
+                {pendientesGlobales.length} por revisar
+              </button>
+            )}
+          </div>
+        </section>
 
-            <p className="text-sm text-white/80 mt-1">
-              Gestión de pedidos en tiempo real
-            </p>
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-[#2563eb]">
+              <Store size={20} />
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                Local activo
+              </p>
+              <h2 className="font-bold text-[#1e3a8a]">
+                {selectedEstablecimiento?.nombre || "Selecciona establecimiento"}
+              </h2>
+            </div>
           </div>
 
-          {pendientesGlobales.length > 0 && (
-            <div
-              onClick={() => {
-                if (pendientes.length === 1) {
-                  router.push(`/establecimiento/aprobar/${pendientes[0].id}`);
-                } else {
-                  router.push("/establecimiento/aprobaciones");
-                }
-              }}
-              className="
-                shrink-0
-                flex
-                items-center
-                justify-center
-                min-w-[54px]
-                h-[54px]
-                rounded-2xl
-                bg-white/15
-                backdrop-blur
-                text-lg
-                font-semibold
-                cursor-pointer
-                active:scale-95
-                transition
-              "
-            >
-              🔔 {pendientesGlobales.length}
+          <select
+            className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+            value={selectedEstId || ""}
+            onChange={(e) => setSelectedEstId(e.target.value)}
+          >
+            {establecimientos.map((e) => (
+              <option key={e.uuid} value={e.uuid}>
+                {e.nombre}
+              </option>
+            ))}
+          </select>
+        </section>
+
+        <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <MetricCard
+            icon={<Package size={20} />}
+            label="Total"
+            value={stats.total}
+            tone="blue"
+          />
+
+          <MetricCard
+            icon={<Clock size={20} />}
+            label="Por aprobar"
+            value={stats.pendientes}
+            tone="amber"
+          />
+
+          <MetricCard
+            icon={<Truck size={20} />}
+            label="En tránsito"
+            value={stats.transito}
+            tone="purple"
+          />
+
+          <MetricCard
+            icon={<CheckCircle size={20} />}
+            label="Entregados"
+            value={stats.entregados}
+            tone="emerald"
+          />
+        </section>
+
+        {pendientes.length > 0 && (
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  Acción requerida
+                </p>
+                <h2 className="mt-1 text-xl font-bold text-[#1e3a8a]">
+                  Pendientes de aprobación
+                </h2>
+              </div>
+
+              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                {pendientes.length} pendientes
+              </span>
             </div>
-          )}
 
-        </div>
-      </div>
+            <div className="space-y-3">
+              {pendientes.map((p) => (
+                <div
+                  key={p.id}
+                  onClick={() => router.push(`/establecimiento/aprobar/${p.id}`)}
+                  className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-amber-200 hover:bg-amber-50/40"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-bold text-[#1e3a8a]">
+                      {p.folio}
+                    </p>
 
-      {/* SELECT */}
-      <div className="bg-white p-4 md:p-6 rounded-[28px] shadow border border-slate-200">
+                    <span className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                      Esperando aprobación
+                    </span>
+                  </div>
 
-        <label className="text-sm font-medium text-gray-600">
-          Establecimiento
-        </label>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/establecimiento/aprobar/${p.id}`);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#2563eb] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1e40af]"
+                  >
+                    <Eye size={15} />
+                    Revisar
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
-        <select
-          className="
-            w-full
-            h-12
-            px-4
-            mt-2
-            rounded-2xl
-            border
-            border-slate-200
-            bg-white
-            text-sm
-            focus:ring-2
-            focus:ring-indigo-500
-          "
-          value={selectedEstId || ""}
-          onChange={(e) => setSelectedEstId(e.target.value)}
-        >
-          {establecimientos.map((e) => (
-            <option key={e.uuid} value={e.uuid}>
-              {e.nombre}
-            </option>
-          ))}
-        </select>
-      </div>
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                Pedidos
+              </p>
+              <h2 className="mt-1 text-xl font-bold text-[#1e3a8a]">
+                Todos los pedidos
+              </h2>
+            </div>
 
-      {/* STATS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-        <div className="bg-white p-4 rounded-[24px] shadow border border-slate-200">
-          <p className="text-xs text-gray-500">
-            Total
-          </p>
-
-          <p className="text-2xl font-bold mt-1">
-            {stats.total}
-          </p>
-        </div>
-
-        <div className="bg-amber-50 p-4 rounded-[24px] shadow-sm border border-amber-200">
-          <p className="text-xs text-amber-700">
-            Por aprobar
-          </p>
-
-          <p className="text-2xl font-bold text-amber-600 mt-1">
-            {stats.pendientes}
-          </p>
-        </div>
-
-        <div className="bg-blue-50 p-4 rounded-[24px] shadow-sm border border-blue-200">
-          <p className="text-xs text-blue-700">
-            En tránsito
-          </p>
-
-          <p className="text-2xl font-bold text-blue-600 mt-1">
-            {stats.transito}
-          </p>
-        </div>
-
-        <div className="bg-green-50 p-4 rounded-[24px] shadow-sm border border-green-200">
-          <p className="text-xs text-green-700">
-            Entregados
-          </p>
-
-          <p className="text-2xl font-bold text-green-600 mt-1">
-            {stats.entregados}
-          </p>
-        </div>
-
-      </div>
-
-      {/* PENDIENTES */}
-      {pendientes.length > 0 && (
-        <div className="bg-white p-4 md:p-6 rounded-[28px] shadow border border-slate-200">
-
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-base md:text-lg">
-              Pendientes de aprobación
-            </h2>
-
-            <span className="text-xs text-slate-400">
-              {pendientes.length} pendientes
+            <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-500">
+              {pedidos.length} registros
             </span>
           </div>
 
           <div className="space-y-3">
+            {pedidos.length === 0 && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-500">
+                No hay pedidos registrados para este establecimiento.
+              </div>
+            )}
 
-            {pendientes.map((p) => (
+            {pedidos.map((p) => (
               <div
                 key={p.id}
-                onClick={() =>
-                  router.push(`/establecimiento/aprobar/${p.id}`)
-                }
-                className="
-                  cursor-pointer
-                  border
-                  border-slate-200
-                  p-4
-                  rounded-2xl
-                  flex
-                  items-center
-                  justify-between
-                  gap-3
-                  hover:bg-slate-50
-                  active:scale-[0.99]
-                  transition
-                "
+                className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4"
               >
                 <div className="min-w-0">
-
-                  <p className="font-semibold truncate">
+                  <p className="truncate font-bold text-[#1e3a8a]">
                     {p.folio}
                   </p>
 
-                  <span className="
-                    inline-flex
-                    mt-2
-                    text-[11px]
-                    px-2.5
-                    py-1
-                    rounded-full
-                    bg-amber-100
-                    text-amber-700
-                  ">
-                    Esperando aprobación
-                  </span>
-                </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <EstadoBadge estado={p.estado} />
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/establecimiento/aprobar/${p.id}`);
-                  }}
-                  className="
-                    shrink-0
-                    text-xs
-                    bg-indigo-600
-                    text-white
-                    px-4
-                    py-2
-                    rounded-xl
-                  "
-                >
-                  Revisar
-                </button>
+                    <span className="text-xs text-slate-400">
+                      {p.created_at
+                        ? new Date(p.created_at).toLocaleDateString()
+                        : "-"}
+                    </span>
+                  </div>
+                </div>
               </div>
             ))}
-
           </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({ icon, label, value, tone }) {
+  const toneClass =
+    tone === "amber"
+      ? "bg-amber-50 text-amber-600 border-amber-100"
+      : tone === "purple"
+      ? "bg-purple-50 text-purple-600 border-purple-100"
+      : tone === "emerald"
+      ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+      : "bg-blue-50 text-[#2563eb] border-blue-100";
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-3 flex items-center gap-3">
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-xl border ${toneClass}`}
+        >
+          {icon}
         </div>
-      )}
 
-      {/* PEDIDOS */}
-      <div className="bg-white p-4 md:p-6 rounded-[28px] shadow border border-slate-200">
-
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-semibold text-base md:text-lg">
-            Todos los pedidos
-          </h2>
-
-          <span className="text-xs text-slate-400">
-            {pedidos.length} registros
-          </span>
-        </div>
-
-        <div className="space-y-3">
-
-          {pedidos.map((p) => (
-            <div
-              key={p.id}
-              className="
-                border
-                border-slate-200
-                rounded-2xl
-                p-4
-                flex
-                items-center
-                justify-between
-                gap-4
-              "
-            >
-              <div className="min-w-0">
-
-                <p className="font-semibold truncate">
-                  {p.folio}
-                </p>
-
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
-
-                  <span
-                    className={`
-                      px-3
-                      py-1
-                      rounded-full
-                      text-[11px]
-                      whitespace-nowrap
-                      ${getBadge(p.estado)}
-                    `}
-                  >
-                    {p.estado.replaceAll("_", " ")}
-                  </span>
-
-                  <span className="text-[11px] text-slate-400">
-                    {p.created_at
-                      ? new Date(p.created_at).toLocaleDateString()
-                      : "-"}
-                  </span>
-                </div>
-              </div>
-
-            </div>
-          ))}
-
-        </div>
+        <span className="text-sm font-medium text-slate-500">{label}</span>
       </div>
 
+      <p className="text-3xl font-bold text-[#1e3a8a]">{value}</p>
     </div>
-  </div>
-);
+  );
+}
+
+function EstadoBadge({ estado }) {
+  const styles =
+    estado === "pendiente_aprobacion_establecimiento"
+      ? "bg-amber-50 text-amber-700 border-amber-200"
+      : estado === "pendiente_recoleccion"
+      ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+      : estado === "en_transito"
+      ? "bg-blue-50 text-[#2563eb] border-blue-100"
+      : estado === "entregado"
+      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+      : "bg-slate-100 text-slate-700 border-slate-200";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${styles}`}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      {estado?.replaceAll("_", " ")}
+    </span>
+  );
 }

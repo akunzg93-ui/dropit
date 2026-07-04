@@ -143,30 +143,40 @@ export default function LoginCard({
           </div>
 
           <div className="mb-6 grid grid-cols-2 overflow-hidden rounded-xl bg-blue-100 p-1">
-            <button
-              type="button"
-              onClick={goToEstablishmentLogin}
-              className={`rounded-lg px-4 py-3 text-sm font-bold transition ${
-                isEstablishment
-                  ? "bg-white text-[#1e3a8a] shadow-sm"
-                  : "text-[#2563eb] hover:bg-white/50"
-              }`}
-            >
-              Establecimiento
-            </button>
 
-            <button
-              type="button"
-              onClick={goToEntrepreneurLogin}
-              className={`rounded-lg px-4 py-3 text-sm font-bold transition ${
-                isEntrepreneur
-                  ? "bg-white text-[#1e3a8a] shadow-sm"
-                  : "text-[#2563eb] hover:bg-white/50"
-              }`}
-            >
-              Emprendedor
-            </button>
-          </div>
+  <button
+    type="button"
+    onClick={() => {
+      if (!isEstablishment) {
+        router.push("/login");
+      }
+    }}
+    className={`rounded-lg px-4 py-3 text-sm font-bold transition-all duration-200 ${
+      isEstablishment
+        ? "bg-white text-[#1e3a8a] shadow-sm"
+        : "text-[#2563eb] hover:bg-white hover:text-[#1e3a8a]"
+    }`}
+  >
+    Establecimiento
+  </button>
+
+  <button
+    type="button"
+    onClick={() => {
+      if (!isEntrepreneur) {
+        router.push("/vendedor/login");
+      }
+    }}
+    className={`rounded-lg px-4 py-3 text-sm font-bold transition-all duration-200 ${
+      isEntrepreneur
+        ? "bg-white text-[#1e3a8a] shadow-sm"
+        : "text-[#2563eb] hover:bg-white hover:text-[#1e3a8a]"
+    }`}
+  >
+    Emprendedor
+  </button>
+
+</div>
 
           {extraButtons && (
             <div className="mb-6 space-y-3">
@@ -185,7 +195,7 @@ export default function LoginCard({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative group">
               <Mail
-                className="absolute left-4 top-3.5 text-blue-200 group-focus-within:text-[#60a5fa] transition"
+                className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-[#2563eb] transition"
                 size={18}
               />
 
@@ -194,28 +204,28 @@ export default function LoginCard({
                 placeholder="Correo electrónico"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-12 rounded-xl border-transparent bg-[#232323] pl-11 text-white placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-0"
+                className="h-12 rounded-xl border border-blue-100 bg-blue-50 pl-11 text-slate-800 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-0"
               />
             </div>
 
             <div className="relative group">
               <Lock
-                className="absolute left-4 top-3.5 text-blue-200 group-focus-within:text-[#60a5fa] transition"
-                size={18}
-              />
+  className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-[#2563eb] transition"
+  size={18}
+/>
 
               <Input
                 type={show ? "text" : "password"}
                 placeholder="Contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-12 rounded-xl border-transparent bg-[#232323] pl-11 pr-11 text-white placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-0"
+               className="h-12 rounded-xl border border-blue-100 bg-blue-50 pl-11 pr-11 text-slate-800 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-0"
               />
 
               <button
                 type="button"
                 onClick={() => setShow(!show)}
-                className="absolute right-4 top-3.5 text-blue-200 hover:text-[#60a5fa] transition"
+                className="absolute right-4 top-3.5 text-slate-400 hover:text-[#2563eb] transition"
               >
                 {show ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>

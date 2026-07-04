@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Loader2 } from "lucide-react";
+import {
+  Loader2,
+  PackageCheck,
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
+  Store,
+  Truck,
+} from "lucide-react";
 
 const ESTADOS = [
   "creado",
@@ -36,10 +44,9 @@ export default function TrackPedidoPage() {
     if (!folio) return;
 
     const fetchPedido = async () => {
-      const { data, error } = await supabase.rpc(
-        "get_pedido_tracking",
-        { folio_param: folio }
-      );
+      const { data, error } = await supabase.rpc("get_pedido_tracking", {
+        folio_param: folio,
+      });
 
       if (error || !data || data.length === 0) {
         setError("Pedido no encontrado");
@@ -56,15 +63,15 @@ export default function TrackPedidoPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-[60vh]">
-        <Loader2 className="animate-spin w-8 h-8 text-indigo-600" />
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#2563eb]" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center mt-20 text-red-600 font-medium">
+      <div className="mt-20 text-center font-medium text-red-600">
         {error}
       </div>
     );
@@ -78,235 +85,271 @@ export default function TrackPedidoPage() {
     ? new Date(pedido.created_at).toLocaleString()
     : "—";
 
-  const eventos = Array.isArray(pedido.eventos)
-    ? pedido.eventos
-    : [];
+  const eventos = Array.isArray(pedido.eventos) ? pedido.eventos : [];
 
   return (
-  <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">
-    <div className="max-w-4xl mx-auto space-y-5 md:space-y-8">
+    <main className="min-h-screen bg-slate-50 px-5 py-12 pb-36">
+      <section className="mx-auto max-w-6xl space-y-6">
+        {confirmed && (
+          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-800 shadow-sm">
+            <p className="font-semibold">✅ Punto de entrega confirmado</p>
+            <p className="mt-1 text-sm">
+              Ahora el establecimiento revisará tu pedido antes de que el
+              vendedor reciba el código.
+            </p>
+          </div>
+        )}
 
-      {/* BANNER ÉXITO PREMIUM */}
-      {confirmed && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-[28px] p-5 md:p-6 shadow-sm text-emerald-800">
-          <p className="font-semibold text-base md:text-lg">
-            ✅ Punto de entrega confirmado
-          </p>
-
-          <p className="text-sm mt-1">
-            Ahora el establecimiento revisará tu pedido antes de que el vendedor reciba el código.
-          </p>
-        </div>
-      )}
-
-      {/* HEADER PEDIDO */}
-      <div className="bg-white rounded-[28px] shadow-lg border border-slate-200 p-5 md:p-6">
-        <h1 className="text-3xl md:text-2xl font-bold text-indigo-900 leading-tight break-words">
-          Pedido {pedido.folio}
-        </h1>
-
-        <div className="mt-4 space-y-2 text-slate-600 text-sm md:text-base">
-
-          <p className="break-words">
-            <span className="font-semibold text-slate-800">
-              Producto:
-            </span>{" "}
-            {pedido.producto}
-          </p>
-
-          <p className="break-words">
-            <span className="font-semibold text-slate-800">
-              Establecimiento:
-            </span>{" "}
-            {pedido.establecimiento_nombre || "Por definir"}
-          </p>
-
-        </div>
-      </div>
-
-      {/* STEPPER MOBILE-FIRST */}
-      <div className="bg-white rounded-[28px] shadow-lg border border-slate-200 p-5 md:p-8 relative">
-
-        {/* MOBILE */}
-        <div className="md:hidden space-y-4">
-
-          {ESTADOS.map((estado, index) => {
-            const completado = index < estadoIndex;
-            const actual = index === estadoIndex;
-
-            return (
-              <div
-                key={estado}
-                className="flex items-start gap-4"
-              >
-
-                {/* LINE */}
-                <div className="flex flex-col items-center">
-
-                  <div
-                    className={`
-                      w-9
-                      h-9
-                      rounded-full
-                      flex
-                      items-center
-                      justify-center
-                      text-xs
-                      font-semibold
-                      z-10
-                      ${
-                        completado
-                          ? "bg-emerald-500 text-white"
-                          : actual
-                          ? "bg-indigo-600 text-white ring-4 ring-indigo-200"
-                          : "bg-slate-300 text-slate-700"
-                      }
-                    `}
-                  >
-                    {index + 1}
-                  </div>
-
-                  {index !== ESTADOS.length - 1 && (
-                    <div className="w-[2px] h-10 bg-slate-200 mt-1" />
-                  )}
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div>
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 p-2">
+                  <img
+                    src="/brand/logo-dropit.png"
+                    alt="Dropit"
+                    className="h-full w-full object-contain"
+                  />
                 </div>
 
-                {/* CONTENT */}
-                <div className="pt-1 min-w-0">
-
-                  <p
-                    className={`
-                      text-sm
-                      font-medium
-                      ${
-                        actual
-                          ? "text-indigo-700"
-                          : "text-slate-700"
-                      }
-                    `}
-                  >
-                    {ESTADOS_LABEL[estado]}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    Seguimiento de pedido
                   </p>
-
-                  {actual && (
-                    <p className="text-xs text-slate-400 mt-1">
-                      Estado actual
-                    </p>
-                  )}
+                  <p className="text-sm text-slate-500">
+                    Estado actualizado en tiempo real
+                  </p>
                 </div>
-
               </div>
-            );
-          })}
-        </div>
 
-        {/* DESKTOP */}
-        <div className="hidden md:block">
+              <h1 className="text-3xl font-bold leading-tight text-[#1e3a8a] md:text-5xl">
+                Pedido {pedido.folio}
+              </h1>
 
-          <div className="absolute top-12 left-12 right-12 h-1 bg-slate-200 rounded-full" />
+              <p className="mt-3 max-w-2xl text-slate-600">
+                Consulta el estado actual, punto de recolección e historial de
+                movimientos.
+              </p>
+            </div>
 
-          <div className="relative flex justify-between">
+            <div className="w-fit rounded-2xl bg-blue-50 px-5 py-4 text-[#1e3a8a]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+                Estado actual
+              </p>
+              <p className="mt-1 text-2xl font-bold">
+                {ESTADOS_LABEL[pedido.estado] || pedido.estado}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-3">
+          <SummaryCard
+            icon={<PackageCheck size={20} />}
+            label="Producto"
+            value={pedido.producto || "—"}
+          />
+
+          <SummaryCard
+            icon={<Store size={20} />}
+            label="Establecimiento"
+            value={pedido.establecimiento_nombre || "Por definir"}
+          />
+
+          <SummaryCard
+            icon={<Clock size={20} />}
+            label="Fecha de creación"
+            value={fechaCreacion}
+          />
+        </section>
+
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm md:p-8">
+          <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                Progreso
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-[#1e3a8a]">
+                Ruta del pedido
+              </h2>
+            </div>
+
+            <span className="w-fit rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-[#2563eb]">
+              {ESTADOS_LABEL[pedido.estado] || pedido.estado}
+            </span>
+          </div>
+
+          <div className="md:hidden space-y-5">
             {ESTADOS.map((estado, index) => {
               const completado = index < estadoIndex;
               const actual = index === estadoIndex;
 
               return (
-                <div
+                <StepMobile
                   key={estado}
-                  className="flex flex-col items-center flex-1"
-                >
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all
-                      ${
-                        completado
-                          ? "bg-emerald-500 text-white"
-                          : actual
-                          ? "bg-indigo-600 text-white ring-4 ring-indigo-200"
-                          : "bg-slate-300 text-slate-700"
-                      }
-                    `}
-                  >
-                    {index + 1}
-                  </div>
-
-                  <p className="text-xs mt-3 text-center">
-                    {ESTADOS_LABEL[estado]}
-                  </p>
-                </div>
+                  index={index}
+                  label={ESTADOS_LABEL[estado]}
+                  completado={completado}
+                  actual={actual}
+                  isLast={index === ESTADOS.length - 1}
+                />
               );
             })}
           </div>
 
-        </div>
-      </div>
+          <div className="hidden md:block">
+            <div className="relative">
+              <div className="absolute left-8 right-8 top-5 h-1 rounded-full bg-slate-200" />
 
-      {/* ESTADO ACTUAL */}
-      <div className="bg-indigo-50 border border-indigo-200 rounded-[28px] p-5 md:p-6 shadow-sm">
+              <div className="relative grid grid-cols-5 gap-3">
+                {ESTADOS.map((estado, index) => {
+                  const completado = index < estadoIndex;
+                  const actual = index === estadoIndex;
 
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  return (
+                    <div
+                      key={estado}
+                      className="flex flex-col items-center text-center"
+                    >
+                      <div
+                        className={`z-10 flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold transition-all ${
+                          completado
+                            ? "bg-emerald-500 text-white"
+                            : actual
+                            ? "bg-[#2563eb] text-white ring-4 ring-blue-100"
+                            : "bg-slate-200 text-slate-500"
+                        }`}
+                      >
+                        {index + 1}
+                      </div>
 
-          <p className="font-semibold text-indigo-900">
-            Estado actual
-          </p>
-
-          <span className="inline-flex w-fit bg-indigo-600 text-white text-xs md:text-sm px-3 py-2 rounded-full">
-            {ESTADOS_LABEL[pedido.estado] || pedido.estado}
-          </span>
-        </div>
-
-        <p className="text-sm text-indigo-800 mt-3">
-          Fecha de creación: {fechaCreacion}
-        </p>
+                      <p
+                        className={`mt-3 text-xs font-medium ${
+                          actual ? "text-[#2563eb]" : "text-slate-600"
+                        }`}
+                      >
+                        {ESTADOS_LABEL[estado]}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </section>
 
         {pedido.estado === "pendiente_aprobacion_establecimiento" && (
-          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
-            ⏳ El establecimiento está revisando tu pedido. Te avisaremos en cuanto sea aceptado.
+          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+            ⏳ El establecimiento está revisando tu pedido. Te avisaremos en
+            cuanto sea aceptado.
           </div>
         )}
-      </div>
 
-      {/* HISTORIAL */}
-      <div className="bg-white rounded-[28px] shadow-lg border border-slate-200 p-5 md:p-6">
+        <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded-[2rem] border border-slate-200 bg-blue-50 p-6">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#2563eb]">
+              <Truck size={22} />
+            </div>
 
-        <h3 className="font-semibold text-slate-800 mb-6">
-          Historial del pedido
-        </h3>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              Estado actual
+            </p>
 
-        {eventos.length === 0 ? (
-          <p className="text-sm text-slate-600">
-            Aún no hay eventos registrados.
-          </p>
-        ) : (
-          <div className="relative pl-6 md:pl-8 space-y-6">
+            <h3 className="mt-2 text-2xl font-bold text-[#1e3a8a]">
+              {ESTADOS_LABEL[pedido.estado] || pedido.estado}
+            </h3>
 
-            <div className="absolute left-3 top-0 bottom-0 w-[2px] bg-slate-200 rounded-full" />
+            <p className="mt-3 text-sm text-slate-600">
+              Tu pedido se actualizará conforme avance en el flujo Dropit.
+            </p>
 
-            {eventos.map((e: any, idx: number) => (
-              <div key={idx} className="relative">
+            <div className="mt-5 flex items-center gap-2 text-xs text-slate-500">
+              <ShieldCheck size={14} />
+              Seguimiento seguro y protegido por Dropit
+            </div>
+          </div>
 
-                <div className="absolute left-1 top-1 w-4 h-4 bg-indigo-600 rounded-full ring-4 ring-white shadow" />
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-xl font-bold text-[#1e3a8a]">
+              Historial del pedido
+            </h3>
 
-                <div className="flex flex-col gap-1 ml-8">
+            {eventos.length === 0 ? (
+              <p className="mt-4 text-sm text-slate-600">
+                Aún no hay eventos registrados.
+              </p>
+            ) : (
+              <div className="relative mt-6 space-y-6 pl-8">
+                <div className="absolute bottom-0 left-3 top-0 w-[2px] rounded-full bg-slate-200" />
 
-                  <p className="font-medium text-slate-800 text-sm md:text-base">
-                    {ESTADOS_LABEL[e.estado] ?? e.estado}
-                  </p>
+                {eventos.map((e: any, idx: number) => (
+                  <div key={idx} className="relative">
+                    <div className="absolute -left-[26px] top-1 h-4 w-4 rounded-full bg-[#2563eb] ring-4 ring-blue-50" />
 
-                  <p className="text-xs text-slate-500">
-                    {e.fecha
-                      ? new Date(e.fecha).toLocaleString()
-                      : "—"}
-                  </p>
+                    <p className="font-semibold text-slate-900">
+                      {ESTADOS_LABEL[e.estado] ?? e.estado}
+                    </p>
 
-                </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {e.fecha ? new Date(e.fecha).toLocaleString() : "—"}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
-
+            )}
           </div>
-        )}
+        </section>
+      </section>
+    </main>
+  );
+}
+
+function SummaryCard({ icon, label, value }: any) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-[#2563eb]">
+        {icon}
       </div>
 
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+        {label}
+      </p>
+
+      <p className="mt-2 break-words font-bold text-[#1e3a8a]">{value}</p>
     </div>
-  </div>
-);
+  );
+}
+
+function StepMobile({ index, label, completado, actual, isLast }: any) {
+  return (
+    <div className="flex items-start gap-4">
+      <div className="flex flex-col items-center">
+        <div
+          className={`z-10 flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold ${
+            completado
+              ? "bg-emerald-500 text-white"
+              : actual
+              ? "bg-[#2563eb] text-white ring-4 ring-blue-100"
+              : "bg-slate-200 text-slate-500"
+          }`}
+        >
+          {index + 1}
+        </div>
+
+        {!isLast && <div className="mt-1 h-10 w-[2px] bg-slate-200" />}
+      </div>
+
+      <div className="pt-1">
+        <p
+          className={`font-medium ${
+            actual ? "text-[#2563eb]" : "text-slate-700"
+          }`}
+        >
+          {label}
+        </p>
+
+        {actual && <p className="mt-1 text-xs text-slate-400">Estado actual</p>}
+      </div>
+    </div>
+  );
 }
