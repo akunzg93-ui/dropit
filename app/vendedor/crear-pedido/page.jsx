@@ -405,11 +405,11 @@ export default function CrearPedido() {
 
               <SelectContent className="z-[9999]">
                 <SelectItem value="small">
-                  Paquete mediano · hasta 3 kg · máx 40 cm por lado
+                  Paquete pequeño · hasta 3 kg · máx 40 cm por lado
                 </SelectItem>
 
                 <SelectItem value="medium">
-                  Paquete grande · hasta 10 kg · máx 70 cm por lado
+                  Paquete mediano · hasta 10 kg · máx 70 cm por lado
                 </SelectItem>
               </SelectContent>
             </Select>

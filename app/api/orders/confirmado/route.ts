@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     // 1️⃣ Pedido
     const { data: pedido } = await supabase
       .from("pedidos")
-      .select("id")
+      .select("id, folio, email_comprador")
       .eq("id", pedido_id)
       .single();
 
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
         establecimiento_nombre: establecimiento.nombre,
         establecimiento_uuid: establecimiento.uuid,
         establecimiento_notificado_at: new Date().toISOString(),
-establecimiento_notificado: true,
+        establecimiento_notificado: true,
       })
       .eq("id", pedido_id);
 
@@ -90,14 +90,45 @@ establecimiento_notificado: true,
       console.error("⚠️ Error notificando establecimiento:", notifyError);
     }
 
-    return NextResponse.json({ ok: true });
+   // 5️⃣ 📧 Enviar instrucciones al cliente
+try {
+  console.log("📧 Intentando enviar correo al comprador:", {
+    correo: pedido.email_comprador,
+    folio: pedido.folio,
+    siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+  });
 
+  if (pedido.email_comprador && pedido.folio) {
+    const emailRes = await fetch(
+      `${process.env.NEXT_PUBLIC_SITE_URL}/api/orders/email/punto-entrega-confirmado`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          correo: pedido.email_comprador,
+          folio: pedido.folio,
+          establecimiento_nombre: establecimiento.nombre,
+        }),
+      }
+    );
+
+    const emailText = await emailRes.text();
+
+    console.log("📧 Respuesta correo comprador:", {
+      status: emailRes.status,
+      body: emailText,
+    });
+  }
+} catch (emailError) {
+  console.error("⚠️ Error enviando correo al cliente:", emailError);
+}
+
+    return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("❌ ERROR CONFIRMADO:", err);
 
-    return NextResponse.json(
-      { error: "Error interno" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }

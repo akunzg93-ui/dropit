@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendEmail } from "@/lib/email";
+import { emailRechazoEstablecimiento } from "@/lib/emailTemplates/rechazoEstablecimiento";
 
 export async function POST(req: Request) {
   try {
     const { pedido_id } = await req.json();
+
+    if (!pedido_id) {
+      return NextResponse.json(
+        { error: "pedido_id requerido" },
+        { status: 400 }
+      );
+    }
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,31 +26,33 @@ export async function POST(req: Request) {
       .single();
 
     if (!pedido) {
-      return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Pedido no encontrado" },
+        { status: 404 }
+      );
     }
 
-    // 🔔 ENVÍO DE CORREO (usa tu sistema actual)
-    await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/send-email`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        to: pedido.email_comprador,
-        subject: "Debes elegir otro establecimiento",
-        html: `
-          <h2>Tu pedido necesita atención</h2>
-          <p>El establecimiento seleccionado no pudo recibir tu paquete.</p>
-          <p>Por favor entra a la plataforma y elige otro establecimiento.</p>
-          <p><strong>Folio:</strong> ${pedido.folio}</p>
-        `,
-      }),
+    if (!pedido.email_comprador || !pedido.folio) {
+      return NextResponse.json(
+        { error: "Pedido sin correo o folio" },
+        { status: 400 }
+      );
+    }
+
+    const html = emailRechazoEstablecimiento({
+      folio: pedido.folio,
+    });
+
+    await sendEmail({
+      to: pedido.email_comprador,
+      subject: `Tu pedido sigue activo · Dropit ${pedido.folio}`,
+      html,
     });
 
     return NextResponse.json({ ok: true });
-
   } catch (err) {
-    console.error(err);
+    console.error("Error notificando comprador rechazo:", err);
+
     return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }

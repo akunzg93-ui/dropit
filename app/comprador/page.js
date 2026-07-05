@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import StarsPromedio from "@/app/components/StarsPromedio";
+import FlowGuideModal from "@/components/ui/FlowGuideModal";
 
 import {
   Select,
@@ -15,7 +16,15 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 
-import { MapPin, Clock, CheckCircle2, Store, ShieldCheck } from "lucide-react";
+import {
+  MapPin,
+  Clock,
+  CheckCircle2,
+  Store,
+  Copy,
+  ExternalLink,
+  X,
+} from "lucide-react";
 
 const MapaEstablecimientos = dynamic(
   () => import("../components/MapaEstablecimientos"),
@@ -48,6 +57,8 @@ export default function CompradorPage() {
   const [ubicacion, setUbicacion] = useState(null);
   const [mensaje, setMensaje] = useState("");
   const [zonaFiltro, setZonaFiltro] = useState("todas");
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [popupFeedback, setPopupFeedback] = useState("");
 
   const router = useRouter();
 
@@ -167,6 +178,14 @@ export default function CompradorPage() {
     (e) => e.id === seleccion
   );
 
+  function copiarFolio() {
+    if (!pedido?.folio) return;
+
+    navigator.clipboard.writeText(pedido.folio);
+    setPopupFeedback("Folio copiado");
+    setTimeout(() => setPopupFeedback(""), 2500);
+  }
+
   async function confirmarSeleccion() {
     if (!pedidoId || !seleccion) return;
 
@@ -185,7 +204,7 @@ export default function CompradorPage() {
       return;
     }
 
-    router.push(`/track/${pedido.folio}?confirmed=1`);
+    setShowConfirmPopup(true);
   }
 
   if (!pedidoId) {
@@ -198,7 +217,52 @@ export default function CompradorPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 px-5 py-12 pb-36">
-      <div className="max-w-6xl mx-auto space-y-6">
+     {showConfirmPopup && pedido && (
+  <FlowGuideModal
+    title="¡Punto de entrega confirmado!"
+    subtitle="Excelente elección. Ahora solo espera mientras el establecimiento revisa tu pedido."
+    heroLabel="Folio del pedido"
+    heroValue={pedido.folio}
+    feedback={popupFeedback}
+    onClose={() => setShowConfirmPopup(false)}
+    onCopyHeroValue={copiarFolio}
+    tip="Guarda este folio. Lo necesitarás para consultar el estado de tu pedido cuando quieras."
+    steps={[
+      {
+        emoji: "🚚",
+        title: "El vendedor llevará el paquete",
+        text: "Una vez aprobado, el vendedor entregará tu paquete en el establecimiento elegido.",
+      },
+      {
+        emoji: "📧",
+        title: "Te avisaremos",
+        text: "Cuando el paquete esté listo para recoger recibirás un correo.",
+      },
+      {
+        emoji: "📲",
+        title: "Sigue tu pedido",
+        text: "Puedes consultar el avance en cualquier momento usando tu folio.",
+      },
+    ]}
+    actions={[
+      {
+        label: "Copiar folio",
+        icon: <Copy size={18} />,
+        onClick: copiarFolio,
+        variant: "outline",
+      },
+      {
+        label: "Ver seguimiento",
+        icon: <ExternalLink size={18} />,
+        onClick: () =>
+          router.push(`/track/${pedido.folio}?confirmed=1`),
+        variant: "primary",
+      },
+    ]}
+  />
+)}
+
+      <div className="max-w-6xl mx-auto space-y-6"> 
         <section className="bg-white border border-slate-200 rounded-[2rem] p-6 md:p-8 shadow-sm">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div>
@@ -213,7 +277,8 @@ export default function CompradorPage() {
               {pedido && (
                 <div className="mt-4 space-y-2 text-sm text-slate-600">
                   <p>
-                    Pedido <strong className="text-[#1e3a8a]">{pedido.folio}</strong>{" "}
+                    Pedido{" "}
+                    <strong className="text-[#1e3a8a]">{pedido.folio}</strong>{" "}
                     — {pedido.producto}
                   </p>
 
@@ -258,7 +323,9 @@ export default function CompradorPage() {
                 </div>
 
                 <div>
-                  <p className="font-semibold text-[#1e3a8a]">Filtrar por zona</p>
+                  <p className="font-semibold text-[#1e3a8a]">
+                    Filtrar por zona
+                  </p>
                   <p className="text-xs text-slate-500">
                     {establecimientosFiltrados.length} establecimiento(s)
                     disponible(s)
@@ -365,7 +432,9 @@ export default function CompradorPage() {
                       />
                     </div>
 
-                    <p className="mt-3 text-sm text-slate-600">{e.direccion}</p>
+                    <p className="mt-3 text-sm text-slate-600">
+                      {e.direccion}
+                    </p>
 
                     <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-500">
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">
