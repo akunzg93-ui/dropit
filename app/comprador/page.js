@@ -205,6 +205,9 @@ export default function CompradorPage() {
     }
 
     setShowConfirmPopup(true);
+    setTimeout(() => {
+  router.push(`/track/${pedido.folio}`);
+}, 3000);
   }
 
   if (!pedidoId) {
@@ -224,7 +227,10 @@ export default function CompradorPage() {
     heroLabel="Folio del pedido"
     heroValue={pedido.folio}
     feedback={popupFeedback}
-    onClose={() => setShowConfirmPopup(false)}
+    onClose={() => {
+  setShowConfirmPopup(false);
+  router.push(`/track/${pedido.folio}`);
+}}
     onCopyHeroValue={copiarFolio}
     tip="Guarda este folio. Lo necesitarás para consultar el estado de tu pedido cuando quieras."
     steps={[
