@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import {
@@ -15,6 +15,7 @@ import {
 
 export default function EstablecimientoEstadoPage() {
   const router = useRouter();
+  const pendientesRef = useRef(null);
 
   const [establecimientos, setEstablecimientos] = useState([]);
   const [selectedEstId, setSelectedEstId] = useState(null);
@@ -142,6 +143,11 @@ export default function EstablecimientoEstadoPage() {
 
       const uuids = ests?.map((e) => e.uuid) || [];
 
+      if (uuids.length === 0) {
+        setPendientesGlobales([]);
+        return;
+      }
+
       const { data } = await supabase
         .from("pedidos")
         .select("id, establecimiento_uuid")
@@ -164,6 +170,21 @@ export default function EstablecimientoEstadoPage() {
   const selectedEstablecimiento = establecimientos.find(
     (e) => e.uuid === selectedEstId
   );
+
+  const irAPendientesGlobales = () => {
+    const pendiente = pendientesGlobales[0];
+
+    if (!pendiente?.establecimiento_uuid) return;
+
+    setSelectedEstId(pendiente.establecimiento_uuid);
+
+    setTimeout(() => {
+      pendientesRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 300);
+  };
 
   if (loadingInicial) {
     return (
@@ -193,13 +214,7 @@ export default function EstablecimientoEstadoPage() {
 
             {pendientesGlobales.length > 0 && (
               <button
-                onClick={() => {
-                  if (pendientes.length === 1) {
-                    router.push(`/establecimiento/aprobar/${pendientes[0].id}`);
-                  } else {
-                    router.push("/establecimiento/aprobaciones");
-                  }
-                }}
+                onClick={irAPendientesGlobales}
                 className="flex w-fit items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 font-semibold text-amber-700 transition hover:bg-amber-100"
               >
                 <Bell size={20} />
@@ -207,35 +222,6 @@ export default function EstablecimientoEstadoPage() {
               </button>
             )}
           </div>
-        </section>
-
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-[#2563eb]">
-              <Store size={20} />
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                Local activo
-              </p>
-              <h2 className="font-bold text-[#1e3a8a]">
-                {selectedEstablecimiento?.nombre || "Selecciona establecimiento"}
-              </h2>
-            </div>
-          </div>
-
-          <select
-            className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-            value={selectedEstId || ""}
-            onChange={(e) => setSelectedEstId(e.target.value)}
-          >
-            {establecimientos.map((e) => (
-              <option key={e.uuid} value={e.uuid}>
-                {e.nombre}
-              </option>
-            ))}
-          </select>
         </section>
 
         <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -268,8 +254,40 @@ export default function EstablecimientoEstadoPage() {
           />
         </section>
 
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-[#2563eb]">
+              <Store size={20} />
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                Estas revisando este establecimiento:
+              </p>
+              <h2 className="font-bold text-[#1e3a8a]">
+                {selectedEstablecimiento?.nombre || "Selecciona establecimiento"}
+              </h2>
+            </div>
+          </div>
+
+          <select
+            className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+            value={selectedEstId || ""}
+            onChange={(e) => setSelectedEstId(e.target.value)}
+          >
+            {establecimientos.map((e) => (
+              <option key={e.uuid} value={e.uuid}>
+                {e.nombre}
+              </option>
+            ))}
+          </select>
+        </section>
+
         {pendientes.length > 0 && (
-          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <section
+            ref={pendientesRef}
+            className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6"
+          >
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
@@ -285,7 +303,7 @@ export default function EstablecimientoEstadoPage() {
               </span>
             </div>
 
-            <div className="space-y-3">
+            <div className="max-h-[320px] space-y-3 overflow-y-auto pr-2">
               {pendientes.map((p) => (
                 <div
                   key={p.id}
@@ -334,7 +352,7 @@ export default function EstablecimientoEstadoPage() {
             </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="max-h-[320px] space-y-3 overflow-y-auto pr-2">
             {pedidos.length === 0 && (
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-500">
                 No hay pedidos registrados para este establecimiento.
