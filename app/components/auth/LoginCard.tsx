@@ -57,23 +57,11 @@ export default function LoginCard({
     await onSubmit(email, password);
   }
 
-  function goToEstablishmentLogin() {
-    if (!isEstablishment) {
-      router.push("/login/establecimiento");
-    }
-  }
-
-  function goToEntrepreneurLogin() {
-    if (!isEntrepreneur) {
-      router.push("/login");
-    }
-  }
-
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-10 flex items-center justify-center">
+    <main className="min-h-[100dvh] bg-slate-100 px-4 py-3 lg:py-10 flex lg:items-center justify-center overflow-y-auto">
       <div
         id="login-form"
-        className="w-full max-w-6xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl grid lg:grid-cols-[1fr_1fr]"
+        className="w-full max-w-6xl overflow-hidden rounded-[1.75rem] lg:rounded-[2rem] border border-slate-200 bg-white shadow-xl grid lg:grid-cols-[1fr_1fr] my-auto"
       >
         <section className="relative hidden lg:flex min-h-[720px] flex-col justify-between bg-gradient-to-br from-[#2563eb] to-[#1e40af] p-12 text-white overflow-hidden">
           <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-black/10" />
@@ -118,68 +106,66 @@ export default function LoginCard({
           </div>
         </section>
 
-        <section className="bg-[#f1f5ff] p-7 md:p-12 flex flex-col justify-center">
-          <div className="mb-8 lg:hidden">
+        <section className="bg-[#f1f5ff] px-6 py-5 sm:p-7 md:p-12 flex flex-col justify-center">
+          <div className="mb-3 hidden">
             <img
               src="/brand/logo-dropit.png"
               alt="Dropit"
-              className="w-24 h-auto"
+              className="w-20 h-auto"
             />
           </div>
 
-          <div className="mb-8">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white bg-white px-4 py-1.5 text-sm font-semibold text-[#1e3a8a] shadow-sm">
+          <div className="mb-5 lg:mb-8">
+            <span className="hidden lg:inline-flex items-center gap-2 rounded-full border border-white bg-white px-4 py-1.5 text-sm font-semibold text-[#1e3a8a] shadow-sm">
               <span className="h-2 w-2 rounded-full bg-amber-400" />
               Bienvenido de vuelta
             </span>
 
-            <h2 className="mt-8 text-4xl font-bold leading-tight text-[#1e3a8a]">
+            <h2 className="mt-5 lg:mt-8 text-3xl sm:text-4xl font-bold leading-tight text-[#1e3a8a]">
               Entra a Dropit
             </h2>
 
-            <p className="mt-3 text-lg font-medium text-slate-600">
+            <p className="mt-2 lg:mt-3 text-base sm:text-lg font-medium text-slate-600">
               La logística sin drama empieza aquí.
             </p>
           </div>
 
-          <div className="mb-6 grid grid-cols-2 overflow-hidden rounded-xl bg-blue-100 p-1">
+          <div className="mb-4 lg:mb-6 grid grid-cols-2 overflow-hidden rounded-xl bg-blue-100 p-1">
+            <button
+              type="button"
+              onClick={() => {
+                if (!isEstablishment) {
+                  router.push("/login");
+                }
+              }}
+              className={`rounded-lg px-3 py-2.5 lg:px-4 lg:py-3 text-sm font-bold transition-all duration-200 ${
+                isEstablishment
+                  ? "bg-white text-[#1e3a8a] shadow-sm"
+                  : "text-[#2563eb] hover:bg-white hover:text-[#1e3a8a]"
+              }`}
+            >
+              Establecimiento
+            </button>
 
-  <button
-    type="button"
-    onClick={() => {
-      if (!isEstablishment) {
-        router.push("/login");
-      }
-    }}
-    className={`rounded-lg px-4 py-3 text-sm font-bold transition-all duration-200 ${
-      isEstablishment
-        ? "bg-white text-[#1e3a8a] shadow-sm"
-        : "text-[#2563eb] hover:bg-white hover:text-[#1e3a8a]"
-    }`}
-  >
-    Establecimiento
-  </button>
-
-  <button
-    type="button"
-    onClick={() => {
-      if (!isEntrepreneur) {
-        router.push("/vendedor/login");
-      }
-    }}
-    className={`rounded-lg px-4 py-3 text-sm font-bold transition-all duration-200 ${
-      isEntrepreneur
-        ? "bg-white text-[#1e3a8a] shadow-sm"
-        : "text-[#2563eb] hover:bg-white hover:text-[#1e3a8a]"
-    }`}
-  >
-    Emprendedor
-  </button>
-
-</div>
+            <button
+              type="button"
+              onClick={() => {
+                if (!isEntrepreneur) {
+                  router.push("/vendedor/login");
+                }
+              }}
+              className={`rounded-lg px-3 py-2.5 lg:px-4 lg:py-3 text-sm font-bold transition-all duration-200 ${
+                isEntrepreneur
+                  ? "bg-white text-[#1e3a8a] shadow-sm"
+                  : "text-[#2563eb] hover:bg-white hover:text-[#1e3a8a]"
+              }`}
+            >
+              Emprendedor
+            </button>
+          </div>
 
           {extraButtons && (
-            <div className="mb-6 space-y-3">
+            <div className="mb-4 lg:mb-6 space-y-3">
               {extraButtons}
 
               <div className="flex items-center gap-3">
@@ -192,7 +178,7 @@ export default function LoginCard({
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 lg:space-y-4">
             <div className="relative group">
               <Mail
                 className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-[#2563eb] transition"
@@ -210,16 +196,16 @@ export default function LoginCard({
 
             <div className="relative group">
               <Lock
-  className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-[#2563eb] transition"
-  size={18}
-/>
+                className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-[#2563eb] transition"
+                size={18}
+              />
 
               <Input
                 type={show ? "text" : "password"}
                 placeholder="Contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-               className="h-12 rounded-xl border border-blue-100 bg-blue-50 pl-11 pr-11 text-slate-800 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-0"
+                className="h-12 rounded-xl border border-blue-100 bg-blue-50 pl-11 pr-11 text-slate-800 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-0"
               />
 
               <button
@@ -262,12 +248,12 @@ export default function LoginCard({
           </form>
 
           {error && (
-            <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+            <p className="mt-4 lg:mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
               {error}
             </p>
           )}
 
-          <p className="text-sm text-center mt-7 text-slate-600">
+          <p className="text-sm text-center mt-5 lg:mt-7 text-slate-600">
             {footerText}{" "}
             <span
               onClick={onFooterClick}
@@ -277,7 +263,7 @@ export default function LoginCard({
             </span>
           </p>
 
-          <p className="text-xs text-slate-500 mt-5 text-center leading-relaxed">
+          <p className="text-xs text-slate-500 mt-4 lg:mt-5 text-center leading-relaxed">
             Al continuar aceptas nuestros{" "}
             <a
               href="/terminos"
