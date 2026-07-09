@@ -49,6 +49,7 @@ export default function CrearPedido() {
 
   const [establecimientos, setEstablecimientos] = useState([]);
   const [seleccionados, setSeleccionados] = useState([]);
+  const [defaultsAplicados, setDefaultsAplicados] = useState(false);
   const [zonaFiltro, setZonaFiltro] = useState("todas");
 
   const [coinsDisponibles, setCoinsDisponibles] = useState({
@@ -138,6 +139,9 @@ export default function CrearPedido() {
     const columnaCap =
       tamano === "small" ? "capacidad_small" : "capacidad_medium";
 
+    const { data: userData } = await supabase.auth.getUser();
+    const vendedorId = userData?.user?.id;
+
     const { data, error } = await supabase.from("establecimientos").select("*");
 
     if (error) {
@@ -149,6 +153,59 @@ export default function CrearPedido() {
 
     setEstablecimientos(disponibles);
     setSeleccionados([]);
+    setDefaultsAplicados(false);
+
+    if (!vendedorId) return;
+
+    const { data: defaults, error: defaultsError } = await supabase
+      .from("vendedor_establecimientos_default")
+      .select("establecimiento_id")
+      .eq("vendedor_id", vendedorId);
+
+    if (defaultsError) {
+      console.error("Error cargando establecimientos predeterminados:", defaultsError);
+      return;
+    }
+
+    const defaultIds = defaults?.map((d) => d.establecimiento_id) || [];
+
+    if (defaultIds.length > 0) {
+      const preseleccionados = disponibles.filter((e) =>
+        defaultIds.includes(e.id)
+      );
+
+      if (preseleccionados.length > 0) {
+        setSeleccionados(preseleccionados);
+        setDefaultsAplicados(true);
+      }
+    }
+  }
+
+  async function guardarEstablecimientosDefault(vendedorId) {
+    const { error: deleteError } = await supabase
+      .from("vendedor_establecimientos_default")
+      .delete()
+      .eq("vendedor_id", vendedorId);
+
+    if (deleteError) {
+      console.error("Error borrando defaults anteriores:", deleteError);
+      return;
+    }
+
+    if (seleccionados.length === 0) return;
+
+    const nuevosDefaults = seleccionados.map((e) => ({
+      vendedor_id: vendedorId,
+      establecimiento_id: e.id,
+    }));
+
+    const { error: insertError } = await supabase
+      .from("vendedor_establecimientos_default")
+      .insert(nuevosDefaults);
+
+    if (insertError) {
+      console.error("Error guardando defaults nuevos:", insertError);
+    }
   }
 
   const establecimientosFiltrados =
@@ -269,6 +326,8 @@ export default function CrearPedido() {
         return;
       }
 
+      await guardarEstablecimientosDefault(vendedorId);
+
       if (protegerPedido) {
         const { error: proteccionError } = await supabase
           .from("pedido_protecciones")
@@ -326,6 +385,7 @@ export default function CrearPedido() {
       setCorreoComprador("");
       setEstablecimientos([]);
       setSeleccionados([]);
+      setDefaultsAplicados(false);
       setDeclaracionLegal(false);
       setProtegerPedido(false);
       setValorDeclarado("");
@@ -351,8 +411,8 @@ export default function CrearPedido() {
               </h1>
 
               <p className="text-slate-600 mt-4 max-w-xl text-lg">
-                Usa tus coins para elegir los
-                establecimientos donde podrán recoger tu paquete.
+                Usa tus coins para elegir los establecimientos donde podrán
+                recoger tu paquete.
               </p>
             </div>
 
@@ -564,19 +624,30 @@ export default function CrearPedido() {
                 <h2 className="text-2xl md:text-3xl font-bold text-[#1e3a8a] mt-2">
                   Selecciona establecimientos
                 </h2>
+
+                {defaultsAplicados && (
+                  <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2">
+                    <p className="text-sm text-blue-700">
+                      ✓ Seleccionamos automáticamente tus establecimientos
+                      predeterminados. Puedes agregar o quitar los que quieras.
+                    </p>
+                  </div>
+                )}
+
                 <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
-  <span className="text-base">⚠️</span>
+                  <span className="text-base">⚠️</span>
 
-  <p className="text-sm text-amber-700">
-    El cliente elegirá uno de los establecimientos que selecciones para recoger
-    su pedido.
-  </p>
-</div>
+                  <p className="text-sm text-amber-700">
+                    El cliente elegirá uno de los establecimientos que
+                    selecciones para recoger su pedido.
+                  </p>
+                </div>
 
-<p className="mt-3 text-sm text-slate-500">
-  Selecciona todas las ubicaciones donde estarías dispuesto a entregar este
-  pedido. El cliente elegirá la que le resulte más conveniente.
-</p>
+                <p className="mt-3 text-sm text-slate-500">
+                  Selecciona todas las ubicaciones donde estarías dispuesto a
+                  entregar este pedido. El cliente elegirá la que le resulte más
+                  conveniente.
+                </p>
               </div>
 
               <div className="w-full md:w-64">
@@ -606,56 +677,84 @@ export default function CrearPedido() {
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-xl font-bold text-[#1e3a8a]">
-                Establecimientos disponibles
-              </h3>
+  <h3 className="text-xl font-bold text-[#1e3a8a]">
+    Establecimientos disponibles
+  </h3>
 
-              {establecimientosFiltrados.map((est) => {
-                const activo = seleccionados.some((e) => e.id === est.id);
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {establecimientosFiltrados.map((est) => {
+      const activo = seleccionados.some((e) => e.id === est.id);
 
-                return (
-                  <div
-                    key={est.id}
-                    onClick={() => toggleEstablecimiento(est)}
-                    className={`border rounded-2xl p-5 cursor-pointer transition-all duration-200 ${
-                      activo
-                        ? "border-[#2563eb] bg-blue-50 shadow-sm"
-                        : "bg-white hover:bg-slate-50 hover:border-blue-200 border-slate-200"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h4 className="font-semibold text-lg text-slate-900">
-                          {est.nombre}
-                        </h4>
-
-                        <div className="mt-2">
-                          <StarsPromedio
-                            evaluado_id={est.uuid}
-                            tipo="establecimiento"
-                          />
-                        </div>
-
-                        <p className="text-sm mt-2 text-slate-600">
-                          {est.direccion}
-                        </p>
-
-                        <p className="text-xs mt-2 text-slate-500">
-                          Paquete mediano: {est.capacidad_small} — Paquete
-                          grande: {est.capacidad_medium}
-                        </p>
-                      </div>
-
-                      {activo && (
-                        <span className="shrink-0 rounded-full bg-[#2563eb] px-3 py-1 text-xs font-semibold text-white">
-                          Seleccionado
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+      return (
+        <div
+          key={est.id}
+          onClick={() => toggleEstablecimiento(est)}
+          className={`relative border rounded-2xl p-4 cursor-pointer transition-all duration-200 ${
+            activo
+              ? "border-[#2563eb] bg-blue-50 shadow-sm"
+              : "bg-white hover:bg-slate-50 hover:border-blue-200 border-slate-200"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-xs font-bold ${
+                activo
+                  ? "bg-[#2563eb] border-[#2563eb] text-white"
+                  : "bg-white border-slate-300 text-transparent"
+              }`}
+            >
+              ✓
             </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <h4 className="font-semibold text-base text-slate-900 leading-tight">
+                  {est.nombre}
+                </h4>
+
+                {activo && (
+                  <span className="shrink-0 rounded-full bg-[#2563eb] px-3 py-1 text-[11px] font-semibold text-white">
+                    Seleccionado
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-1">
+                <StarsPromedio
+                  evaluado_id={est.uuid}
+                  tipo="establecimiento"
+                />
+              </div>
+
+              <p className="text-sm mt-2 text-slate-600 line-clamp-2">
+                {est.direccion}
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                <span>📦 Pequeño: {est.capacidad_small}</span>
+                <span>📦 Mediano: {est.capacidad_medium}</span>
+              </div>
+
+              {defaultsAplicados && activo && (
+                <span className="mt-3 inline-flex rounded-full bg-blue-100 px-3 py-1 text-[11px] font-semibold text-[#2563eb]">
+                  ★ Predeterminado
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+
+  {seleccionados.length > 0 && (
+    <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-[#1e3a8a]">
+      <strong>{seleccionados.length}</strong> establecimientos seleccionados.
+      El cliente podrá elegir uno de estos establecimientos para recoger su
+      pedido.
+    </div>
+  )}
+</div>
           </section>
         )}
 

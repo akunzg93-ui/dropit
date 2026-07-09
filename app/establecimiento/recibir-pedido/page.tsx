@@ -24,9 +24,6 @@ export default function RecibirPedidoPage() {
 
   const qrInstance = useRef<Html5Qrcode | null>(null);
 
-  // --------------------------------------------------
-  // 📷 INICIAR ESCÁNER
-  // --------------------------------------------------
   const iniciarScanner = async () => {
     setMensaje("");
 
@@ -50,16 +47,13 @@ export default function RecibirPedidoPage() {
       }
 
       const cameraId =
-        cameras.find((c) =>
-          c.label.toLowerCase().includes("back")
-        )?.id || cameras[0].id;
+        cameras.find((c) => c.label.toLowerCase().includes("back"))?.id ||
+        cameras[0].id;
 
       await scanner.start(
         cameraId,
         { fps: 10, qrbox: 260 },
         (decodedText: string) => {
-          console.log("📸 QR leído:", decodedText);
-
           if (!decodedText.includes("|")) {
             setMensaje("QR inválido");
             return;
@@ -82,9 +76,6 @@ export default function RecibirPedidoPage() {
     }
   };
 
-  // --------------------------------------------------
-  // 🛑 DETENER ESCÁNER
-  // --------------------------------------------------
   const detenerScanner = async () => {
     try {
       if (qrInstance.current) {
@@ -96,9 +87,6 @@ export default function RecibirPedidoPage() {
     setScannerActivo(false);
   };
 
-  // --------------------------------------------------
-  // 🔍 PREVIEW DEL PEDIDO
-  // --------------------------------------------------
   const consultarPedido = async () => {
     if (!folio || !codigo) {
       setMensaje("Ingresa folio y código");
@@ -135,9 +123,6 @@ export default function RecibirPedidoPage() {
     }
   };
 
-  // --------------------------------------------------
-  // 📦 CONFIRMAR RECEPCIÓN
-  // --------------------------------------------------
   const confirmarRecepcion = async () => {
     setLoading(true);
     setMensaje("");
@@ -162,7 +147,6 @@ export default function RecibirPedidoPage() {
       }
 
       setShowSuccess(true);
-
       setPedido(null);
       setFolio("");
       setCodigo("");
@@ -173,217 +157,130 @@ export default function RecibirPedidoPage() {
     }
   };
 
-  // --------------------------------------------------
-  // 🧹 CLEANUP
-  // --------------------------------------------------
   useEffect(() => {
     return () => {
       detenerScanner();
     };
   }, []);
 
-  // --------------------------------------------------
-  // 🖥 UI
-  // --------------------------------------------------
-const cerrarPopup = () => {
-  setShowSuccess(false);
-};
+  const cerrarPopup = () => {
+    setShowSuccess(false);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-6 md:py-12 pb-36">
-
-      <div className="max-w-3xl mx-auto space-y-5 md:space-y-10">
-
+    <div className="min-h-screen bg-slate-50 px-5 py-12">
+      <div className="max-w-4xl mx-auto space-y-8">
         {showSuccess && (
-  <div className="
-    fixed
-    inset-0
-    z-50
-    bg-black/40
-    backdrop-blur-sm
-    flex
-    items-center
-    justify-center
-    px-4
-  ">
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4">
+            <div className="relative max-w-md w-full bg-white rounded-3xl shadow-2xl border border-slate-200 p-8 text-center space-y-6">
+              <button
+                onClick={cerrarPopup}
+                className="absolute top-4 right-4 h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 transition text-slate-500 font-bold"
+              >
+                ✕
+              </button>
 
-    <div className="
-      relative
-      max-w-md
-      w-full
-      bg-white
-      rounded-[32px]
-      shadow-2xl
-      border
-      border-slate-200
-      p-8
-      text-center
-      space-y-6
-      animate-in
-      fade-in
-      zoom-in-95
-      duration-300
-    ">
+              <div className="h-20 w-20 rounded-full bg-blue-50 flex items-center justify-center mx-auto text-4xl">
+                📦
+              </div>
 
-      {/* CERRAR */}
-      <button
-        onClick={cerrarPopup}
-        className="
-          absolute
-          top-4
-          right-4
-          h-10
-          w-10
-          rounded-full
-          bg-slate-100
-          hover:bg-slate-200
-          transition
-          text-slate-500
-          font-bold
-        "
-      >
-        ✕
-      </button>
+              <div>
+                <h1 className="text-2xl font-bold text-[#1e3a8a]">
+                  ¡Paquete recibido!
+                </h1>
 
-      {/* ICONO */}
-      <div className="
-        h-20
-        w-20
-        rounded-full
-        bg-green-100
-        flex
-        items-center
-        justify-center
-        mx-auto
-        text-4xl
-      ">
-        📦
-      </div>
+                <p className="text-slate-500 mt-2 text-sm">
+                  El cliente fue notificado correctamente y ya podrá recoger su
+                  pedido con su código de entrega.
+                </p>
+              </div>
 
-      {/* TEXO */}
-      <div>
-        <h1 className="
-          text-2xl
-          font-bold
-          text-slate-800
-        ">
-          Felicidades! recibiste un paquete!
-        </h1>
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-left text-sm text-slate-600 space-y-2">
+                <p>• Resguarda el paquete en un lugar seguro.</p>
+                <p>• Verifica el folio antes de entregar.</p>
+                <p>• Utiliza una etiqueta para identificar el paquete.</p>
+                <p>• Mantén el paquete protegido y seco.</p>
+              </div>
 
-        <p className="
-          text-slate-500
-          mt-2
-          text-sm
-        ">
-          El cliente fue notificado correctamente.
-        </p>
-      </div>
-
-      {/* RECOMENDACIONES */}
-      <div className="
-        bg-slate-50
-        border
-        border-slate-200
-        rounded-2xl
-        p-4
-        text-left
-        text-sm
-        text-slate-600
-        space-y-2
-      ">
-
-        <p>
-          • Resguarda el paquete en un lugar seguro
-        </p>
-
-        <p>
-          • Verifica el folio antes de entregar
-        </p>
-
-        <p>
-          • Utiliza una eitiqueta para identificar el paquete
-        </p>
-
-        <p>
-          • Mantén el paquete protegido y seco
-        </p>
-
-      </div>
-
-    </div>
-  </div>
-)}
-
-        {/* HEADER PREMIUM */}
-        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-[28px] p-5 md:p-8 shadow-lg space-y-3">
-
-          <div className="flex items-center justify-between text-sm opacity-90">
-            <span>Proceso operativo</span>
-            <span>Recepción en establecimiento</span>
+              <button
+                onClick={cerrarPopup}
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] text-white font-semibold shadow hover:shadow-lg transition-all"
+              >
+                Entendido
+              </button>
+            </div>
           </div>
+        )}
 
-          <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
-            <div className="h-full w-2/3 bg-white rounded-full"></div>
+        <section className="bg-white border border-slate-200 rounded-3xl p-7 md:p-10 shadow-sm">
+          <div>
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-400 font-semibold">
+              Logística fácil y sin dramas
+            </p>
+
+            <h1 className="text-4xl md:text-5xl font-bold text-[#1e3a8a] mt-3 leading-tight">
+              Recepción de pedido <span className="inline-block">📦</span>
+            </h1>
+
+            <p className="text-slate-600 mt-4 max-w-2xl text-lg">
+              Valida el paquete escaneando el QR del vendedor o ingresando los
+              datos manualmente.
+            </p>
           </div>
+        </section>
 
-          <h1 className="text-2xl md:text-3xl font-bold leading-tight">
-            Recepción de pedido
-          </h1>
+        <section className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-8">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">
+              Paso 1
+            </p>
 
-          <p className="text-white/90 text-sm">
-            Valida el paquete escaneando el QR del vendedor o ingresando los datos manualmente.
-          </p>
-        </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-[#1e3a8a] mt-2">
+              Validar pedido
+            </h2>
 
-        {/* CARD */}
-        <div className="bg-white rounded-[28px] shadow-xl border border-slate-200 p-5 md:p-8 space-y-5 transition-all duration-300">
+            <p className="text-slate-500 mt-2">
+              Escanea el QR del vendedor o captura el folio y código para revisar
+              el resumen antes de recibir el paquete.
+            </p>
+          </div>
 
           {!pedido && (
-            <>
-              {/* BOTÓN QR */}
+            <div className="space-y-5">
               <button
                 onClick={scannerActivo ? detenerScanner : iniciarScanner}
-                className={`w-full py-3.5 md:py-4 rounded-2xl font-semibold text-lg transition-all duration-300 ${
+                className={`w-full h-12 rounded-xl font-semibold transition-all ${
                   scannerActivo
-                    ? "bg-emerald-100 text-emerald-700 border border-emerald-300 animate-pulse"
-                    : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.02] text-white shadow-lg"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-gradient-to-r from-[#2563eb] to-[#1e40af] text-white shadow hover:shadow-lg"
                 }`}
               >
-                {scannerActivo
-                  ? "📡 Cámara activa"
-                  : "📷 Escanear QR del vendedor"}
+                {scannerActivo ? "📡 Cámara activa" : "📷 Escanear QR del vendedor"}
               </button>
 
               <div
                 id="qr-reader"
-                className="w-full rounded-2xl overflow-hidden border border-slate-200"
+                className="w-full rounded-3xl overflow-hidden border border-blue-100 shadow-sm ring-1 ring-blue-50"
               />
 
-              {/* DIVISOR */}
               <div className="flex items-center gap-4">
                 <div className="flex-1 h-px bg-slate-200" />
-
-                <span className="text-xs text-slate-400 font-medium">
+                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">
                   o ingreso manual
                 </span>
-
                 <div className="flex-1 h-px bg-slate-200" />
               </div>
 
-              {/* INPUTS */}
-              <div className="space-y-4">
-
+              <div className="grid gap-5">
                 <input
-                  className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+                  className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 focus:ring-2 focus:ring-blue-100 focus:outline-none uppercase"
                   placeholder="EW-XXXXXXX"
                   value={folio}
-                  onChange={(e) =>
-                    setFolio(e.target.value.toUpperCase())
-                  }
+                  onChange={(e) => setFolio(e.target.value.toUpperCase())}
                 />
 
                 <input
-                  className="w-full border border-slate-300 rounded-2xl px-4 py-3.5 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+                  className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 focus:ring-2 focus:ring-blue-100 focus:outline-none"
                   placeholder="Código de 6 dígitos"
                   value={codigo}
                   onChange={(e) => setCodigo(e.target.value)}
@@ -393,96 +290,97 @@ const cerrarPopup = () => {
               <button
                 onClick={consultarPedido}
                 disabled={loading}
-                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium disabled:opacity-50 transition"
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] text-white font-semibold shadow hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading
-                  ? "Validando..."
-                  : "Ver resumen del pedido"}
+                {loading ? "Validando..." : "Ver resumen del pedido"}
               </button>
-            </>
+            </div>
           )}
 
           {pedido && (
-            <div className="space-y-6 animate-fade-in transition-all duration-300">
+            <div className="space-y-6">
+              <div className="rounded-3xl border border-blue-100 bg-blue-50 p-5 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.2em] text-blue-500 font-semibold">
+                  Pedido encontrado
+                </p>
 
-              {/* RESUMEN */}
-              <div className="rounded-2xl p-6 border border-slate-200 bg-slate-50 transition-all duration-300 shadow-sm">
-
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                <h3 className="text-xl font-bold text-[#1e3a8a] mt-2">
                   Resumen del pedido
                 </h3>
 
-                <div className="space-y-2 text-sm">
-
-                  <div>
-                    <span className="text-slate-500">
-                      Folio:
-                    </span>{" "}
-                    <span className="font-medium">
-                      {pedido.folio}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-slate-500">
-                      Producto:
-                    </span>{" "}
-                    <span className="font-medium">
-                      {pedido.producto}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-slate-500">
-                      Establecimiento:
-                    </span>{" "}
-                    <span className="font-medium">
-                      {pedido.establecimiento_nombre}
-                    </span>
-                  </div>
+                <div className="mt-4 grid gap-3 text-sm">
+                  <InfoRow label="Folio" value={pedido.folio} />
+                  <InfoRow label="Producto" value={pedido.producto} />
+                  <InfoRow
+                    label="Establecimiento"
+                    value={pedido.establecimiento_nombre}
+                  />
                 </div>
               </div>
 
-              {/* CONFIRMAR */}
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                Antes de confirmar, verifica que el folio y el paquete físico
+                coincidan con la información mostrada.
+              </div>
+
               <button
                 onClick={confirmarRecepcion}
                 disabled={loading}
-                className="w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-semibold transition-all duration-300 shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] text-white font-semibold shadow hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading
-                  ? "Confirmando..."
-                  : "Confirmar recepción del paquete"}
+                {loading ? "Confirmando..." : "Confirmar recepción del paquete"}
               </button>
 
               <button
                 onClick={() => setPedido(null)}
-                className="w-full py-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 transition"
+                className="w-full h-12 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold transition"
               >
                 Cancelar
               </button>
             </div>
           )}
 
-          {/* MENSAJE */}
           {mensaje && (
             <div
-              className={`mt-4 text-center font-medium transition-all duration-300 ${
+              className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
                 mensaje.startsWith("✅")
-                  ? "text-green-600"
-                  : "text-red-600"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                  : "bg-red-50 border-red-200 text-red-600"
               }`}
             >
-              {mensaje.startsWith("✅") && (
-                <div className="text-4xl mb-2 animate-bounce">
-                  ✔
-                </div>
-              )}
-
               {mensaje}
             </div>
           )}
-        </div>
+        </section>
+
+        <section className="bg-white border border-slate-200 rounded-3xl p-5 md:p-6 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-xl">
+              🛡️
+            </div>
+
+            <div>
+              <h3 className="font-bold text-[#1e3a8a]">
+                Buenas prácticas de recepción
+              </h3>
+
+              <p className="text-sm text-slate-600 mt-1">
+                Recibe únicamente paquetes con folio y código válidos. Si algo no
+                coincide, no confirmes la recepción y contacta al equipo Dropit.
+              </p>
+            </div>
+          </div>
+        </section>
       </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-2xl bg-white border border-blue-100 px-4 py-3">
+      <span className="text-slate-500">{label}</span>
+      <span className="font-semibold text-slate-900 text-right">{value}</span>
     </div>
   );
 }
