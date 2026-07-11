@@ -59,3 +59,11 @@ Para un nuevo desarrollador:
 Esta documentación constituye la referencia oficial para el desarrollo de Dropit.
 
 En caso de discrepancia entre la documentación y la implementación, deberá revisarse cuál de las dos representa el comportamiento oficial esperado.
+
+## 📚 Documentación
+
+La documentación oficial del proyecto se encuentra en la carpeta:
+
+/docs
+
+Consultar `docs/README.md` para comenzar.
