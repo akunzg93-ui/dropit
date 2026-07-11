@@ -218,3 +218,11 @@ La carpeta `/docs` representa la fuente oficial de conocimiento del proyecto.
 # Vigencia
 
 Este documento deberá revisarse únicamente cuando exista un cambio importante en la filosofía de desarrollo de Dropit.
+
+### Regla 11 – Código y documentación evolucionan juntos
+
+Ninguna funcionalidad se considera terminada hasta que:
+
+- el código esté implementado;
+- la documentación correspondiente esté actualizada;
+- si aplica, exista una ADR para decisiones arquitectónicas.
