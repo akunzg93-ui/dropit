@@ -52,3 +52,7 @@
 - Recomendación de establecimientos
 - Predicción de capacidad
 - Detección de anomalías
+
+### Actualización
+
+- ✅ Cancelación automática por falta de entrega (24 horas) implementada y validada de extremo a extremo.

@@ -100,3 +100,9 @@ o
 - Almacenamiento.
 - Relaciones.
 - Auditoría.
+
+## Procesos automáticos
+
+### GET /api/orders/jobs/cancelar-vencidos
+
+Proceso protegido mediante `CRON_SECRET` que busca pedidos en `en_transito` con más de 24 horas desde `establecimiento_aceptado_at`, ejecuta la RPC `cancel_order_automatic` y envía correos de cancelación al cliente y al vendedor. Devuelve un resumen con pedidos revisados, cancelados y resultado del envío de correos.

@@ -54,10 +54,11 @@ export async function POST(req: Request) {
     const { error: updateError } = await supabase
       .from("pedidos")
       .update({
-        estado: "en_transito",
-        establecimiento_acepto: true,
-        codigo_vendedor: codigo,
-      })
+  estado: "en_transito",
+  establecimiento_acepto: true,
+  establecimiento_aceptado_at: new Date().toISOString(),
+  codigo_vendedor: codigo,
+})
       .eq("id", pedido_id);
 
     if (updateError) {

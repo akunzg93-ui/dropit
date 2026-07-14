@@ -300,9 +300,10 @@ export default function CrearPedido() {
       }
 
       const { error: coinError } = await supabase.rpc("consume_coin_for_order", {
-        p_user_id: vendedorId,
-        p_tamano: tamano,
-      });
+  p_user_id: vendedorId,
+  p_tamano: tamano,
+  p_pedido_id: pedido.id,
+});
 
       await debugCoinsDB("DESPUÉS RPC", vendedorId);
 

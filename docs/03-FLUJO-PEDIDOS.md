@@ -321,3 +321,11 @@ Las siguientes funcionalidades se consideran extensiones del flujo y deberán di
 - Devoluciones.
 - Entrega manual por contingencia.
 - Reprogramación de entrega.
+
+## Cancelación automática por falta de entrega
+
+Nueva transición oficial:
+
+`en_transito -> cancelado`
+
+Se ejecuta automáticamente cuando transcurren 24 horas desde `establecimiento_aceptado_at` sin que el establecimiento confirme la recepción del paquete. La transición reintegra la Coin al lote original, libera la capacidad reservada, registra un evento de tracking y envía notificaciones al cliente y al vendedor.

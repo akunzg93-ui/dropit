@@ -152,3 +152,8 @@ Las siguientes reglas serán definidas cuando la funcionalidad exista oficialmen
 - Penalizaciones.
 - Entrega manual.
 - Recolección por tercero autorizado.
+
+# Regla 21
+## Cancelación automática por falta de entrega
+
+Si el vendedor no entrega el paquete al establecimiento dentro del plazo de 24 horas desde la aceptación del establecimiento, el sistema cancela automáticamente el pedido. La cancelación reintegra la Coin al lote original (sin modificar su expiración), libera la capacidad reservada, registra un evento de tracking y notifica al cliente y al vendedor. La operación es idempotente y solo puede ejecutarse una vez.

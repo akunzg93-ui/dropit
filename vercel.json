@@ -3,6 +3,10 @@
     {
       "path": "/api/jobs/expirar-pedidos",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/orders/cancelaciones/automaticas",
+      "schedule": "15 0 * * *"
     }
   ]
 }

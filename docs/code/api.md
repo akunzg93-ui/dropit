@@ -126,3 +126,13 @@ Todas las APIs deberán:
 La arquitectura objetivo contempla separar las APIs por dominio.
 
 Sin embargo, la estructura actual permanecerá estable hasta planificar un refactor controlado.
+
+### jobs/cancelar-vencidos
+
+`GET /api/orders/jobs/cancelar-vencidos`
+
+- Protegido con `CRON_SECRET`.
+- Busca pedidos vencidos (>24h).
+- Ejecuta `cancel_order_automatic`.
+- Envía correos al cliente y al vendedor.
+- Devuelve un resumen de la ejecución.

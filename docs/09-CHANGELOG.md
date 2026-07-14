@@ -54,3 +54,12 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 - Convenciones.
 - Glosario.
 - Reglas de negocio.
+
+## 2026-07-14
+
+### Agregado
+- Cancelación automática de pedidos por falta de entrega al establecimiento después de 24 horas.
+- Reintegro automático de Coin al lote original.
+- Liberación automática de capacidad.
+- Evento de tracking para cancelación automática.
+- Endpoint protegido para ejecución mediante Cron.
