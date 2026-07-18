@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
 import { sendEmail } from "@/lib/email"; // ✅ usamos helper central
+import { emailPedidoListoParaRecoger } from "@/lib/emailTemplates/pedidoListoParaRecoger";
 
 function generarCodigoEntrega() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -193,111 +194,16 @@ if (uploadError) {
 
     if (!pedidoAny.correo_comprador_enviado) {
       await sendEmail({
-        to: pedidoAny.email_comprador,
-        subject: "📦 Tu pedido ya está listo para recoger",
-        html: `
-          <div style="
-            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
-            background-color:#f4f6f8;
-            padding:40px 0;
-          ">
-            <div style="
-              max-width:560px;
-              margin:0 auto;
-              background:#ffffff;
-              border-radius:16px;
-              overflow:hidden;
-              box-shadow:0 12px 32px rgba(0,0,0,0.08);
-            ">
-              <div style="
-                background:linear-gradient(135deg,#2563eb,#1e40af);
-                color:#ffffff;
-                padding:28px;
-              ">
-                <h1 style="margin:0;font-size:22px;font-weight:600;">
-                  📦 Pedido listo para recoger
-                </h1>
-                <p style="margin:8px 0 0 0;font-size:14px;opacity:0.9;">
-                  Tu paquete ya llegó al establecimiento
-                </p>
-              </div>
-
-              <div style="padding:28px;">
-                <table style="width:100%; font-size:14px;">
-                  <tr>
-                    <td style="color:#6b7280;">Pedido</td>
-                    <td style="font-weight:600;text-align:right;">
-                      ${pedidoAny.folio}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="color:#6b7280;">Establecimiento</td>
-                    <td style="text-align:right;">
-                      ${establecimientoNombre}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="color:#6b7280;">Dirección</td>
-                    <td style="text-align:right;">
-                      ${direccionEstablecimiento}
-                    </td>
-                  </tr>
-                </table>
-
-                <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0;" />
-
-                <div style="text-align:center;">
-                  <p style="color:#6b7280;font-size:13px;">
-                    Código de recolección
-                  </p>
-
-                  <div style="
-                    font-size:32px;
-                    letter-spacing:6px;
-                    font-weight:700;
-                    color:#1e40af;
-                    background:#eef2ff;
-                    padding:18px 24px;
-                    border-radius:12px;
-                    display:inline-block;
-                  ">
-                    ${codigoEntrega}
-                  </div>
-
-                  <p style="margin:22px 0 12px 0;font-size:14px;">
-                    Presenta este código o escanea el QR
-                  </p>
-
-                  <img
-                    src="${qrUrl}"
-                    alt="QR del pedido"
-                    style="
-                      display:block;
-                      margin:0 auto;
-                      width:160px;
-                      height:160px;
-                      border:8px solid #eef2ff;
-                      border-radius:16px;
-                    "
-                  />
-                </div>
-              </div>
-
-              <div style="
-                background:#f9fafb;
-                padding:18px;
-                text-align:center;
-                font-size:12px;
-                color:#6b7280;
-              ">
-                <strong style="color:#2563eb;">DROPIT</strong><br />
-                Este código se valida al momento de la recolección
-              </div>
-            </div>
-          </div>
-        `,
-      });
-
+  to: pedidoAny.email_comprador,
+  subject: "📦 Tu pedido ya está listo para recoger",
+  html: emailPedidoListoParaRecoger({
+    folio: pedidoAny.folio,
+    establecimiento: establecimientoNombre,
+    direccion: direccionEstablecimiento,
+    codigoEntrega,
+    qrUrl,
+  }),
+});
       await supabase
         .from("pedidos")
         .update({ correo_comprador_enviado: true })
