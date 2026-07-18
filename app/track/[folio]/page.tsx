@@ -287,12 +287,18 @@ export default function TrackPedidoPage() {
                     <div className="absolute -left-[26px] top-1 h-4 w-4 rounded-full bg-[#2563eb] ring-4 ring-blue-50" />
 
                     <p className="font-semibold text-slate-900">
-                      {ESTADOS_LABEL[e.estado] ?? e.estado}
-                    </p>
+  {ESTADOS_LABEL[e.estado] ?? e.estado}
+</p>
 
-                    <p className="mt-1 text-xs text-slate-500">
-                      {e.fecha ? new Date(e.fecha).toLocaleString() : "—"}
-                    </p>
+{e.descripcion && (
+  <p className="mt-2 text-sm leading-6 text-slate-600">
+    {e.descripcion}
+  </p>
+)}
+
+<p className="mt-2 text-xs text-slate-500">
+  {e.fecha ? new Date(e.fecha).toLocaleString() : "—"}
+</p>
                   </div>
                 ))}
               </div>

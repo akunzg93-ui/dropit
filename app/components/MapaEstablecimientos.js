@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -41,21 +47,49 @@ function ResizeMap() {
   const map = useMap();
 
   useEffect(() => {
-    setTimeout(() => {
-      map.invalidateSize();
+    let resizeTimeout;
+    let visibilityTimeout;
+    let active = true;
+
+    const invalidarMapa = () => {
+      if (!active) return;
+
+      try {
+        const container = map.getContainer();
+
+        if (!container || !container.isConnected) return;
+
+        map.invalidateSize({
+          animate: false,
+          pan: false,
+        });
+      } catch (error) {
+        console.warn("No se pudo reajustar el mapa:", error);
+      }
+    };
+
+    resizeTimeout = window.setTimeout(() => {
+      invalidarMapa();
     }, 250);
 
     const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        setTimeout(() => {
-          map.invalidateSize();
-        }, 300);
-      }
+      if (document.visibilityState !== "visible") return;
+
+      window.clearTimeout(visibilityTimeout);
+
+      visibilityTimeout = window.setTimeout(() => {
+        invalidarMapa();
+      }, 300);
     };
 
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
+      active = false;
+
+      window.clearTimeout(resizeTimeout);
+      window.clearTimeout(visibilityTimeout);
+
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [map]);
@@ -74,28 +108,41 @@ export default function MapaEstablecimientos({
     setMounted(true);
   }, []);
 
-  const establecimientosValidos = establecimientos.filter(
-    (est) => est?.lat && est?.lng
-  );
+  const establecimientosValidos = useMemo(() => {
+    return establecimientos.filter((est) => {
+      const lat = Number(est?.lat);
+      const lng = Number(est?.lng);
+
+      return Number.isFinite(lat) && Number.isFinite(lng);
+    });
+  }, [establecimientos]);
 
   const center =
     establecimientosValidos.length > 0
-      ? [establecimientosValidos[0].lat, establecimientosValidos[0].lng]
+      ? [
+          Number(establecimientosValidos[0].lat),
+          Number(establecimientosValidos[0].lng),
+        ]
       : [19.432608, -99.133209];
 
   const mapKey = useMemo(() => {
-    return establecimientosValidos.map((e) => e.id).join("-");
+    return (
+      establecimientosValidos
+        .map((est) => est.uuid || est.id)
+        .filter(Boolean)
+        .join("-") || "mapa-establecimientos"
+    );
   }, [establecimientosValidos]);
 
   if (!mounted) {
     return (
-      <div className="w-full h-full bg-slate-100 animate-pulse rounded-xl" />
+      <div className="h-full w-full animate-pulse rounded-xl bg-slate-100" />
     );
   }
 
   return (
     <MapContainer
-      key={mapKey || "mapa-establecimientos"}
+      key={mapKey}
       center={center}
       zoom={12}
       style={{ height: "100%", width: "100%" }}
@@ -109,16 +156,21 @@ export default function MapaEstablecimientos({
       />
 
       {establecimientosValidos.map((est) => {
-        const seleccionado = seleccionados.some((e) => e.id === est.id);
+        const identificador = est.uuid || est.id;
+
+        const seleccionado = seleccionados.some(
+          (seleccionadoActual) =>
+            (seleccionadoActual.uuid || seleccionadoActual.id) === identificador
+        );
 
         return (
           <Marker
-            key={est.id}
-            position={[est.lat, est.lng]}
+            key={identificador}
+            position={[Number(est.lat), Number(est.lng)]}
             icon={CrearPin({ seleccionado })}
             eventHandlers={{
               click: () => {
-                onMarkerClick && onMarkerClick(est);
+                onMarkerClick?.(est);
               },
             }}
           >
