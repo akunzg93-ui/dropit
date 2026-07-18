@@ -6,7 +6,7 @@
 >
 > Estado: Activo
 >
-> Última actualización: 11/07/2026
+> Última actualización: 18/07/2026
 
 ---
 
@@ -184,3 +184,65 @@ Conocen Dropit
 ↓
 
 Implementan reglas del producto
+
+---
+
+# ADR-006
+
+## Nombre
+
+Los vencimientos logísticos se resuelven con timestamps persistidos, RPC idempotentes y jobs protegidos.
+
+## Estado
+
+Aceptada
+
+## Contexto
+
+Los plazos de entrega, recolección y devolución no pueden depender de que un usuario mantenga abierta una pantalla ni del reloj local del navegador.
+
+## Decisión
+
+Cada plazo comienza en un timestamp persistido en `pedidos`:
+
+- `establecimiento_aceptado_at`
+- `recibido_en`
+- `devolucion_iniciada_at`
+
+Los cambios automáticos de estado se ejecutan mediante jobs protegidos por `CRON_SECRET`, y cada transición se delega a una RPC idempotente.
+
+El frontend únicamente representa el tiempo restante.
+
+## Consecuencias
+
+- Los vencimientos continúan aunque nadie use la aplicación.
+- Se evita depender del navegador.
+- Se reducen dobles cancelaciones, devoluciones o notificaciones.
+- Los timers pueden mostrar un breve intervalo vencido antes de la siguiente ejecución del job.
+
+---
+
+# ADR-007
+
+## Nombre
+
+La devolución por falta de recolección forma parte de la máquina oficial de estados.
+
+## Estado
+
+Aceptada
+
+## Contexto
+
+Un paquete no recogido no puede permanecer indefinidamente en el establecimiento.
+
+## Decisión
+
+Después de 48 horas en `pendiente_recoleccion`, el pedido pasa a `devolucion_pendiente`. El vendedor dispone de 48 horas adicionales. La devolución termina en `devuelto` o, si vence el segundo plazo, en `custodia_vencida`.
+
+## Consecuencias
+
+- Se delimita la responsabilidad temporal del establecimiento.
+- El vendedor recibe una oportunidad formal de recuperar el paquete.
+- El tracking necesita una ruta visual de devolución distinta del flujo normal.
+- Los Términos y Condiciones deben reflejar estos plazos.

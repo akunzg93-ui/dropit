@@ -1,110 +1,42 @@
 # Supabase
 
-> Documento Oficial
->
-> Versión: 1.0
->
-> Estado: En construcción
->
-> Última actualización: 11/07/2026
+> Documento Oficial  
+> Versión: 1.1  
+> Estado: En construcción  
+> Última actualización: 18/07/2026
 
----
+# Responsabilidad
 
-# Objetivo
+Supabase centraliza Auth, PostgreSQL, RLS, RPC y persistencia operativa.
 
-Supabase constituye el backend oficial de Dropit.
+# RPC relevantes
 
-Centraliza la autenticación, la base de datos, las políticas de seguridad, las funciones remotas y las migraciones.
+## Coins y cancelaciones
 
----
+- `consume_coin_for_order`
+- `restore_coin_for_cancelation`
+- `cancel_order_by_vendor`
+- `cancel_order_automatic`
 
-# Componentes
+## Devoluciones
 
-## Auth
+- `start_order_return`
+- `complete_order_return`
+- `expire_order_return_custody`
 
-Administra:
+## Tracking
 
-- Inicio de sesión.
-- Registro.
-- Recuperación de contraseña.
-- Gestión de sesiones.
+- `get_pedido_tracking(text)`
 
----
+La RPC de tracking devuelve datos públicos controlados, timestamps de plazos y eventos en JSON ordenados por fecha.
 
-## Base de datos
+# Seguridad
 
-Almacena toda la información operativa del sistema.
+- RLS permanece activa.
+- Operaciones críticas se ejecutan por API con Service Role o RPC controlada.
+- `get_pedido_tracking` puede ser ejecutada por `anon` y `authenticated`, pero no expone datos sensibles innecesarios.
+- QA y Producción mantienen proyectos y variables independientes.
 
-Principales dominios:
+# Migraciones
 
-- Usuarios.
-- Pedidos.
-- Establecimientos.
-- Coins.
-- Evaluaciones.
-- Protección.
-- Balance financiero.
-
----
-
-## Row Level Security (RLS)
-
-Las políticas RLS constituyen parte de la lógica de negocio.
-
-Todo acceso a datos debe respetar dichas políticas.
-
-Nunca deberán deshabilitarse en producción.
-
----
-
-## RPC
-
-Las funciones RPC encapsulan reglas de negocio complejas que deben ejecutarse dentro de PostgreSQL.
-
-Ejemplos:
-
-- consume_coin_for_order
-- get_pedido_by_folio
-
----
-
-## Edge Functions
-
-Actualmente existen:
-
-| Función | Responsabilidad |
-|---------|-----------------|
-| expirar-coins | Expiración automática de Coins |
-| pedido-confirmado | Automatización posterior a la confirmación del pedido |
-
----
-
-## Migraciones
-
-Toda modificación estructural de la base de datos deberá realizarse mediante migraciones.
-
-No deberán ejecutarse cambios manuales directamente sobre producción.
-
----
-
-## Ambientes
-
-Dropit mantiene ambientes separados para:
-
-- QA
-- Producción
-
-Cada ambiente posee:
-
-- Base de datos propia.
-- Variables de entorno independientes.
-- Edge Functions independientes.
-
----
-
-# Principios
-
-- Nunca desactivar RLS.
-- Nunca modificar tablas directamente en producción.
-- Toda nueva tabla deberá incluir políticas de seguridad.
-- Toda migración deberá ser versionada.
+Todo cambio estructural debe documentarse y versionarse. No se reorganizan nombres técnicos estables únicamente por limpieza.

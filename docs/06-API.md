@@ -1,108 +1,102 @@
 # APIs Oficiales de Dropit
 
-> Documento Oficial
->
-> Versión: 1.0
->
-> Estado: Oficial
->
-> Última actualización: 08/07/2026
-
----
-
-# Objetivo
-
-Este documento define las APIs oficiales del sistema.
-
-Las APIs representan el contrato entre el frontend y el backend.
-
-Su comportamiento debe permanecer estable.
+> Documento Oficial  
+> Versión: 1.1  
+> Estado: Oficial  
+> Última actualización: 18/07/2026
 
 ---
 
 # Principios
 
 - Las APIs implementan reglas de negocio.
-- Nunca confían en información enviada por el cliente.
-- Toda validación crítica ocurre en servidor.
-- Todas las respuestas deben ser consistentes.
-- Toda modificación importante requiere autenticación.
+- Nunca confían únicamente en datos enviados por el cliente web.
+- Las operaciones críticas validan estado, actor y códigos.
+- Los jobs automáticos se protegen con `CRON_SECRET`.
+- Las rutas estables permanecen bajo `app/api/orders/*` hasta un refactor planificado.
 
 ---
 
 # Flujo principal
 
-| API | Responsabilidad |
-|------|-----------------|
-| POST /api/orders/create | Crear pedido |
-| POST /api/orders/confirmado | Confirmar establecimiento |
-| POST /api/orders/notificar-vendedor | Enviar código al vendedor |
-| POST /api/orders/preview-vendedor | Validar recepción |
-| POST /api/orders/recibido | Confirmar recepción |
-| POST /api/orders/entregado | Confirmar entrega |
+| Ruta | Responsabilidad |
+|---|---|
+| `POST /api/orders/aceptar-establecimiento` | Aceptar el punto y pasar a `en_transito` |
+| `POST /api/orders/rechazar-establecimiento` | Rechazar la solicitud |
+| `POST /api/orders/recibido` | Confirmar recepción física |
+| `POST /api/orders/entregado` | Confirmar entrega al cliente |
+| `POST /api/orders/notificar-vendedor` | Enviar código e instrucciones al vendedor |
+
+Las rutas históricas estables no se mueven sólo por organización.
 
 ---
 
-# Estructura estándar
+# Cancelaciones
 
-Todas las APIs deberán cumplir:
+## Cancelación automática
 
-## Entrada
+Ruta vigente documentada:
 
-- Validación de parámetros.
-- Validación de autenticación.
-- Validación de permisos.
+`GET /api/orders/cancelaciones/automaticas`
 
-## Proceso
+Responsabilidades:
 
-- Ejecutar reglas de negocio.
-- Actualizar base de datos.
-- Registrar eventos.
-- Ejecutar acciones adicionales.
+- Validar `CRON_SECRET`.
+- Buscar pedidos `en_transito` vencidos según `establecimiento_aceptado_at`.
+- Ejecutar `cancel_order_automatic`.
+- Liberar capacidad y reintegrar Coin mediante la RPC.
+- Enviar correos al cliente y al vendedor.
+- Devolver resumen de ejecución.
 
-## Salida
+## Cancelación por vendedor
 
-Respuesta consistente.
-
-Ejemplo:
-
-{
-    success: true,
-    data: ...
-}
-
-o
-
-{
-    success: false,
-    error: ...
-}
+La API correspondiente ejecuta `cancel_order_by_vendor` y sólo permite estados autorizados.
 
 ---
 
-# Responsabilidades
+# Devoluciones automáticas
 
-## Frontend
+## Inicio de devolución
 
-- Capturar información.
-- Mostrar resultados.
-- Validaciones de UX.
+`GET /api/orders/jobs/iniciar-devoluciones`
 
-## API
+- Protegido con `CRON_SECRET`.
+- Busca pedidos `pendiente_recoleccion` vencidos desde `recibido_en`.
+- Ejecuta `start_order_return`.
+- Registra el cambio a `devolucion_pendiente`.
+- Envía notificaciones al cliente y al vendedor.
 
-- Reglas del negocio.
-- Seguridad.
-- Persistencia.
-- Integraciones.
+## Custodia vencida
 
-## Base de datos
+`GET /api/orders/jobs/custodia-vencida`
 
-- Almacenamiento.
-- Relaciones.
-- Auditoría.
+- Protegido con `CRON_SECRET`.
+- Busca devoluciones vencidas desde `devolucion_iniciada_at`.
+- Ejecuta `expire_order_return_custody`.
+- Cambia el estado a `custodia_vencida`.
+- Notifica al vendedor.
 
-## Procesos automáticos
+## Devolución física al vendedor
 
-### GET /api/orders/jobs/cancelar-vencidos
+La acción del establecimiento ejecuta `complete_order_return` después de validar el código de devolución.
 
-Proceso protegido mediante `CRON_SECRET` que busca pedidos en `en_transito` con más de 24 horas desde `establecimiento_aceptado_at`, ejecuta la RPC `cancel_order_automatic` y envía correos de cancelación al cliente y al vendedor. Devuelve un resumen con pedidos revisados, cancelados y resultado del envío de correos.
+---
+
+# Tracking público
+
+El frontend consulta `get_pedido_tracking` mediante Supabase RPC.
+
+La respuesta incluye eventos y timestamps de los tres plazos. La RPC no expone información sensible innecesaria.
+
+---
+
+# Contrato de jobs
+
+Todos los jobs deben:
+
+1. Validar secreto.
+2. Seleccionar sólo candidatos válidos.
+3. Delegar la transición a una RPC idempotente.
+4. Registrar resultado por pedido.
+5. Enviar correos únicamente después de una transición exitosa.
+6. Responder con resumen de revisados, actualizados y errores.

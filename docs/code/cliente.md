@@ -1,159 +1,45 @@
 # Módulo Cliente
 
-> Documento Oficial
->
-> Versión: 1.0
->
-> Estado: En construcción
->
-> Última actualización: 11/07/2026
-
----
+> Documento Oficial  
+> Versión: 1.1  
+> Estado: En construcción  
+> Última actualización: 18/07/2026
 
 # Objetivo
 
-El módulo Cliente concentra todas las funcionalidades relacionadas con la recepción del pedido.
+El cliente selecciona el punto de entrega, consulta el tracking y recoge el pedido.
 
-El cliente selecciona el establecimiento donde desea recoger su paquete y consulta el estado de la entrega.
-
----
-
-# Responsabilidades
-
-- Registrarse.
-- Seleccionar establecimiento.
-- Dar seguimiento al pedido.
-- Validar la entrega.
-- Consultar el estado del pedido.
-
----
+Los nombres técnicos históricos bajo `/comprador` se mantienen por estabilidad; toda UX visible utiliza **cliente**.
 
 # Pantallas
 
 | Ruta | Responsabilidad |
-|------|-----------------|
-| /comprador | Inicio del cliente |
-| /comprador/register | Registro |
-| /comprador/validar-pedido | Selección del establecimiento y validación |
+|---|---|
+| `/comprador` | Selección de establecimiento |
+| `/comprador/validar-pedido` | Validación de folio |
+| `/track/[folio]` | Seguimiento público |
 
----
+# Flujo
 
-# APIs utilizadas
+1. Validar folio.
+2. Elegir entre establecimientos propuestos por el vendedor.
+3. Confirmar el punto.
+4. Esperar aceptación del establecimiento.
+5. Consultar avance y plazos.
+6. Recoger con código de entrega.
 
-Pendiente de documentar.
+Si no recoge dentro de 48 horas desde `recibido_en`, el pedido inicia devolución al vendedor.
 
----
+# Tracking
 
-# Tablas principales
+La pantalla pública muestra:
 
-- pedidos
-- establecimientos
-- pedido_establecimientos
+- estado actual;
+- ruta normal o ruta de devolución;
+- historial con descripciones y fechas;
+- timer de 24 horas en `en_transito`;
+- timer de 48 horas en `pendiente_recoleccion`;
+- timer de 48 horas en `devolucion_pendiente`;
+- aviso de `custodia_vencida`.
 
----
-
-# Flujo principal
-
-1. Abrir el enlace recibido.
-2. Elegir establecimiento.
-3. Confirmar selección.
-4. Esperar notificación.
-5. Acudir al establecimiento.
-6. Recibir el pedido.
-
----
-
-# Observaciones
-
-El cliente únicamente interviene en dos momentos del flujo:
-
-- Selección del establecimiento.
-- Recolección del pedido.
-
----
-
-# Pantalla: Selección del punto de entrega
-
-## Ruta
-
-`/comprador`
-
-## Responsabilidad
-
-Permite al cliente seleccionar el establecimiento donde desea recoger su pedido.
-
-Es la única decisión logística que toma el cliente dentro del flujo de Dropit. :contentReference[oaicite:0]{index=0}
-
----
-
-## Flujo
-
-1. Recuperar el pedido desde la sesión.
-2. Consultar los establecimientos disponibles.
-3. Obtener la reputación del vendedor.
-4. Mostrar establecimientos candidatos.
-5. Ordenarlos por distancia.
-6. Permitir filtrar por zona.
-7. Confirmar el punto de entrega.
-8. Redirigir al seguimiento del pedido. :contentReference[oaicite:1]{index=1}
-
----
-
-## APIs utilizadas
-
-- `POST /api/orders/users/get-vendedor`
-- `POST /api/orders/confirmado`
-
----
-
-## Tablas utilizadas
-
-- pedidos
-- pedido_establecimientos
-- establecimientos
-- ratings_resumen
-
----
-
-## Componentes principales
-
-- MapaEstablecimientos
-- StarsPromedio
-- FlowGuideModal
-- Select (shadcn/ui)
-
----
-
-## Integraciones
-
-- Supabase Auth
-- Supabase Database
-- Leaflet
-
----
-
-## Información mostrada
-
-El cliente visualiza:
-
-- Folio.
-- Producto.
-- Vendedor.
-- Reputación del vendedor.
-- Establecimientos disponibles.
-- Reputación de cada establecimiento.
-- Distancia aproximada.
-- Horario.
-- Zona. :contentReference[oaicite:2]{index=2}
-
----
-
-## Resultado
-
-Al confirmar:
-
-- Se asigna el establecimiento al pedido.
-- El pedido cambia al estado **en_transito**.
-- Se notifica al vendedor.
-- Se muestra la guía del siguiente paso.
-- Se redirige al módulo de seguimiento (`/track`).
+La consulta se realiza mediante `get_pedido_tracking`.

@@ -1,54 +1,37 @@
 # Componentes
 
-## Objetivo
-
-Documentar los componentes reutilizables de Dropit.
-
----
+> Última actualización: 18/07/2026
 
 # Componentes de negocio
 
-Ubicación
+Ubicación principal: `app/components` y componentes cercanos a sus módulos.
 
-/components
+## CountdownTimer
 
-Responsabilidad
+Componente reutilizable para representar plazos operativos.
 
-Implementan lógica propia del dominio Dropit.
+Responsabilidades:
 
-Ejemplos
+- Recibir `startDate`, duración en horas, título y mensajes.
+- Calcular el tiempo restante en el cliente.
+- Mostrar días sólo cuando son mayores a cero.
+- Mostrar horas y minutos; no muestra segundos.
+- Mantener estilo azul consistente con Dropit.
+- Mostrar mensaje informativo al vencer.
+
+No ejecuta cancelaciones ni cambios de estado. El backend sigue siendo la autoridad.
+
+## Otros componentes
 
 - Navbar
+- MobileBottomNav
 - MapaEstablecimientos
 - StarsPromedio
 - RoleSwitcher
 - SelectorHorario
 
-Estos componentes pueden consumir APIs, Supabase o reglas del negocio.
-
----
-
 # Componentes UI
 
-Ubicación
+Ubicación: `components/ui`.
 
-/components/ui
-
-Responsabilidad
-
-Implementan únicamente presentación.
-
-No contienen reglas del negocio.
-
-Basados principalmente en shadcn/ui.
-
-Ejemplos
-
-- Button
-- Card
-- Dialog
-- Drawer
-- Table
-- Select
-- Input
-- Label
+Implementan presentación y no deben contener reglas críticas del negocio.

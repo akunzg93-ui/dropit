@@ -1,159 +1,117 @@
 # Reglas de Negocio de Dropit
 
-> Documento Oficial
->
-> Versión: 1.0
->
-> Estado: Oficial
->
-> Última actualización: 08/07/2026
+> Documento Oficial  
+> Versión: 1.1  
+> Estado: Oficial  
+> Última actualización: 18/07/2026
 
 ---
 
-# Objetivo
+# Reglas generales
 
-Este documento define las reglas oficiales del negocio de Dropit.
+## Regla 1 — Un pedido consume una Coin
 
-Toda funcionalidad implementada deberá respetar estas reglas.
+Cada pedido consume exactamente una Coin del tamaño correspondiente al momento de crearse.
 
-Si una regla cambia, deberá actualizarse este documento antes de modificar el sistema.
+## Regla 2 — Consumo FIFO
 
----
+Las Coins se consumen desde el lote disponible más antiguo.
 
-# Regla 1
-## Un pedido consume una coin
+## Regla 3 — Un vendedor responsable
 
-Cada pedido creado consume exactamente una coin del tamaño correspondiente.
+Cada pedido pertenece a un único vendedor y este no cambia durante el flujo.
 
-- small → 1 coin small
-- medium → 1 coin medium
+## Regla 4 — Un establecimiento final
 
----
+El vendedor propone opciones y el cliente elige un único establecimiento final.
 
-# Regla 2
-## El consumo ocurre al crear el pedido
+## Regla 5 — Los códigos pertenecen al pedido
 
-La coin se consume en el momento de crear el pedido.
+Los códigos de vendedor, entrega y devolución sólo son válidos para el pedido y etapa correspondientes.
 
-No se consume cuando el pedido es entregado.
+## Regla 6 — El servidor tiene la autoridad
 
----
+El frontend guía la experiencia; servidor y RPC validan estados, permisos, códigos y efectos económicos.
 
-# Regla 3
-## Consumo FIFO
+## Regla 7 — El historial no se elimina
 
-Las coins siempre se consumen utilizando el lote más antiguo disponible.
+Toda transición importante se registra en `pedido_eventos`. El tracking se construye con ese historial y el estado actual.
 
----
+## Regla 8 — Una transición no se repite
 
-# Regla 4
-## Un pedido pertenece a un vendedor
-
-Cada pedido tiene un único vendedor responsable.
-
-Nunca podrá cambiarse durante el flujo.
+Cancelaciones, devoluciones y vencimientos deben ser idempotentes.
 
 ---
 
-# Regla 5
-## Un pedido tiene un único establecimiento final
+# Plazos operativos
 
-Aunque el vendedor pueda proponer varios establecimientos, únicamente uno será seleccionado por el cliente.
+## Regla 9 — Aprobación del establecimiento
 
-Ese establecimiento será el responsable de la recepción y entrega.
+El cliente confirma el punto de entrega y el establecimiento debe aceptar antes de que el vendedor pueda entregar físicamente el paquete.
 
----
+## Regla 10 — Entrega del vendedor: 24 horas
 
-# Regla 6
-## El cliente elige el establecimiento
+El plazo comienza en `establecimiento_aceptado_at`.
 
-La decisión del establecimiento final pertenece al cliente.
+Si el vendedor no entrega dentro de 24 horas:
 
-El vendedor únicamente propone opciones disponibles.
+- el pedido puede cancelarse automáticamente;
+- se libera la capacidad;
+- se reintegra la Coin al lote original;
+- se registra el evento;
+- se notifica al cliente y al vendedor.
 
----
+## Regla 11 — Recolección del cliente: 48 horas
 
-# Regla 7
-## Los códigos son de un solo uso
+El plazo comienza en `recibido_en`.
 
-Los códigos utilizados para recepción y entrega únicamente son válidos para el pedido al que pertenecen.
+Si el cliente no recoge dentro de 48 horas, el sistema inicia automáticamente la devolución al vendedor.
 
----
+## Regla 12 — Recolección de devolución: 48 horas
 
-# Regla 8
-## El historial nunca se elimina
+El plazo comienza en `devolucion_iniciada_at`.
 
-Toda transición importante deberá registrarse en `pedido_eventos`.
+Si el vendedor no recoge dentro de 48 horas, el pedido pasa a `custodia_vencida`.
 
-El historial constituye la fuente oficial del tracking.
+## Regla 13 — Custodia vencida
 
----
-
-# Regla 9
-## El pedido solo puede tener un estado
-
-Un pedido únicamente puede encontrarse en un estado a la vez.
+Al vencer la custodia, el establecimiento deja de estar obligado al resguardo ordinario bajo el flujo Dropit. Esto no transfiere la propiedad del paquete ni autoriza por sí mismo su venta, uso o destrucción.
 
 ---
 
-# Regla 10
-## El flujo no puede retroceder
+# Cancelaciones y reintegros
 
-Las transiciones oficiales únicamente avanzan hacia el siguiente estado.
+## Regla 14 — Cancelación por vendedor
 
-No existen regresos de estado en la versión actual.
+El vendedor puede cancelar únicamente en los estados autorizados por `cancel_order_by_vendor`.
 
----
+## Regla 15 — Reintegro único
 
-# Regla 11
-## El servidor tiene la autoridad
-
-Las reglas críticas se validan en servidor.
-
-El frontend únicamente guía la experiencia del usuario.
+`restore_coin_for_cancelation` identifica el consumo del pedido, restaura una Coin en el lote original y evita un segundo reintegro.
 
 ---
 
-# Regla 12
-## Los establecimientos forman una red
+# Tracking
 
-Dropit opera sobre establecimientos independientes.
+## Regla 16 — Los contadores son informativos
 
-No existen centros de distribución propios.
+Los timers visibles no ejecutan transiciones. Los cambios reales se realizan por APIs, RPC y jobs automáticos.
 
----
+## Regla 17 — Fuente temporal
 
-# Regla 13
-## El tracking proviene del historial
+Cada contador utiliza el timestamp persistido correspondiente y no una fecha calculada localmente por el navegador.
 
-La línea de tiempo del pedido se construye utilizando `pedido_eventos`.
+## Regla 18 — Terminología visible
 
-No debe depender únicamente del estado actual.
+En UX se usa **cliente**, no **comprador**. Los nombres técnicos históricos de rutas o columnas pueden conservarse mientras sean estables.
 
 ---
 
-# Regla 14
-## La documentación es oficial
+# Reglas pendientes
 
-Las reglas contenidas en este documento representan el comportamiento oficial del sistema.
+Requieren diseño funcional y, cuando afecten arquitectura, ADR:
 
-Toda modificación requiere un RFC y la actualización de la documentación correspondiente.
-
----
-
-# Reglas futuras
-
-Las siguientes reglas serán definidas cuando la funcionalidad exista oficialmente:
-
-- Cancelaciones.
-- Expiraciones.
-- Devoluciones.
-- Promociones.
-- Penalizaciones.
-- Entrega manual.
+- Entrega manual por contingencia.
 - Recolección por tercero autorizado.
-
-# Regla 21
-## Cancelación automática por falta de entrega
-
-Si el vendedor no entrega el paquete al establecimiento dentro del plazo de 24 horas desde la aceptación del establecimiento, el sistema cancela automáticamente el pedido. La cancelación reintegra la Coin al lote original (sin modificar su expiración), libera la capacidad reservada, registra un evento de tracking y notifica al cliente y al vendedor. La operación es idempotente y solo puede ejecutarse una vez.
+- Política operativa posterior a `custodia_vencida`.
+- Promociones administrables.

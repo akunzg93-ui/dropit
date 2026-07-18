@@ -55,6 +55,25 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 - Glosario.
 - Reglas de negocio.
 
+## 2026-07-18
+
+### Agregado
+- Flujo automático de devolución por falta de recolección del cliente después de 48 horas.
+- Estado `devolucion_pendiente` y código de devolución para el vendedor.
+- Cierre de devolución con estado `devuelto`.
+- Vencimiento automático de custodia después de 48 horas adicionales.
+- Estado `custodia_vencida` y correo informativo al vendedor.
+- Jobs protegidos `iniciar-devoluciones` y `custodia-vencida`.
+- RPC `get_pedido_tracking` ampliada con timestamps y descripciones de eventos.
+- Timers públicos para entrega, recolección y devolución.
+- Componente reutilizable `CountdownTimer` con UX azul, sin segundos.
+- Flujo dual en tracking: entrega normal y devolución.
+
+### Mejorado
+- Terminología visible estandarizada a “cliente”.
+- Términos y Condiciones actualizados con plazos de 24/48/48 horas.
+- Historial público ahora muestra descripciones reales de los eventos.
+
 ## 2026-07-14
 
 ### Agregado

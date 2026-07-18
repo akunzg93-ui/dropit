@@ -26,7 +26,7 @@ Las alternativas suelen ser:
 - Acuerdos por WhatsApp.
 - Encontrarse en estaciones de metro o plazas comerciales.
 - Servicios de mensajería costosos.
-- Falta de confianza entre comprador y vendedor.
+- Falta de confianza entre cliente y vendedor.
 
 Este mercado ya existe, pero opera de forma informal.
 

@@ -1,271 +1,153 @@
 # Base de Datos de Dropit
 
 > Documento Oficial  
-> Versión: 1.0  
+> Versión: 1.1  
 > Estado: Oficial  
-> Última actualización: 08/07/2026
+> Última actualización: 18/07/2026
 
 ---
 
 # Objetivo
 
-Este documento describe el modelo de datos oficial de Dropit.
-
-La base de datos debe soportar:
-
-- Usuarios y roles.
-- Establecimientos.
-- Pedidos.
-- Estados del flujo.
-- Códigos de seguridad.
-- Eventos de tracking.
-- Coins.
-- Historial de movimientos.
+Este documento describe el modelo de datos oficial de Dropit y las estructuras críticas del flujo logístico, cancelaciones, devoluciones, tracking, Coins y auditoría.
 
 ---
 
 # Principios
 
-La base de datos de Dropit sigue estos principios:
-
 - La información crítica debe persistirse.
-- El flujo del pedido debe ser auditable.
-- Las relaciones deben ser explícitas.
-- La lógica sensible debe validarse desde servidor o RPC.
-- No se deben cambiar tipos de IDs en tablas estables sin RFC.
+- El flujo debe ser auditable.
+- La lógica sensible se valida desde servidor o RPC.
+- Los procesos automáticos deben ser idempotentes.
+- Los IDs estables no se cambian sin RFC.
+- Los timestamps de negocio son la fuente de los plazos operativos.
 
 ---
 
 # Tablas principales
 
 | Tabla | Responsabilidad |
-|------|------------------|
-| profiles | Perfil y rol del usuario |
-| establecimientos | Puntos de entrega registrados |
-| pedidos | Entidad principal del flujo |
-| pedido_establecimientos | Establecimientos candidatos por pedido |
-| pedido_eventos | Historial del pedido |
-| coin_lotes | Lotes de coins compradas o asignadas |
-| coin_movimientos | Historial de compra y consumo de coins |
-
----
-
-# profiles
-
-Guarda información extendida del usuario autenticado.
-
-## Columnas principales
-
-| Columna | Tipo | Descripción |
-|--------|------|-------------|
-| id | uuid | ID del usuario en Supabase Auth |
-| role | text | Rol del usuario |
-| debug | boolean | Bandera auxiliar de pruebas |
-
-## Roles oficiales
-
-- buyer
-- vendor
-- establishment
-- admin
-
----
-
-# establecimientos
-
-Representa un punto físico donde pueden recibirse y entregarse paquetes.
-
-## Columnas principales
-
-| Columna | Tipo | Descripción |
-|--------|------|-------------|
-| id | bigint | Identificador del establecimiento |
-| usuario_id | uuid | Usuario dueño del establecimiento |
-| nombre | text | Nombre del establecimiento |
-| direccion | text | Dirección |
-| cp | text | Código postal |
-| horario | text | Horario visible |
-| lat | numeric | Latitud |
-| lng | numeric | Longitud |
-| capacidad_small | integer | Capacidad para pedidos small |
-| capacidad_medium | integer | Capacidad para pedidos medium |
-| activo | boolean | Indica si participa en la red |
-| zona | text | Zona manual de operación |
-| created_at | timestamp | Fecha de creación |
+|---|---|
+| profiles | Perfil y rol |
+| establecimientos | Puntos físicos de la red |
+| pedidos | Entidad central y estado actual |
+| pedido_establecimientos | Establecimientos candidatos |
+| pedido_eventos | Historial oficial del tracking |
+| coin_lotes | Saldo por lotes |
+| coin_movimientos | Compra, consumo y reintegros |
 
 ---
 
 # pedidos
 
-Entidad central del sistema.
-
-## Columnas principales
+Columnas relevantes del flujo:
 
 | Columna | Tipo | Descripción |
-|--------|------|-------------|
-| id | bigint | Identificador del pedido |
-| vendedor_id | uuid | Usuario vendedor |
-| comprador_id | uuid | Usuario cliente, puede ser null |
-| email_comprador | text | Correo del cliente |
+|---|---|---|
+| id | bigint | Identificador interno |
+| folio | text | Identificador público |
+| vendedor_id | uuid | Vendedor responsable |
+| comprador_id | uuid | Campo técnico histórico del cliente; puede ser null |
+| email_comprador | text | Campo técnico histórico con el correo del cliente |
 | producto | text | Descripción del producto |
-| tamano | text | small o medium |
-| estado | text | Estado actual del pedido |
-| folio | text | Folio público del pedido |
-| codigo_vendedor | text | Código para recepción en establecimiento |
-| codigo_entrega | text | Código para entrega al cliente |
-| establecimiento_id | bigint | Establecimiento final elegido |
-| correo_vendedor_enviado | boolean | Evita duplicar correo al vendedor |
-| correo_comprador_enviado | boolean | Evita duplicar correo al cliente |
-| recibido_en | timestamp | Fecha de recepción en establecimiento |
+| tamano | text | `small` o `medium` |
+| estado | text | Estado actual |
+| establecimiento_uuid | uuid | Establecimiento final elegido |
+| codigo_vendedor | text | Validación de recepción |
+| codigo_entrega | text | Validación de entrega al cliente |
+| codigo_devolucion | text | Validación de devolución al vendedor |
+| created_at | timestamptz | Creación del pedido |
+| establecimiento_notificado_at | timestamptz | Inicio de espera de aprobación |
+| establecimiento_aceptado_at | timestamptz | Inicio del plazo de entrega del vendedor |
+| recibido_en | timestamptz | Inicio del plazo de recolección del cliente |
+| devolucion_iniciada_at | timestamptz | Inicio del plazo de devolución al vendedor |
+| devuelto_at | timestamptz | Devolución completada |
+| custodia_vencida_at | timestamptz | Fin de custodia ordinaria |
+
+Los nombres `comprador_id` y `email_comprador` se conservan por compatibilidad técnica. En UX y documentación funcional se utiliza **cliente**.
 
 ---
 
-# Estados oficiales de pedido
+# Estados oficiales
 
-| Estado |
-|--------|
-| creado |
-| validando_establecimiento |
-| en_transito |
-| pendiente_recoleccion |
-| entregado |
+- `creado`
+- `pendiente_aprobacion_establecimiento`
+- `en_transito`
+- `pendiente_recoleccion`
+- `entregado`
+- `cancelado`
+- `devolucion_pendiente`
+- `devuelto`
+- `custodia_vencida`
 
-Estados futuros como `cancelado`, `expirado` o `devuelto` requieren RFC.
-
----
-
-# pedido_establecimientos
-
-Relaciona un pedido con los establecimientos candidatos seleccionados por el vendedor.
-
-## Columnas principales
-
-| Columna | Tipo | Descripción |
-|--------|------|-------------|
-| id | uuid | Identificador |
-| pedido_id | bigint | Pedido relacionado |
-| establecimiento_id | bigint | Establecimiento candidato |
-| created_at | timestamp | Fecha de creación |
+`validando_establecimiento` es un término histórico y no debe usarse en nuevas implementaciones.
 
 ---
 
 # pedido_eventos
 
-Registra el historial del pedido.
-
-## Columnas principales
+Fuente oficial del historial público y operativo.
 
 | Columna | Tipo | Descripción |
-|--------|------|-------------|
-| id | uuid | Identificador |
+|---|---|---|
+| id | uuid o bigint según implementación estable | Identificador |
 | pedido_id | bigint | Pedido relacionado |
 | estado | text | Estado alcanzado |
-| descripcion | text | Descripción del evento |
-| created_at | timestamp | Fecha del evento |
+| descripcion | text | Descripción visible del evento |
+| created_at | timestamptz | Fecha del evento |
+
+Los eventos deben conservarse y ordenarse por `created_at`.
 
 ---
 
-# coin_lotes
+# Coins y cancelaciones
 
-Representa lotes de coins disponibles por usuario.
+La Coin se consume al crear el pedido mediante FIFO.
 
-## Columnas principales
+Las cancelaciones autorizadas reintegran la Coin al lote original usando el movimiento de consumo como referencia. La función debe evitar dobles reintegros y mantener la expiración original del lote.
 
-| Columna | Tipo | Descripción |
-|--------|------|-------------|
-| id | uuid | Identificador |
-| user_id | uuid | Usuario dueño |
-| tipo | text | small o medium |
-| cantidad | integer | Coins compradas/asignadas |
-| cantidad_disponible | integer | Coins restantes |
-| fecha_expiracion | timestamp | Fecha de expiración |
-| created_at | timestamp | Fecha de creación |
+RPC relacionadas:
+
+- `consume_coin_for_order`
+- `restore_coin_for_cancelation`
+- `cancel_order_by_vendor`
+- `cancel_order_automatic`
 
 ---
 
-# coin_movimientos
+# RPC del flujo y tracking
 
-Historial de movimientos de coins.
+## get_pedido_tracking(text)
 
-## Columnas principales
+Expone únicamente la información necesaria para el seguimiento público:
 
-| Columna | Tipo | Descripción |
-|--------|------|-------------|
-| id | uuid | Identificador |
-| user_id | uuid | Usuario |
-| tipo | text | compra o consumo |
-| coin_tipo | text | small o medium |
-| cantidad | integer | Cantidad movida |
-| lote_id | uuid | Lote relacionado |
-| referencia | text | Referencia del movimiento |
-| created_at | timestamp | Fecha del movimiento |
+- datos generales
+- estado
+- establecimiento
+- `created_at`
+- `establecimiento_aceptado_at`
+- `recibido_en`
+- `devolucion_iniciada_at`
+- `devuelto_at`
+- `custodia_vencida_at`
+- arreglo JSON de eventos con `estado`, `descripcion` y `fecha`
 
----
+Se concede ejecución a `anon` y `authenticated`, manteniendo el contrato de salida controlado.
 
-# Reglas de integridad
+## Devoluciones
 
-- `pedidos.establecimiento_id` guarda el establecimiento final.
-- `pedido_establecimientos` guarda candidatos posibles.
-- `pedido_eventos` es la fuente del tracking.
-- `coin_lotes` guarda disponibilidad.
-- `coin_movimientos` guarda historial.
-- Los IDs de `pedidos` y `establecimientos` se mantienen como `bigint`.
+- `start_order_return`
+- `complete_order_return`
+- `expire_order_return_custody`
 
----
-
-# Seguridad
-
-La base utiliza RLS.
-
-Las operaciones sensibles se ejecutan desde API Routes con Service Role o mediante RPC controladas.
-
-El frontend no debe modificar directamente reglas críticas del flujo.
+Estas funciones validan el estado actual, actualizan timestamps, registran eventos y evitan ejecuciones repetidas.
 
 ---
 
-# Funciones y RPC
+# Integridad y seguridad
 
-## consume_coin_for_order
-
-Consume una coin del vendedor usando FIFO.
-
-Parámetros:
-
-- `p_user_id`
-- `p_tamano`
-
-Responsabilidades:
-
-- Buscar el lote más antiguo disponible.
-- Descontar una coin.
-- Registrar el movimiento.
-- Rechazar la operación si no hay disponibilidad.
-
----
-
-# Decisiones importantes
-
-## IDs bigint
-
-Los IDs de `pedidos` y `establecimientos` permanecen como `bigint`.
-
-No deben migrarse a `uuid` sin RFC, porque un intento previo rompió flujos existentes.
-
-## Coins
-
-Una coin se consume al crear el pedido.
-
-Si el pedido se cancela en el futuro, la devolución de coins deberá definirse mediante RFC.
-
----
-
-# Evoluciones futuras
-
-Pendiente diseñar:
-
-- Cancelaciones.
-- Expiraciones.
-- Devoluciones.
-- Reposición automática de capacidad.
-- Auditoría ampliada.
-- Promociones administrables.
+- `pedido_eventos` no se usa como sustituto del estado actual; ambos se complementan.
+- El frontend no modifica directamente transiciones críticas.
+- Las API Routes usan Service Role o RPC controladas cuando corresponde.
+- RLS permanece activa.
+- QA y Producción conservan bases y variables separadas.

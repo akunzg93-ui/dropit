@@ -1,12 +1,9 @@
 # Flujo Oficial de Pedidos
 
-> Documento Oficial
->
-> Versión: 1.0
->
-> Estado: Oficial
->
-> Última actualización: 08/07/2026
+> Documento Oficial  
+> Versión: 1.1  
+> Estado: Oficial  
+> Última actualización: 18/07/2026
 
 ---
 
@@ -14,318 +11,266 @@
 
 Este documento define el comportamiento oficial del flujo de pedidos de Dropit.
 
-El flujo de pedidos constituye el núcleo del sistema.
-
-Todas las funcionalidades relacionadas con clientes, vendedores, establecimientos, correos, códigos de seguridad, tracking y auditoría dependen de este flujo.
+El flujo de pedidos constituye el núcleo del sistema. Todas las funcionalidades relacionadas con clientes, vendedores, establecimientos, correos, códigos de seguridad, tracking, cancelaciones, devoluciones y auditoría dependen de este flujo.
 
 ---
 
-# Principio
+# Principios
 
-Un pedido únicamente puede encontrarse en un estado a la vez.
-
-Las reglas del negocio no pertenecen a los estados.
-
-Las reglas pertenecen a las transiciones entre estados.
+- Un pedido únicamente puede encontrarse en un estado a la vez.
+- Las reglas del negocio se aplican en las transiciones entre estados.
+- Toda transición relevante debe registrarse en `pedido_eventos`.
+- Los procesos automáticos deben ser idempotentes.
+- Los plazos se calculan con timestamps persistidos en `pedidos`, no con el reloj del frontend.
 
 ---
 
 # Máquina de estados
 
 ```text
-          Crear pedido
-               │
-               ▼
-        ┌─────────────┐
-        │   Creado    │
-        └─────────────┘
-               │
-               │ Cliente confirma establecimiento
-               ▼
-      ┌─────────────────┐
-      │  En tránsito    │
-      └─────────────────┘
-               │
-               │ Establecimiento recibe
-               ▼
- ┌────────────────────────────┐
- │ Pendiente de recolección   │
- └────────────────────────────┘
-               │
-               │ Cliente recoge
-               ▼
-        ┌──────────────┐
-        │  Entregado   │
-        └──────────────┘
+creado
+  │ cliente confirma establecimiento
+  ▼
+pendiente_aprobacion_establecimiento
+  │ establecimiento acepta
+  ▼
+en_transito
+  ├─ vendedor entrega dentro de 24 h ───────────────┐
+  │                                                 ▼
+  └─ no entrega dentro de 24 h ──────────────── cancelado
+                                                    
+pendiente_recoleccion
+  ├─ cliente recoge dentro de 48 h ───────────── entregado
+  │
+  └─ no recoge dentro de 48 h
+        ▼
+devolucion_pendiente
+  ├─ vendedor recoge dentro de 48 h ───────────── devuelto
+  │
+  └─ no recoge dentro de 48 h
+        ▼
+custodia_vencida
 ```
 
 ---
 
 # Estados oficiales
 
-Actualmente el sistema reconoce los siguientes estados oficiales:
-
-| Estado | Descripción |
-|---------|-------------|
-| creado | Pedido generado por el vendedor. |
-| en_transito | El cliente seleccionó un establecimiento y el vendedor debe entregar el paquete. |
-| pendiente_recoleccion | El establecimiento recibió correctamente el paquete y está listo para ser recogido. |
-| entregado | El pedido fue entregado al cliente y el flujo terminó. |
-
-No existen estados adicionales autorizados fuera de este documento.
-
----
-
-# Estados oficiales
-
-## Estados implementados
-
-| Estado | Descripción | Estado terminal |
-|---------|-------------|-----------------|
-| creado | El vendedor crea el pedido. | No |
-| validando_establecimiento | El cliente debe seleccionar un establecimiento. | No |
-| en_transito | El establecimiento fue asignado y el vendedor debe entregar el paquete. | No |
+| Estado | Descripción | Terminal |
+|---|---|---|
+| creado | Pedido creado por el vendedor. | No |
+| pendiente_aprobacion_establecimiento | El cliente eligió el punto y el establecimiento debe aceptar o rechazar. | No |
+| en_transito | El establecimiento aceptó y el vendedor debe entregar el paquete. | No |
 | pendiente_recoleccion | El establecimiento recibió el paquete y espera al cliente. | No |
-| entregado | El cliente recibió el paquete. El flujo finalizó correctamente. | Sí |
+| entregado | El cliente recibió el paquete. | Sí |
+| cancelado | El pedido fue cancelado manual o automáticamente. | Sí |
+| devolucion_pendiente | El cliente no recogió a tiempo y el vendedor debe recuperar el paquete. | No |
+| devuelto | El establecimiento entregó el paquete de regreso al vendedor. | Sí |
+| custodia_vencida | Venció el plazo de devolución y terminó la obligación ordinaria de resguardo del establecimiento. | Sí para el flujo automatizado |
 
----
-
-# Estados futuros
-
-Los siguientes estados podrán incorporarse en versiones futuras mediante un RFC y su correspondiente ADR.
-
-- cancelado
-- expirado
-- devuelto
-
-Estos estados no forman parte de la versión actual del sistema.
+`validando_establecimiento` queda como término histórico y no debe utilizarse en nuevas implementaciones. El estado vigente es `pendiente_aprobacion_establecimiento`.
 
 ---
 
 # Transiciones oficiales
 
-| ID | De | A | Actor |
-|----|----|---|-------|
+| ID | De | A | Actor o proceso |
+|---|---|---|---|
 | T-001 | — | creado | Vendedor |
-| T-002 | creado | validando_establecimiento | Cliente |
-| T-003 | validando_establecimiento | en_transito | Sistema |
-| T-004 | en_transito | pendiente_recoleccion | Establecimiento |
-| T-005 | pendiente_recoleccion | entregado | Establecimiento |
+| T-002 | creado | pendiente_aprobacion_establecimiento | Cliente |
+| T-003 | pendiente_aprobacion_establecimiento | en_transito | Establecimiento |
+| T-004 | pendiente_aprobacion_establecimiento | creado | Rechazo o expiración |
+| T-005 | en_transito | pendiente_recoleccion | Establecimiento |
+| T-006 | en_transito | cancelado | Vendedor o proceso automático |
+| T-007 | pendiente_recoleccion | entregado | Establecimiento |
+| T-008 | pendiente_recoleccion | devolucion_pendiente | Proceso automático |
+| T-009 | devolucion_pendiente | devuelto | Establecimiento |
+| T-010 | devolucion_pendiente | custodia_vencida | Proceso automático |
 
 ---
 
-# Transición T-001
+# Flujo normal
 
-## Crear pedido
+## T-001 — Crear pedido
 
-**De:** Inicio
+El vendedor autenticado registra el pedido, selecciona uno o más establecimientos candidatos y consume una Coin del tamaño correspondiente mediante FIFO.
 
-**A:** creado
+Acciones principales:
 
-**Actor:** Vendedor
+- Generar folio.
+- Insertar el pedido.
+- Relacionar establecimientos candidatos.
+- Consumir una Coin.
+- Registrar el evento inicial.
+- Notificar al cliente cuando corresponda.
 
-### Reglas
+## T-002 — Cliente confirma establecimiento
 
-- El vendedor debe estar autenticado.
-- Debe contar con al menos una coin disponible del tamaño correspondiente.
-- Debe capturar la información obligatoria del pedido.
-- Debe seleccionar uno o más establecimientos candidatos.
+El cliente valida el folio y selecciona uno de los establecimientos propuestos por el vendedor.
 
-### Acciones del sistema
+Resultado:
 
-- Genera el folio único.
-- Consume una coin.
-- Inserta el pedido.
-- Inserta los establecimientos candidatos.
-- Registra el evento correspondiente.
+- Se asigna el establecimiento definitivo.
+- Se registra `establecimiento_notificado_at`.
+- El pedido pasa a `pendiente_aprobacion_establecimiento`.
+- Se notifica al establecimiento.
+- La pantalla redirige al tracking público.
 
-### Resultado
+## T-003 — Establecimiento acepta
 
-El pedido queda creado y disponible para que el cliente seleccione un establecimiento.
+El establecimiento revisa capacidad, tamaño y datos del pedido.
 
----
+Resultado:
 
-# Transición T-002
+- El pedido pasa a `en_transito`.
+- Se registra `establecimiento_aceptado_at`.
+- Se genera `codigo_vendedor` si no existe.
+- Se notifica al vendedor.
+- Comienza el plazo de 24 horas para entregar el paquete.
 
-## Seleccionar establecimiento
+## T-004 — Rechazo o expiración de aprobación
 
-**De:** creado
+Si el establecimiento rechaza o no responde dentro del plazo configurado, el pedido regresa a `creado` para permitir que el cliente seleccione otro punto disponible.
 
-**A:** validando_establecimiento
+## T-005 — Establecimiento recibe
 
-**Actor:** Cliente
+Reglas:
 
-### Reglas
+- El pedido debe estar en `en_transito`.
+- El folio y `codigo_vendedor` deben ser válidos.
 
-- El folio debe existir.
-- El pedido debe encontrarse en estado `creado`.
-- El cliente debe seleccionar uno de los establecimientos disponibles.
+Resultado:
 
-### Acciones del sistema
+- El pedido pasa a `pendiente_recoleccion`.
+- Se registra `recibido_en`.
+- Se genera `codigo_entrega` si no existe.
+- Se registra el evento.
+- Se notifica al cliente.
+- Comienza el plazo de 48 horas para recolección.
 
-- Valida la selección.
-- Asocia el establecimiento definitivo al pedido.
+## T-007 — Cliente recoge
 
-### Resultado
+Reglas:
 
-El pedido queda listo para confirmar la asignación del establecimiento.
-
----
-
-# Transición T-003
-
-## Confirmar establecimiento
-
-**De:** validando_establecimiento
-
-**A:** en_transito
-
-**Actor:** Sistema
-
-### Reglas
-
-- Debe existir un establecimiento seleccionado.
-- El pedido debe permanecer en estado `validando_establecimiento`.
-
-### Acciones del sistema
-
-- Actualiza el estado del pedido.
-- Registra el evento correspondiente.
-- Envía el correo al vendedor con el código de recepción.
-
-### Resultado
-
-El vendedor puede entregar el paquete al establecimiento seleccionado.
-
----
-
-# Transición T-004
-
-## Recibir pedido
-
-**De:** en_transito
-
-**A:** pendiente_recoleccion
-
-**Actor:** Establecimiento
-
-### Reglas
-
-- El folio debe existir.
-- El código del vendedor debe ser válido.
-- El pedido debe estar en estado `en_transito`.
-
-### Acciones del sistema
-
-- Valida el código.
-- Genera el código de entrega (si no existe).
-- Actualiza el estado.
-- Registra el evento.
-- Envía el correo al cliente con el QR de recolección.
-
-### Resultado
-
-El pedido queda disponible para ser recogido.
-
----
-
-# Transición T-005
-
-## Entregar pedido
-
-**De:** pendiente_recoleccion
-
-**A:** entregado
-
-**Actor:** Establecimiento
-
-### Reglas
-
+- El pedido debe estar en `pendiente_recoleccion`.
 - El código de entrega debe ser válido.
-- El pedido debe estar en estado `pendiente_recoleccion`.
 
-### Acciones del sistema
+Resultado:
 
-- Valida el código.
-- Actualiza el estado.
-- Registra el evento.
-
-### Resultado
-
-El flujo del pedido finaliza correctamente.
+- El pedido pasa a `entregado`.
+- Se registra el evento.
+- Finaliza el flujo normal.
 
 ---
 
-# Validaciones generales
+# Cancelación
 
-Todas las transiciones del flujo deberán cumplir las siguientes reglas:
+## T-006 — Cancelación en tránsito
 
-- El pedido debe existir.
-- El estado actual debe coincidir con la transición solicitada.
-- Solo el actor autorizado puede ejecutar la transición.
-- Toda transición deberá registrarse en el historial del pedido.
-- Ninguna transición podrá ejecutarse dos veces.
+Si transcurren 24 horas desde `establecimiento_aceptado_at` sin recepción física, el proceso automático puede cancelar el pedido.
 
----
+Efectos:
 
-# Auditoría
+- Estado `cancelado`.
+- Liberación de capacidad reservada.
+- Reintegro de la Coin al lote original mediante `restore_coin_for_cancelation`.
+- Evento de tracking.
+- Correos al cliente y al vendedor.
+- Prevención de doble reintegro y doble cancelación.
 
-Cada transición deberá generar un registro en `pedido_eventos`.
-
-El registro deberá contener al menos:
-
-- Pedido.
-- Estado alcanzado.
-- Descripción del evento.
-- Fecha y hora.
-
-El historial constituye la fuente oficial para el tracking del pedido.
+El vendedor también puede cancelar en los estados autorizados mediante `cancel_order_by_vendor`.
 
 ---
 
-# Notificaciones
+# Flujo de devolución
 
-El sistema enviará notificaciones únicamente cuando una transición lo requiera.
+## T-008 — Inicio automático de devolución
 
-| Transición | Notificación |
-|------------|--------------|
-| T-003 | Correo al vendedor con código de recepción |
-| T-004 | Correo al cliente con QR de recolección |
+Si transcurren 48 horas desde `recibido_en` sin entrega al cliente:
+
+- El pedido pasa a `devolucion_pendiente`.
+- Se registra `devolucion_iniciada_at`.
+- Se genera o conserva el mecanismo de validación correspondiente.
+- Se registra el evento.
+- Se notifica al cliente y al vendedor.
+- Comienza un nuevo plazo de 48 horas para que el vendedor recoja el paquete.
+
+La transición se ejecuta mediante `start_order_return` y un job protegido.
+
+## T-009 — Devolución completada
+
+El establecimiento valida la entrega del paquete al vendedor.
+
+Resultado:
+
+- Estado `devuelto`.
+- Se registra `devuelto_at`.
+- Se registra el evento.
+- Finaliza el flujo de devolución.
+
+La transición se ejecuta mediante `complete_order_return`.
+
+## T-010 — Custodia vencida
+
+Si transcurren 48 horas desde `devolucion_iniciada_at` sin que el vendedor recoja:
+
+- Estado `custodia_vencida`.
+- Se registra `custodia_vencida_at`.
+- Se registra el evento.
+- Se notifica al vendedor.
+- El establecimiento deja de estar obligado al resguardo ordinario bajo el flujo Dropit.
+
+La transición se ejecuta mediante `expire_order_return_custody` y un job protegido.
 
 ---
 
-# Errores
+# Tracking público
 
-Cuando una transición falle:
+La ruta pública es `/track/[folio]`.
 
-- El estado del pedido no deberá modificarse.
-- No deberán enviarse notificaciones.
-- Deberá registrarse el motivo del error en los logs del sistema.
+El tracking se obtiene mediante la RPC `get_pedido_tracking(text)` y muestra:
+
+- Datos generales del pedido.
+- Estado actual.
+- Establecimiento elegido.
+- Historial ordenado desde `pedido_eventos`.
+- Descripción y fecha de cada evento.
+- Timestamps operativos necesarios para los plazos.
+
+## Contadores visibles
+
+| Estado | Inicio | Duración |
+|---|---|---|
+| en_transito | `establecimiento_aceptado_at` | 24 horas |
+| pendiente_recoleccion | `recibido_en` | 48 horas |
+| devolucion_pendiente | `devolucion_iniciada_at` | 48 horas |
+
+Los contadores son informativos. El backend y los jobs automáticos son la autoridad para cambiar el estado.
+
+El componente reutilizable `CountdownTimer` utiliza la identidad visual azul de Dropit, muestra días cuando corresponda y omite segundos.
 
 ---
 
-# Cierre del flujo
+# Auditoría y notificaciones
 
-El flujo concluye cuando el pedido alcanza el estado `entregado`.
+Toda transición debe generar un evento con:
 
-A partir de este punto no podrán ejecutarse nuevas transiciones sobre el pedido.
+- `pedido_id`
+- `estado`
+- `descripcion`
+- `created_at`
+
+Las notificaciones se envían únicamente después de una transición válida. Si una operación falla, el estado no debe cambiar y no deben enviarse correos de éxito.
 
 ---
 
-# Evoluciones futuras
+# Cierre
 
-Las siguientes funcionalidades se consideran extensiones del flujo y deberán diseñarse mediante un RFC antes de implementarse:
+Los estados terminales actuales son:
 
-- Cancelaciones.
-- Expiración automática.
-- Devoluciones.
-- Entrega manual por contingencia.
-- Reprogramación de entrega.
+- `entregado`
+- `cancelado`
+- `devuelto`
+- `custodia_vencida` para el flujo automatizado de resguardo
 
-## Cancelación automática por falta de entrega
-
-Nueva transición oficial:
-
-`en_transito -> cancelado`
-
-Se ejecuta automáticamente cuando transcurren 24 horas desde `establecimiento_aceptado_at` sin que el establecimiento confirme la recepción del paquete. La transición reintegra la Coin al lote original, libera la capacidad reservada, registra un evento de tracking y envía notificaciones al cliente y al vendedor.
+La entrega manual por contingencia continúa pendiente y requiere diseño funcional y ADR antes de implementarse.
