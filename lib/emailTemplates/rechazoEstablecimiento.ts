@@ -1,85 +1,237 @@
-export function emailRechazoEstablecimiento({ folio }: { folio: string }) {
+import {
+  baseEmailTemplate,
+  emailButton,
+  emailNotice,
+} from "./baseEmailTemplate";
+
+export function emailRechazoEstablecimiento({
+  folio,
+}: {
+  folio: string;
+}) {
   const link = `https://app.dropitt.net/track/${folio}`;
 
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8" />
-<title>Dropit</title>
-</head>
+  const contenido = `
+    <div style="
+      background:#eef2ff;
+      border:1px solid #c7d2fe;
+      border-radius:14px;
+      padding:22px 18px;
+      text-align:center;
+    ">
+      <div style="
+        color:#2563eb;
+        font-size:12px;
+        line-height:18px;
+        font-weight:700;
+        letter-spacing:2px;
+      ">
+        FOLIO DEL PEDIDO
+      </div>
 
-<body style="margin:0;padding:40px;background:#f4f7fb;font-family:Arial,Helvetica,sans-serif;">
+      <div
+        class="mobile-folio"
+        style="
+          margin-top:10px;
+          color:#1e40af;
+          font-size:34px;
+          line-height:42px;
+          font-weight:800;
+          letter-spacing:1px;
+          word-break:break-word;
+        "
+      >
+        ${folio}
+      </div>
+    </div>
 
-<table align="center" width="700" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.08);">
-<tr>
-<td style="background:linear-gradient(90deg,#2563eb,#3b82f6);padding:40px;color:white;">
-<h1 style="margin:0;font-size:34px;">Tu pedido sigue activo 👍</h1>
-<p style="margin-top:14px;font-size:18px;line-height:28px;opacity:.95;">
-El establecimiento seleccionado no pudo recibir tu paquete. Solo necesitamos que elijas otro punto de entrega para continuar.
-</p>
-</td>
-</tr>
+    <h2
+      class="mobile-section-title"
+      style="
+        margin:28px 0 0;
+        color:#1e3a8a;
+        font-size:22px;
+        line-height:30px;
+        font-weight:700;
+        text-align:center;
+      "
+    >
+      ¿Qué sigue ahora?
+    </h2>
 
-<tr>
-<td style="padding:35px;">
+    <table
+      class="mobile-block"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      role="presentation"
+      style="
+        margin-top:22px;
+        border-collapse:collapse;
+        table-layout:fixed;
+      "
+    >
+      <tr>
+        <td
+          class="mobile-step"
+          width="50%"
+          valign="top"
+          align="center"
+          style="
+            padding:0 8px 18px;
+            text-align:center;
+          "
+        >
+          <div style="font-size:34px;line-height:42px;">
+            🏪
+          </div>
 
-<div style="background:#eef5ff;border-radius:18px;padding:25px;text-align:center;">
-<div style="font-size:13px;font-weight:bold;letter-spacing:2px;color:#2563eb;">
-FOLIO DEL PEDIDO
-</div>
-<div style="margin-top:12px;font-size:42px;font-weight:800;color:#1e40af;">
-${folio}
-</div>
-</div>
+          <div style="
+            margin-top:8px;
+            color:#1e3a8a;
+            font-size:14px;
+            line-height:20px;
+            font-weight:700;
+          ">
+            Elige otro establecimiento
+          </div>
 
-<h2 style="margin-top:42px;font-size:28px;color:#1e3a8a;text-align:center;">
-¿Qué sigue ahora?
-</h2>
+          <div style="
+            margin-top:6px;
+            color:#64748b;
+            font-size:12px;
+            line-height:18px;
+          ">
+            Selecciona un nuevo punto disponible para continuar.
+          </div>
+        </td>
 
-<table width="100%" style="margin-top:30px;">
-<tr>
-<td align="center" width="25%" style="padding:8px;">
-<div style="font-size:40px;">🏪</div>
-<h3 style="color:#1e3a8a;">Elige otro establecimiento</h3>
-<p style="color:#64748b;">Selecciona un nuevo punto disponible para continuar.</p>
-</td>
+        <td
+          class="mobile-step"
+          width="50%"
+          valign="top"
+          align="center"
+          style="
+            padding:0 8px 18px;
+            text-align:center;
+          "
+        >
+          <div style="font-size:34px;line-height:42px;">
+            📦
+          </div>
 
-<td align="center" width="25%" style="padding:8px;">
-<div style="font-size:40px;">📦</div>
-<h3 style="color:#1e3a8a;">Tu pedido sigue activo</h3>
-<p style="color:#64748b;">No necesitas crear un nuevo pedido.</p>
-</td>
+          <div style="
+            margin-top:8px;
+            color:#1e3a8a;
+            font-size:14px;
+            line-height:20px;
+            font-weight:700;
+          ">
+            Tu pedido sigue activo
+          </div>
 
-<td align="center" width="25%" style="padding:8px;">
-<div style="font-size:40px;">📧</div>
-<h3 style="color:#1e3a8a;">Te avisaremos</h3>
-<p style="color:#64748b;">Cuando el nuevo establecimiento acepte, recibirás una notificación.</p>
-</td>
+          <div style="
+            margin-top:6px;
+            color:#64748b;
+            font-size:12px;
+            line-height:18px;
+          ">
+            No necesitas crear un nuevo pedido.
+          </div>
+        </td>
+      </tr>
 
-<td align="center" width="25%" style="padding:8px;">
-<div style="font-size:40px;">📲</div>
-<h3 style="color:#1e3a8a;">Consulta el avance</h3>
-<p style="color:#64748b;">Puedes seguir el estado usando tu folio.</p>
-</td>
-</tr>
-</table>
+      <tr>
+        <td
+          class="mobile-step"
+          width="50%"
+          valign="top"
+          align="center"
+          style="
+            padding:0 8px;
+            text-align:center;
+          "
+        >
+          <div style="font-size:34px;line-height:42px;">
+            📧
+          </div>
 
-<div style="margin-top:35px;background:#eef5ff;padding:18px;border-radius:16px;text-align:center;color:#1e40af;">
-💡 <strong>Tip:</strong> Cambiar el establecimiento toma menos de un minuto y el proceso continuará normalmente.
-</div>
+          <div style="
+            margin-top:8px;
+            color:#1e3a8a;
+            font-size:14px;
+            line-height:20px;
+            font-weight:700;
+          ">
+            Te avisaremos
+          </div>
 
-<div style="margin-top:35px;text-align:center;">
-<a href="${link}" style="display:inline-block;padding:18px 34px;background:#2563eb;color:white;font-weight:bold;text-decoration:none;border-radius:14px;">
-Elegir otro establecimiento
-</a>
-</div>
+          <div style="
+            margin-top:6px;
+            color:#64748b;
+            font-size:12px;
+            line-height:18px;
+          ">
+            Recibirás una notificación cuando el nuevo establecimiento acepte.
+          </div>
+        </td>
 
-</td>
-</tr>
-</table>
+        <td
+          class="mobile-step"
+          width="50%"
+          valign="top"
+          align="center"
+          style="
+            padding:0 8px;
+            text-align:center;
+          "
+        >
+          <div style="font-size:34px;line-height:42px;">
+            📲
+          </div>
 
-</body>
-</html>
-`;
+          <div style="
+            margin-top:8px;
+            color:#1e3a8a;
+            font-size:14px;
+            line-height:20px;
+            font-weight:700;
+          ">
+            Consulta el avance
+          </div>
+
+          <div style="
+            margin-top:6px;
+            color:#64748b;
+            font-size:12px;
+            line-height:18px;
+          ">
+            Puedes seguir el estado del pedido usando tu folio.
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    ${emailNotice({
+      tipo: "informativo",
+      texto:
+        "💡 <strong>Tip:</strong> Cambiar el establecimiento toma menos de un minuto y el proceso continuará normalmente.",
+    })}
+
+    ${emailButton({
+      texto: "Elegir otro establecimiento",
+      url: link,
+      tipo: "informativo",
+    })}
+  `;
+
+  return baseEmailTemplate({
+    tipo: "informativo",
+    titulo: "Tu pedido sigue activo 👍",
+    subtitulo:
+      "El establecimiento seleccionado no pudo recibir tu paquete. Elige otro punto de entrega para continuar.",
+    contenido,
+    footer:
+      "Tu pedido sigue activo y no necesitas crear uno nuevo.",
+  });
 }

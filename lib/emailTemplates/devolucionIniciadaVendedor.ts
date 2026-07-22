@@ -1,3 +1,8 @@
+import {
+  baseEmailTemplate,
+  emailButton,
+} from "./baseEmailTemplate";
+
 export function emailDevolucionIniciadaVendedor({
   folio,
   codigoDevolucion,
@@ -7,147 +12,124 @@ export function emailDevolucionIniciadaVendedor({
 }) {
   const link = `https://app.dropitt.net/track/${folio}`;
 
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8" />
-<title>Recoge tu devolución · Dropit</title>
-</head>
+  const contenido = `
+    <div style="
+      padding:16px 16px;
+      background:#fff7ed;
+      border:1px solid #fed7aa;
+      border-radius:14px;
+      text-align:center;
+    ">
+      <div style="
+        color:#c2410c;
+        font-size:12px;
+        line-height:18px;
+        font-weight:700;
+        letter-spacing:2px;
+      ">
+        CÓDIGO DE DEVOLUCIÓN
+      </div>
 
-<body style="
-margin:0;
-padding:40px;
-background:#f4f7fb;
-font-family:Arial,Helvetica,sans-serif;
-">
+      <div
+        class="mobile-collection-code"
+        style="
+          margin-top:10px;
+          display:inline-block;
+          max-width:100%;
+          box-sizing:border-box;
+          padding:16px 22px;
+          border-radius:12px;
+          background:#fff7ed;
+          color:#9a3412;
+          font-size:36px;
+          line-height:42px;
+          font-weight:800;
+          letter-spacing:6px;
+          word-break:break-word;
+        "
+      >
+        ${codigoDevolucion}
+      </div>
+    </div>
 
-<table
-align="center"
-width="700"
-cellpadding="0"
-cellspacing="0"
-style="
-background:#ffffff;
-border-radius:24px;
-overflow:hidden;
-box-shadow:0 12px 40px rgba(0,0,0,.08);
-">
+    <div style="
+      margin-top:16px;
+      padding:14px 16px;
+      background:#fcfcfd;
+      border:1px solid #e5e7eb;
+      border-radius:14px;
+    ">
 
-<tr>
-<td style="
-background:linear-gradient(90deg,#f97316,#ea580c);
-padding:40px;
-color:white;
-">
+      <p style="
+        margin:0;
+        color:#374151;
+        font-size:15px;
+        line-height:24px;
+      ">
+        El proceso de devolución del pedido
+        <strong>${folio}</strong>
+        fue iniciado automáticamente.
+      </p>
 
-<h1 style="margin:0;font-size:36px;">
-Recoge tu devolución
-</h1>
+      <div style="
+        height:1px;
+        margin:12px 0;
+        background:#e5e7eb;
+      "></div>
 
-<p style="
-margin-top:14px;
-font-size:18px;
-line-height:28px;
-opacity:.95;
-">
-El cliente no recogió el paquete dentro del plazo de 48 horas.
-</p>
+      <p style="
+        margin:0;
+        color:#374151;
+        font-size:15px;
+        line-height:24px;
+      ">
+        Tienes <strong>48 horas</strong> para acudir al establecimiento y recoger el paquete.
+      </p>
 
-</td>
-</tr>
+      <div style="
+        height:1px;
+        margin:12px 0;
+        background:#e5e7eb;
+      "></div>
 
-<tr>
-<td style="padding:35px;">
+      <p style="
+        margin:0;
+        color:#374151;
+        font-size:15px;
+        line-height:24px;
+      ">
+        Presenta este código al establecimiento para confirmar la entrega.
+      </p>
 
-<div style="
-background:#fff7ed;
-border:1px solid #fed7aa;
-border-radius:18px;
-padding:25px;
-text-align:center;
-">
+    </div>
 
-<div style="
-font-size:13px;
-font-weight:bold;
-letter-spacing:2px;
-color:#c2410c;
-">
-CÓDIGO DE DEVOLUCIÓN
-</div>
+    <div style="
+      margin-top:18px;
+      padding:14px 16px;
+      background:#fff7ed;
+      border:1px solid #fed7aa;
+      border-radius:12px;
+      color:#9a3412;
+      font-size:14px;
+      line-height:22px;
+    ">
+      ⏱️ Si no recoges el paquete dentro del plazo establecido, el establecimiento podrá dejar de resguardarlo conforme a los Términos y Condiciones de Dropit.
+    </div>
 
-<div style="
-margin-top:12px;
-font-size:42px;
-font-weight:800;
-color:#9a3412;
-">
-${codigoDevolucion}
-</div>
+    ${emailButton({
+      texto: "Ver seguimiento",
+      url: link,
+      tipo: "informativo",
+    })}
+  `;
 
-</div>
-
-<div style="
-margin-top:30px;
-background:#f8fafc;
-border:1px solid #e2e8f0;
-border-radius:18px;
-padding:24px;
-color:#475569;
-font-size:16px;
-line-height:26px;
-">
-
-<p style="margin-top:0;">
-El proceso de devolución del pedido <strong>${folio}</strong> fue iniciado automáticamente.
-</p>
-
-<p>
-Tienes 48 horas para acudir al establecimiento y recoger el paquete.
-</p>
-
-<p style="margin-bottom:0;">
-Presenta este código al establecimiento para confirmar la entrega.
-</p>
-
-</div>
-
-<div style="margin-top:35px;text-align:center;">
-<a
-href="${link}"
-style="
-display:inline-block;
-padding:18px 34px;
-background:#2563eb;
-color:white;
-font-weight:bold;
-text-decoration:none;
-border-radius:14px;
-"
->
-Ver seguimiento
-</a>
-</div>
-
-</td>
-</tr>
-
-<tr>
-<td style="
-background:#f8fafc;
-padding:20px;
-text-align:center;
-font-size:12px;
-color:#64748b;
-">
-<strong style="color:#2563eb;">DROPIT</strong><br />
-Logística fácil y sin dramas
-</td>
-</tr>
-
-</table>
-</body>
-</html>
-`;
+  return baseEmailTemplate({
+    tipo: "pendiente",
+    titulo: "📦 Recoge tu devolución",
+    subtitulo:
+      "El cliente no recogió el paquete dentro del plazo establecido.",
+    contenido,
+    footer:
+      "Este código se valida cuando el establecimiento entrega nuevamente el paquete al vendedor.",
+  });
 }

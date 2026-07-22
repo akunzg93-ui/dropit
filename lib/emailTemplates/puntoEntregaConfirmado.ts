@@ -1,3 +1,9 @@
+import {
+  baseEmailTemplate,
+  emailButton,
+  emailNotice,
+} from "./baseEmailTemplate";
+
 export function emailPuntoEntregaConfirmado({
   folio,
   establecimientoNombre,
@@ -7,203 +13,248 @@ export function emailPuntoEntregaConfirmado({
 }) {
   const link = `https://app.dropitt.net/track/${folio}`;
 
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8" />
-<title>Dropit</title>
-</head>
+  const contenido = `
+    <div style="
+      background:#eef2ff;
+      border-radius:14px;
+      padding:22px 18px;
+      text-align:center;
+    ">
+      <div style="
+        margin:0;
+        color:#2563eb;
+        font-size:12px;
+        line-height:18px;
+        font-weight:700;
+        letter-spacing:2px;
+      ">
+        FOLIO DEL PEDIDO
+      </div>
 
-<body style="
-margin:0;
-padding:40px;
-background:#f4f7fb;
-font-family:Arial,Helvetica,sans-serif;
-">
+      <div
+        class="mobile-folio"
+        style="
+          margin-top:10px;
+          color:#1e40af;
+          font-size:34px;
+          line-height:42px;
+          font-weight:800;
+          letter-spacing:1px;
+          word-break:break-word;
+        "
+      >
+        ${folio}
+      </div>
+    </div>
 
-<table
-align="center"
-width="700"
-cellpadding="0"
-cellspacing="0"
-style="
-background:#ffffff;
-border-radius:24px;
-overflow:hidden;
-box-shadow:0 12px 40px rgba(0,0,0,.08);
-">
+    ${
+      establecimientoNombre
+        ? `
+          <table
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            role="presentation"
+            style="
+              margin-top:22px;
+              border-collapse:collapse;
+            "
+          >
+            <tr>
+              <td style="
+                padding:0;
+                color:#6b7280;
+                font-size:14px;
+                line-height:21px;
+                vertical-align:top;
+              ">
+                Establecimiento
+              </td>
 
-<tr>
-<td
-style="
-background:linear-gradient(90deg,#2563eb,#3b82f6);
-padding:40px;
-color:white;
-">
+              <td style="
+                padding:0 0 0 16px;
+                color:#111827;
+                font-size:14px;
+                line-height:21px;
+                font-weight:600;
+                text-align:right;
+                vertical-align:top;
+                word-break:break-word;
+              ">
+                ${establecimientoNombre}
+              </td>
+            </tr>
+          </table>
+        `
+        : ""
+    }
 
-<h1 style="margin:0;font-size:36px;">
-🎉 Punto de entrega confirmado
-</h1>
+    <div style="
+      height:1px;
+      margin:26px 0;
+      background:#e5e7eb;
+    "></div>
 
-<p style="
-margin-top:14px;
-font-size:18px;
-line-height:28px;
-opacity:.95;
-">
-Excelente elección.
-Tu establecimiento ya fue registrado correctamente.
-</p>
+    <h2
+      class="mobile-section-title"
+      style="
+        margin:0;
+        color:#1e3a8a;
+        font-size:22px;
+        line-height:30px;
+        font-weight:700;
+        text-align:center;
+      "
+    >
+      ¿Qué sigue ahora?
+    </h2>
 
-</td>
-</tr>
+    <table
+      class="mobile-block"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      role="presentation"
+      style="
+        margin-top:24px;
+        border-collapse:collapse;
+        table-layout:fixed;
+      "
+    >
+      <tr>
+        <td
+          class="mobile-step"
+          width="33.33%"
+          valign="top"
+          align="center"
+          style="
+            padding:0 8px;
+            text-align:center;
+          "
+        >
+          <div style="
+            font-size:34px;
+            line-height:42px;
+          ">
+            🚚
+          </div>
 
-<tr>
-<td style="padding:35px;">
+          <div style="
+            margin-top:10px;
+            color:#1e3a8a;
+            font-size:14px;
+            line-height:20px;
+            font-weight:700;
+          ">
+            El vendedor llevará el paquete
+          </div>
 
-<div style="
-background:#eef5ff;
-border-radius:18px;
-padding:25px;
-text-align:center;
-">
+          <div style="
+            margin-top:8px;
+            color:#64748b;
+            font-size:12px;
+            line-height:18px;
+          ">
+            Una vez aprobado por el establecimiento, el vendedor realizará la entrega.
+          </div>
+        </td>
 
-<div style="
-font-size:13px;
-font-weight:bold;
-letter-spacing:2px;
-color:#2563eb;
-">
-FOLIO DEL PEDIDO
-</div>
+        <td
+          class="mobile-step"
+          width="33.33%"
+          valign="top"
+          align="center"
+          style="
+            padding:0 8px;
+            text-align:center;
+          "
+        >
+          <div style="
+            font-size:34px;
+            line-height:42px;
+          ">
+            📧
+          </div>
 
-<div style="
-margin-top:12px;
-font-size:42px;
-font-weight:800;
-color:#1e40af;
-">
-${folio}
-</div>
+          <div style="
+            margin-top:10px;
+            color:#1e3a8a;
+            font-size:14px;
+            line-height:20px;
+            font-weight:700;
+          ">
+            Te avisaremos
+          </div>
 
-</div>
+          <div style="
+            margin-top:8px;
+            color:#64748b;
+            font-size:12px;
+            line-height:18px;
+          ">
+            Recibirás un correo cuando tu paquete esté listo para recoger.
+          </div>
+        </td>
 
-${
-  establecimientoNombre
-    ? `
-<p style="
-margin-top:24px;
-font-size:16px;
-color:#475569;
-">
-📍 Establecimiento seleccionado:
-<strong>${establecimientoNombre}</strong>
-</p>
-`
-    : ""
-}
+        <td
+          class="mobile-step"
+          width="33.33%"
+          valign="top"
+          align="center"
+          style="
+            padding:0 8px;
+            text-align:center;
+          "
+        >
+          <div style="
+            font-size:34px;
+            line-height:42px;
+          ">
+            📲
+          </div>
 
-<h2 style="
-margin-top:42px;
-font-size:28px;
-color:#1e3a8a;
-text-align:center;
-">
-¿Qué sigue ahora?
-</h2>
+          <div style="
+            margin-top:10px;
+            color:#1e3a8a;
+            font-size:14px;
+            line-height:20px;
+            font-weight:700;
+          ">
+            Sigue tu pedido
+          </div>
 
-<table width="100%" style="margin-top:30px;">
-<tr>
+          <div style="
+            margin-top:8px;
+            color:#64748b;
+            font-size:12px;
+            line-height:18px;
+          ">
+            Consulta el estado cuando quieras usando tu folio.
+          </div>
+        </td>
+      </tr>
+    </table>
 
-<td align="center" width="33%">
-<div style="font-size:42px;">🚚</div>
+    ${emailNotice({
+      tipo: "informativo",
+      texto:
+        "💡 <strong>Tip:</strong> Guarda este folio. Lo necesitarás para consultar el estado de tu pedido.",
+    })}
 
-<h3 style="color:#1e3a8a;">
-El vendedor llevará el paquete
-</h3>
+    ${emailButton({
+      texto: "Ver seguimiento",
+      url: link,
+      tipo: "informativo",
+    })}
+  `;
 
-<p style="color:#64748b;">
-Una vez aprobado por el establecimiento,
-el vendedor realizará la entrega.
-</p>
-</td>
-
-<td align="center" width="33%">
-<div style="font-size:42px;">📧</div>
-
-<h3 style="color:#1e3a8a;">
-Te avisaremos
-</h3>
-
-<p style="color:#64748b;">
-Recibirás un correo cuando
-tu paquete esté listo para recoger.
-</p>
-</td>
-
-<td align="center" width="33%">
-<div style="font-size:42px;">📲</div>
-
-<h3 style="color:#1e3a8a;">
-Sigue tu pedido
-</h3>
-
-<p style="color:#64748b;">
-Consulta el estado cuando quieras usando tu folio.
-</p>
-</td>
-
-</tr>
-</table>
-
-<div style="
-margin-top:35px;
-background:#eef5ff;
-padding:18px;
-border-radius:16px;
-text-align:center;
-color:#1e40af;
-">
-
-💡
-<strong>Tip:</strong>
-
-Guarda este folio.
-Lo necesitarás para consultar el estado de tu pedido.
-
-</div>
-
-<div style="
-margin-top:35px;
-text-align:center;
-">
-
-<a
-href="${link}"
-style="
-display:inline-block;
-padding:18px 34px;
-background:#2563eb;
-color:white;
-font-weight:bold;
-text-decoration:none;
-border-radius:14px;
-"
->
-
-Ver seguimiento
-
-</a>
-
-</div>
-
-</td>
-</tr>
-
-</table>
-
-</body>
-</html>
-`;
+  return baseEmailTemplate({
+    tipo: "informativo",
+    titulo: "🎉 Punto de entrega confirmado",
+    subtitulo:
+      "Excelente elección. Tu establecimiento ya fue registrado correctamente.",
+    contenido,
+    footer:
+      "Te avisaremos por correo cuando tu paquete esté listo para recoger.",
+  });
 }

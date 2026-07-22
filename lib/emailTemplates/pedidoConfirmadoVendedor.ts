@@ -1,22 +1,20 @@
-import {
-  baseEmailTemplate,
-} from "./baseEmailTemplate";
+import { baseEmailTemplate } from "./baseEmailTemplate";
 
-type EmailPedidoListoParaRecogerParams = {
+type EmailPedidoConfirmadoVendedorParams = {
   folio: string;
   establecimiento: string;
   direccion: string;
-  codigoEntrega: string;
+  codigoVendedor: string;
   qrUrl: string;
 };
 
-export function emailPedidoListoParaRecoger({
+export function emailPedidoConfirmadoVendedor({
   folio,
   establecimiento,
   direccion,
-  codigoEntrega,
+  codigoVendedor,
   qrUrl,
-}: EmailPedidoListoParaRecogerParams) {
+}: EmailPedidoConfirmadoVendedorParams) {
   const contenido = `
     <div style="
       padding:16px 16px;
@@ -121,7 +119,7 @@ export function emailPedidoListoParaRecoger({
         font-size:13px;
         line-height:20px;
       ">
-        Código de recolección
+        Código para entregar en el establecimiento
       </p>
 
       <div
@@ -141,7 +139,7 @@ export function emailPedidoListoParaRecoger({
           word-break:break-word;
         "
       >
-        ${codigoEntrega}
+        ${codigoVendedor}
       </div>
 
       <p style="
@@ -150,7 +148,7 @@ export function emailPedidoListoParaRecoger({
         font-size:14px;
         line-height:21px;
       ">
-        Presenta este código o el QR para recoger tu paquete.
+        Presenta este código o escanea el QR al entregar el paquete.
       </p>
 
       <img
@@ -158,7 +156,7 @@ export function emailPedidoListoParaRecoger({
         src="${qrUrl}"
         alt="Código QR del pedido"
         width="220"
-        height="220"
+        height="229"
         style="
           display:block;
           width:220px;
@@ -182,16 +180,17 @@ export function emailPedidoListoParaRecoger({
       font-size:14px;
       line-height:21px;
     ">
-      ⏱️ Recoge tu paquete dentro del plazo indicado en el seguimiento para evitar que inicie el proceso de devolución.
+      ⏱️ Lleva el paquete al establecimiento dentro de las próximas
+      <strong>24 horas</strong> para evitar la cancelación automática.
     </div>
   `;
 
   return baseEmailTemplate({
     tipo: "informativo",
-    titulo: "📦 Pedido listo para recoger",
-    subtitulo: "Tu paquete ya llegó al establecimiento",
+    titulo: "📦 Pedido confirmado",
+    subtitulo: "Lleva tu paquete al establecimiento seleccionado",
     contenido,
     footer:
-      "Este código se valida al momento de la recolección.",
+      "Este código se valida cuando el establecimiento recibe el paquete.",
   });
 }

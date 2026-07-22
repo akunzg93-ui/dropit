@@ -1,3 +1,8 @@
+import {
+  baseEmailTemplate,
+  emailButton,
+} from "./baseEmailTemplate";
+
 export function emailPedidoCanceladoAutomatico({
   folio,
   destinatario,
@@ -9,171 +14,107 @@ export function emailPedidoCanceladoAutomatico({
 
   const esVendedor = destinatario === "vendedor";
 
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8" />
-<title>Pedido cancelado · Dropit</title>
-</head>
+  const contenido = `
+    <div style="
+      background:#fef2f2;
+      border:1px solid #fecaca;
+      border-radius:14px;
+      padding:22px 18px;
+      text-align:center;
+    ">
+      <div style="
+        color:#dc2626;
+        font-size:12px;
+        line-height:18px;
+        font-weight:700;
+        letter-spacing:2px;
+      ">
+        FOLIO DEL PEDIDO
+      </div>
 
-<body style="
-margin:0;
-padding:40px;
-background:#f4f7fb;
-font-family:Arial,Helvetica,sans-serif;
-">
+      <div
+        class="mobile-folio"
+        style="
+          margin-top:10px;
+          color:#991b1b;
+          font-size:34px;
+          line-height:42px;
+          font-weight:800;
+          letter-spacing:1px;
+          word-break:break-word;
+        "
+      >
+        ${folio}
+      </div>
+    </div>
 
-<table
-align="center"
-width="700"
-cellpadding="0"
-cellspacing="0"
-style="
-background:#ffffff;
-border-radius:24px;
-overflow:hidden;
-box-shadow:0 12px 40px rgba(0,0,0,.08);
-">
+    <div style="
+      margin-top:24px;
+      padding:20px;
+      background:#fcfcfd;
+      border:1px solid #eceff3;
+      border-radius:14px;
+      color:#475569;
+      font-size:14px;
+      line-height:22px;
+    ">
 
-<tr>
-<td style="
-background:linear-gradient(90deg,#dc2626,#ef4444);
-padding:40px;
-color:white;
-">
+      ${
+        esVendedor
+          ? `
+          <p style="margin:0;">
+            El establecimiento aceptó el pedido, pero el paquete no fue entregado dentro del plazo máximo de <strong>24 horas</strong>.
+          </p>
 
-<h1 style="margin:0;font-size:36px;">
-Pedido cancelado automáticamente
-</h1>
+          <p style="margin:14px 0 0;">
+            Para mantener la disponibilidad del establecimiento, el pedido fue cancelado automáticamente.
+          </p>
 
-<p style="
-margin-top:14px;
-font-size:18px;
-line-height:28px;
-opacity:.95;
-">
-${esVendedor
-  ? "El plazo para entregar el paquete al establecimiento terminó."
-  : "El vendedor no entregó el paquete dentro del plazo establecido."}
-</p>
+          <p style="margin:14px 0 0;">
+            <strong>La Coin utilizada fue reintegrada automáticamente a tu cuenta.</strong>
+          </p>
+        `
+          : `
+          <p style="margin:0;">
+            El vendedor no entregó el paquete al establecimiento dentro del plazo máximo de <strong>24 horas</strong>.
+          </p>
 
-</td>
-</tr>
+          <p style="margin:14px 0 0;">
+            Por este motivo el pedido fue cancelado automáticamente y ya no continuará su proceso.
+          </p>
 
-<tr>
-<td style="padding:35px;">
+          <p style="margin:14px 0 0;">
+            El paquete no estará disponible para recolección.
+          </p>
+        `
+      }
 
-<div style="
-background:#fef2f2;
-border:1px solid #fecaca;
-border-radius:18px;
-padding:25px;
-text-align:center;
-">
+      <p style="
+        margin:16px 0 0;
+        color:#111827;
+        font-weight:600;
+      ">
+        No necesitas realizar ninguna acción adicional.
+      </p>
 
-<div style="
-font-size:13px;
-font-weight:bold;
-letter-spacing:2px;
-color:#dc2626;
-">
-FOLIO DEL PEDIDO
-</div>
+    </div>
 
-<div style="
-margin-top:12px;
-font-size:42px;
-font-weight:800;
-color:#991b1b;
-">
-${folio}
-</div>
+    ${emailButton({
+      texto: "Ver seguimiento",
+      url: link,
+      tipo: "cancelacion",
+    })}
+  `;
 
-</div>
-
-<div style="
-margin-top:30px;
-background:#f8fafc;
-border:1px solid #e2e8f0;
-border-radius:18px;
-padding:24px;
-color:#475569;
-font-size:16px;
-line-height:26px;
-">
-
-${
-  esVendedor
-    ? `
-<p style="margin-top:0;">
-El establecimiento aceptó el pedido, pero el paquete no fue entregado dentro
-del plazo de 24 horas.
-</p>
-
-<p>
-La Coin fue reintegrada y el pedido ya no puede continuar.
-</p>
-`
-    : `
-<p style="margin-top:0;">
-El pedido fue cancelado porque el vendedor no entregó el paquete al
-establecimiento dentro del plazo de 24 horas.
-</p>
-
-<p>
-El paquete no estará disponible para recolección.
-</p>
-`
-}
-
-<p style="margin-bottom:0;">
-No necesitas realizar ninguna acción adicional.
-</p>
-
-</div>
-
-<div style="
-margin-top:35px;
-text-align:center;
-">
-
-<a
-href="${link}"
-style="
-display:inline-block;
-padding:18px 34px;
-background:#2563eb;
-color:white;
-font-weight:bold;
-text-decoration:none;
-border-radius:14px;
-"
->
-Ver seguimiento
-</a>
-
-</div>
-
-</td>
-</tr>
-
-<tr>
-<td style="
-background:#f8fafc;
-padding:20px;
-text-align:center;
-font-size:12px;
-color:#64748b;
-">
-<strong style="color:#2563eb;">DROPIT</strong><br />
-Logística fácil y sin dramas
-</td>
-</tr>
-
-</table>
-
-</body>
-</html>
-`;
+  return baseEmailTemplate({
+    tipo: "cancelacion",
+    titulo: "Pedido cancelado automáticamente",
+    subtitulo: esVendedor
+      ? "El plazo para entregar el paquete al establecimiento terminó."
+      : "El vendedor no entregó el paquete dentro del plazo establecido.",
+    contenido,
+    footer: esVendedor
+      ? "Puedes crear un nuevo pedido cuando lo desees."
+      : "Gracias por confiar en Dropit.",
+  });
 }

@@ -3,23 +3,23 @@ import {
   emailButton,
 } from "./baseEmailTemplate";
 
-export function emailDevolucionIniciadaCliente({
+export function emailPedidoEntregadoCliente({
   folio,
+  urlEvaluacion,
 }: {
   folio: string;
+  urlEvaluacion: string;
 }) {
-  const link = `https://app.dropitt.net/track/${folio}`;
-
   const contenido = `
     <div style="
-      padding:16px 16px;
-      background:#fff7ed;
-      border:1px solid #fed7aa;
+      padding:16px;
+      background:#eef2ff;
+      border:1px solid #c7d2fe;
       border-radius:14px;
       text-align:center;
     ">
       <div style="
-        color:#c2410c;
+        color:#2563eb;
         font-size:12px;
         line-height:18px;
         font-weight:700;
@@ -32,7 +32,7 @@ export function emailDevolucionIniciadaCliente({
         class="mobile-folio"
         style="
           margin-top:10px;
-          color:#9a3412;
+          color:#1e40af;
           font-size:30px;
           line-height:36px;
           font-weight:800;
@@ -46,7 +46,7 @@ export function emailDevolucionIniciadaCliente({
 
     <div style="
       margin-top:16px;
-      padding:16px;
+      padding:14px 16px;
       background:#fcfcfd;
       border:1px solid #e5e7eb;
       border-radius:14px;
@@ -57,12 +57,12 @@ export function emailDevolucionIniciadaCliente({
         font-size:15px;
         line-height:24px;
       ">
-        El pedido no fue recogido dentro del plazo de 48 horas.
+        Te confirmamos que el paquete fue entregado correctamente al cliente.
       </p>
 
       <div style="
         height:1px;
-        margin:16px 0;
+        margin:12px 0;
         background:#e5e7eb;
       "></div>
 
@@ -72,39 +72,30 @@ export function emailDevolucionIniciadaCliente({
         font-size:15px;
         line-height:24px;
       ">
-        El paquete inició automáticamente su proceso de devolución al vendedor.
-      </p>
-
-      <div style="
-        height:1px;
-        margin:16px 0;
-        background:#e5e7eb;
-      "></div>
-
-      <p style="
-        margin:0;
-        color:#374151;
-        font-size:15px;
-        line-height:24px;
-      ">
-        El pedido <strong>ya no puede ser entregado al cliente.</strong>
+        El pedido se cerró exitosamente en Dropit.
       </p>
     </div>
 
-    ${emailButton({
-      texto: "Ver seguimiento",
-      url: link,
-      tipo: "pendiente",
-    })}
+    <div style="
+      margin-top:18px;
+      padding:14px 16px;
+      background:#eef2ff;
+      border:1px solid #c7d2fe;
+      border-radius:12px;
+      color:#1e40af;
+      font-size:14px;
+      line-height:22px;
+    ">
+      ✅ Ya no se requiere ninguna acción adicional de tu parte para este pedido.
+    </div>
   `;
 
   return baseEmailTemplate({
-    tipo: "pendiente",
-    titulo: "📦 Pedido en devolución",
-    subtitulo:
-      "El pedido inició automáticamente su proceso de devolución.",
+    tipo: "informativo",
+    titulo: "📦 Pedido entregado",
+    subtitulo: "El paquete fue entregado correctamente al cliente.",
     contenido,
     footer:
-      "Puedes consultar el estado actualizado del pedido desde el seguimiento.",
+      "Este correo es una confirmación automática de entrega.",
   });
 }
