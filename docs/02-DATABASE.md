@@ -100,6 +100,30 @@ Los eventos deben conservarse y ordenarse por `created_at`.
 
 ---
 
+# evaluaciones
+
+La tabla `evaluaciones` almacena la reputación generada al finalizar un pedido.
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| pedido_id | bigint | Pedido que originó la evaluación |
+| evaluador_id | uuid | UUID del actor que realiza la evaluación. Puede ser `NULL` únicamente para evaluaciones públicas del comprador. |
+| evaluado_id | uuid | UUID del usuario evaluado |
+| tipo_evaluador | text | `comprador`, `vendedor` o `establecimiento` |
+| tipo_evaluado | text | `vendedor` o `establecimiento` |
+| rating | integer | Calificación de 1 a 5 estrellas |
+| comentario | text | Comentario opcional |
+| created_at | timestamptz | Fecha de registro |
+
+## Relaciones oficiales
+
+- Establecimiento → Vendedor
+- Vendedor → Establecimiento
+- Comprador → Vendedor
+- Comprador → Establecimiento
+
+Los UUID de `evaluador_id` y `evaluado_id` se resuelven exclusivamente desde el servidor utilizando la información del pedido.
+
 # Coins y cancelaciones
 
 La Coin se consume al crear el pedido mediante FIFO.

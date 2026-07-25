@@ -82,3 +82,14 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 - Liberación automática de capacidad.
 - Evento de tracking para cancelación automática.
 - Endpoint protegido para ejecución mediante Cron.
+
+### Agregado
+
+- Sistema bidireccional de evaluaciones entre comprador, vendedor y establecimiento.
+- Enlaces de evaluación automáticos desde los correos posteriores a la entrega.
+- Registro de reputación asociado al pedido.
+
+### Mejorado
+
+- Resolución automática de participantes de las evaluaciones desde el servidor.
+- Prevención de evaluaciones duplicadas.

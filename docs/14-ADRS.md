@@ -246,3 +246,36 @@ Después de 48 horas en `pendiente_recoleccion`, el pedido pasa a `devolucion_pe
 - El vendedor recibe una oportunidad formal de recuperar el paquete.
 - El tracking necesita una ruta visual de devolución distinta del flujo normal.
 - Los Términos y Condiciones deben reflejar estos plazos.
+
+# ADR-005
+
+## Nombre
+
+La resolución de participantes en evaluaciones se realiza exclusivamente en servidor.
+
+## Estado
+
+Aceptada.
+
+## Contexto
+
+Las primeras implementaciones permitían que el frontend enviara `evaluador_id` y `evaluado_id`, lo que podía producir inconsistencias y permitir relaciones incorrectas entre actores.
+
+## Decisión
+
+La API obtiene automáticamente los UUID del vendedor, establecimiento y comprador a partir del pedido.
+
+El frontend únicamente envía:
+
+- pedido_id
+- rating
+- comentario
+- tipo_evaluador
+- tipo_evaluado
+
+## Consecuencias
+
+- Mayor seguridad.
+- Menor lógica en el cliente.
+- Imposibilidad de falsificar participantes.
+- Arquitectura consistente para futuras evaluaciones.

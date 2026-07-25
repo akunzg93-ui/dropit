@@ -163,6 +163,19 @@ Resultado:
 
 ---
 
+## Evaluaciones posteriores a la entrega
+
+Una vez que un pedido cambia al estado `entregado` se habilita el sistema de reputación.
+
+Participantes:
+
+- El comprador evalúa al vendedor.
+- El comprador evalúa al establecimiento.
+- El establecimiento evalúa al vendedor al confirmar la entrega.
+- El vendedor evalúa al establecimiento mediante el enlace enviado por correo.
+
+Todas las evaluaciones quedan asociadas al pedido que las originó.
+
 # Cancelación
 
 ## T-006 — Cancelación en tránsito

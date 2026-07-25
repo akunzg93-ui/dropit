@@ -100,3 +100,18 @@ Todos los jobs deben:
 4. Registrar resultado por pedido.
 5. Enviar correos únicamente después de una transición exitosa.
 6. Responder con resumen de revisados, actualizados y errores.
+
+
+# Evaluaciones
+
+Ruta:
+
+POST /api/orders/evaluaciones/create
+
+Responsabilidades:
+
+- Validar el pedido.
+- Resolver automáticamente los UUID del evaluador y del evaluado.
+- Validar que la combinación de actores sea permitida.
+- Evitar evaluaciones duplicadas por pedido y tipo de evaluación.
+- Registrar la calificación y comentario.
