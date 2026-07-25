@@ -4,7 +4,6 @@ import { sendEmail } from "@/lib/email";
 import { emailPedidoEntregadoCliente } from "@/lib/emailTemplates/pedidoEntregadoCliente";
 import { emailPedidoEntregadoVendedor } from "@/lib/emailTemplates/pedidoEntregadoVendedor";
 
-
 export async function POST(req: Request) {
   try {
     const { folio, codigo_entrega } = await req.json();
@@ -57,52 +56,69 @@ export async function POST(req: Request) {
     }
 
     // 2️⃣ Marcar como entregado
-    await supabase
+    const { error: updateError } = await supabase
       .from("pedidos")
       .update({ estado: "entregado" })
       .eq("id", pedido.id);
 
- const urlEvaluacion = `${process.env.NEXT_PUBLIC_SITE_URL}/evaluar/${pedido.id}`;
+    if (updateError) {
+      console.error("❌ Error actualizando pedido:", updateError);
 
-// 📧 Correo al cliente
-try {
-  await sendEmail({
-    to: pedido.email_comprador,
-    subject: "✅ Tu pedido fue entregado",
-    html: emailPedidoEntregadoCliente({
-      folio: pedido.folio,
-      urlEvaluacion,
-    }),
-  });
-} catch (mailErr) {
-  console.error("⚠️ Mail cliente falló:", mailErr);
-}
+      return NextResponse.json(
+        { error: "No se pudo actualizar el pedido" },
+        { status: 500 }
+      );
+    }
 
-// 📧 Obtener correo del vendedor
-const { data: vendedor, error: vendedorError } = await supabase
-  .from("profiles")
-  .select("email")
-  .eq("id", pedido.vendedor_id)
-  .maybeSingle();
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || "https://app.dropitt.net";
 
-if (vendedorError) {
-  console.error("⚠️ No se pudo consultar al vendedor:", vendedorError);
-}
+    const urlEvaluacion = `${siteUrl}/evaluar/${pedido.id}`;
 
-// 📧 Correo al vendedor
-if (vendedor?.email) {
-  try {
-    await sendEmail({
-      to: vendedor.email,
-      subject: "📦 Pedido entregado al cliente",
-      html: emailPedidoEntregadoVendedor({
-        folio: pedido.folio,
-      }),
-    });
-  } catch (mailErr) {
-    console.error("⚠️ Mail vendedor falló:", mailErr);
-  }
-}
+    // 📧 Correo al cliente
+    try {
+      await sendEmail({
+        to: pedido.email_comprador,
+        subject: "✅ Tu pedido fue entregado",
+        html: emailPedidoEntregadoCliente({
+          folio: pedido.folio,
+          urlEvaluacion,
+        }),
+      });
+    } catch (mailErr) {
+      console.error("⚠️ Mail cliente falló:", mailErr);
+    }
+
+    // 📧 Obtener correo del vendedor
+    const { data: vendedor, error: vendedorError } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", pedido.vendedor_id)
+      .maybeSingle();
+
+    if (vendedorError) {
+      console.error(
+        "⚠️ No se pudo consultar al vendedor:",
+        vendedorError
+      );
+    }
+
+    // 📧 Correo al vendedor
+    if (vendedor?.email) {
+      try {
+        await sendEmail({
+          to: vendedor.email,
+          subject: "📦 Pedido entregado al cliente",
+          html: emailPedidoEntregadoVendedor({
+            folio: pedido.folio,
+            urlEvaluacion,
+          }),
+        });
+      } catch (mailErr) {
+        console.error("⚠️ Mail vendedor falló:", mailErr);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       pedido_id: pedido.id,
@@ -110,6 +126,7 @@ if (vendedor?.email) {
     });
   } catch (err) {
     console.error("❌ ERROR ENTREGADO:", err);
+
     return NextResponse.json(
       { error: "Error interno" },
       { status: 500 }

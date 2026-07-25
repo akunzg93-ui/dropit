@@ -1,220 +1,327 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+
+type PedidoEvaluacion = {
+  id: number;
+  folio: string;
+  vendedor_id?: string | null;
+  comprador_id?: string | null;
+  establecimiento_uuid?: string | null;
+};
+
+type TipoEvaluador = "comprador" | "vendedor";
 
 export default function EvaluarPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
 
-  const [pedido, setPedido] = useState<any>(null);
+  const tipoParametro = searchParams.get("tipo");
+
+  const tipoEvaluador: TipoEvaluador =
+    tipoParametro === "vendedor" ? "vendedor" : "comprador";
+
+  const esVendedor = tipoEvaluador === "vendedor";
+
+  const [pedido, setPedido] = useState<PedidoEvaluacion | null>(null);
+
   const [ratingVendedor, setRatingVendedor] = useState(0);
-  const [ratingEstablecimiento, setRatingEstablecimiento] = useState(0);
+  const [ratingEstablecimiento, setRatingEstablecimiento] =
+    useState(0);
+
   const [comentario, setComentario] = useState("");
+
+  const [cargandoPedido, setCargandoPedido] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+
+  const [errorCarga, setErrorCarga] = useState("");
+  const [errorEnvio, setErrorEnvio] = useState("");
+
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    loadPedido();
-  }, []);
+  const pedidoId = Number(params.pedidoId);
 
-  async function loadPedido() {
+  const loadPedido = useCallback(async () => {
+    if (!Number.isInteger(pedidoId) || pedidoId <= 0) {
+      setErrorCarga("El enlace de evaluación no es válido.");
+      setCargandoPedido(false);
+      return;
+    }
+
     try {
-      console.log("CARGANDO PEDIDO:", params.pedidoId);
+      setCargandoPedido(true);
+      setErrorCarga("");
 
-      const res = await fetch("/api/orders/get", {
+      const response = await fetch("/api/orders/get", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          pedido_id: Number(params.pedidoId),
+          pedido_id: pedidoId,
         }),
       });
 
-      const text = await res.text();
-      console.log("RAW RESPONSE:", text);
+      const data = await response.json();
 
-      const data = JSON.parse(text);
-      console.log("RESPUESTA API:", data);
-
-      if (!data || !data.id) {
-        throw new Error("Pedido inválido");
+      if (!response.ok || !data?.id) {
+        throw new Error(
+          data?.error || "No se pudo cargar el pedido"
+        );
       }
 
       setPedido(data);
+    } catch (error) {
+      console.error("Error cargando pedido:", error);
+      setErrorCarga("No se pudo cargar la información del pedido.");
+    } finally {
+      setCargandoPedido(false);
+    }
+  }, [pedidoId]);
 
-    } catch (err) {
-      console.error("ERROR LOAD:", err);
-      setError("Error cargando pedido");
+  useEffect(() => {
+    void loadPedido();
+  }, [loadPedido]);
+
+  async function enviarUnaEvaluacion({
+    rating,
+    tipoEvaluado,
+  }: {
+    rating: number;
+    tipoEvaluado: "vendedor" | "establecimiento";
+  }) {
+    const response = await fetch(
+      "/api/orders/evaluaciones/create",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pedido_id: pedido?.id,
+          rating,
+          comentario: comentario.trim() || null,
+          tipo_evaluador: tipoEvaluador,
+          tipo_evaluado: tipoEvaluado,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data?.detail ||
+          data?.error ||
+          "No se pudo enviar la evaluación"
+      );
     }
   }
 
   async function enviarEvaluacion() {
-  if (!pedido || success || loading) return; // 🔥 AQUÍ
+    if (!pedido || success || loading) return;
 
-    if (ratingVendedor === 0 || ratingEstablecimiento === 0) {
-    setError("Selecciona una calificación");
-    return;
-  }
+    if (esVendedor) {
+      if (ratingEstablecimiento === 0) {
+        setErrorEnvio(
+          "Selecciona una calificación para el establecimiento."
+        );
+        return;
+      }
+    } else if (
+      ratingVendedor === 0 ||
+      ratingEstablecimiento === 0
+    ) {
+      setErrorEnvio(
+        "Selecciona una calificación para el vendedor y el establecimiento."
+      );
+      return;
+    }
 
     setLoading(true);
-    setError("");
+    setErrorEnvio("");
 
     try {
-      console.log("ENVIANDO EVALUACIONES...");
-
-      // 👉 vendedor
-      const resVendedor = await fetch("/api/orders/evaluaciones/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        
-        body: JSON.stringify({
-          pedido_id: pedido.id,
-          evaluador_id: self.crypto.randomUUID(),// 👈 comprador público (luego lo refinamos)
-          evaluado_id: pedido.vendedor_id,
+      if (esVendedor) {
+        await enviarUnaEvaluacion({
+          rating: ratingEstablecimiento,
+          tipoEvaluado: "establecimiento",
+        });
+      } else {
+        await enviarUnaEvaluacion({
           rating: ratingVendedor,
-          comentario,
-          tipo_evaluador: "comprador",
-          tipo_evaluado: "vendedor",
-        }),
-      });
-      
+          tipoEvaluado: "vendedor",
+        });
 
-      console.log("VENDEDOR STATUS:", resVendedor.status);
-
-      // 👉 establecimiento
-
-      console.log("PAYLOAD EST:", {
-  pedido_id: pedido.id,
-  evaluado_id: pedido.establecimiento_uuid,
-  rating: ratingEstablecimiento,
-});
-      const resEstablecimiento = await fetch(
-        "/api/orders/evaluaciones/create",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            pedido_id: pedido.id,
-            evaluador_id: self.crypto.randomUUID(), 
-            evaluado_id: pedido.establecimiento_uuid,
-            rating: ratingEstablecimiento,
-            comentario,
-            tipo_evaluador: "comprador",
-            tipo_evaluado: "establecimiento",
-          }),
-        }
-      );
-
-       if (!resEstablecimiento.ok) {
-  const errData = await resEstablecimiento.json(); // ✅
-  console.error("🔥 ERROR BACK COMPLETO:", errData);
-  throw new Error(errData.detail || "Error en evaluación");
-}
-
-      console.log("ESTABLECIMIENTO STATUS:", resEstablecimiento.status);
-
-      if (!resVendedor.ok || !resEstablecimiento.ok) {
-        throw new Error("Error en alguna evaluación");
+        await enviarUnaEvaluacion({
+          rating: ratingEstablecimiento,
+          tipoEvaluado: "establecimiento",
+        });
       }
 
       setSuccess(true);
+    } catch (error) {
+      console.error("Error enviando evaluación:", error);
 
-    } catch (err) {
-      console.error("❌ ERROR:", err);
-      setError("Error enviando evaluación");
+      setErrorEnvio(
+        error instanceof Error
+          ? error.message
+          : "No se pudo enviar la evaluación."
+      );
     } finally {
       setLoading(false);
     }
   }
 
-  const renderStars = (value: number, setValue: any) => (
-    <div className="flex justify-center gap-2 mb-2">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <span
-          key={n}
-          onClick={() => setValue(n)}
-          className={`text-2xl cursor-pointer transition ${
-            n <= value ? "text-yellow-400" : "text-gray-300"
-          }`}
-        >
-          ★
-        </span>
-      ))}
-    </div>
-  );
-
-  if (error) {
+  function renderStars(
+    value: number,
+    setValue: (value: number) => void
+  ) {
     return (
-      <div className="text-center mt-20 text-red-500">{error}</div>
+      <div className="mb-2 flex justify-center gap-2">
+        {[1, 2, 3, 4, 5].map((numero) => (
+          <button
+            key={numero}
+            type="button"
+            onClick={() => setValue(numero)}
+            disabled={success || loading}
+            aria-label={`Calificar con ${numero} estrellas`}
+            className={`cursor-pointer text-4xl transition hover:scale-110 disabled:cursor-default ${
+              numero <= value
+                ? "text-amber-400"
+                : "text-slate-300"
+            }`}
+          >
+            ★
+          </button>
+        ))}
+      </div>
     );
   }
 
-  if (!pedido) {
+  if (cargandoPedido) {
     return (
-      <div className="text-center mt-20">Cargando...</div>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-5">
+        <div className="rounded-2xl border border-slate-200 bg-white px-8 py-6 text-slate-600 shadow-sm">
+          Cargando evaluación...
+        </div>
+      </div>
+    );
+  }
+
+  if (errorCarga || !pedido) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-5">
+        <div className="w-full max-w-md rounded-3xl border border-red-200 bg-white p-8 text-center shadow-lg">
+          <div className="text-4xl">⚠️</div>
+
+          <h1 className="mt-4 text-xl font-bold text-red-700">
+            No se pudo abrir la evaluación
+          </h1>
+
+          <p className="mt-2 text-sm text-slate-600">
+            {errorCarga || "Pedido no encontrado."}
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="max-w-md mx-auto mt-10">
-      
-      {/* HEADER DROPIT */}
-      <div className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white text-center py-6 rounded-2xl shadow mb-6">
-        <h1 className="text-xl font-semibold">
-          ¿Cómo fue tu experiencia?
-        </h1>
-        <p className="text-sm opacity-80">
-          Pedido {pedido.folio}
-        </p>
-      </div>
+    <div className="min-h-screen bg-slate-50 px-5 py-10">
+      <div className="mx-auto max-w-md">
+        <div className="mb-6 rounded-3xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] px-6 py-8 text-center text-white shadow-lg">
+          <div className="text-4xl">⭐</div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-md">
-        
-        {/* VENDEDOR */}
-        <p className="text-center font-medium">Vendedor</p>
-        {renderStars(ratingVendedor, setRatingVendedor)}
+          <h1 className="mt-3 text-2xl font-bold">
+            ¿Cómo fue tu experiencia?
+          </h1>
 
-        {/* ESTABLECIMIENTO */}
-        <p className="text-center font-medium mt-4">
-          Establecimiento
-        </p>
-        {renderStars(
-          ratingEstablecimiento,
-          setRatingEstablecimiento
-        )}
-
-        {/* COMENTARIO */}
-        <textarea
-          className="w-full border rounded-xl p-3 mt-4"
-          placeholder="Cuéntanos tu experiencia..."
-          value={comentario}
-          onChange={(e) => setComentario(e.target.value)}
-        />
-
-        {/* BOTÓN */}
-        <button
-          onClick={enviarEvaluacion}
-          disabled={success || loading}
-          className="w-full mt-4 bg-gradient-to-r from-indigo-500 to-blue-600 text-white py-3 rounded-xl font-medium"
-        >
-          {loading ? "Enviando..." : "Enviar evaluación"}
-        </button>
-
-        {error && (
-          <p className="text-red-500 text-center mt-2">{error}</p>
-        )}
-
-        {success && (
-          <p className="text-green-600 text-center mt-2">
-            ✅ Evaluación enviada
+          <p className="mt-2 text-sm text-blue-100">
+            Pedido {pedido.folio}
           </p>
-        )}
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-md">
+          {success ? (
+            <div className="py-8 text-center">
+              <div className="text-6xl">✅</div>
+
+              <h2 className="mt-5 text-2xl font-bold text-emerald-700">
+                ¡Gracias por tu evaluación!
+              </h2>
+
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Tu opinión fue registrada correctamente y nos ayuda a
+                mejorar la experiencia de Dropit.
+              </p>
+            </div>
+          ) : (
+            <>
+              {!esVendedor && (
+                <section>
+                  <p className="text-center text-lg font-semibold text-slate-800">
+                    Vendedor
+                  </p>
+
+                  <p className="mb-3 mt-1 text-center text-sm text-slate-500">
+                    Califica tu experiencia con el vendedor.
+                  </p>
+
+                  {renderStars(
+                    ratingVendedor,
+                    setRatingVendedor
+                  )}
+                </section>
+              )}
+
+              <section className={esVendedor ? "" : "mt-7"}>
+                <p className="text-center text-lg font-semibold text-slate-800">
+                  Establecimiento
+                </p>
+
+                <p className="mb-3 mt-1 text-center text-sm text-slate-500">
+                  {esVendedor
+                    ? "Califica la atención y el servicio del establecimiento."
+                    : "Califica tu experiencia en el punto de entrega."}
+                </p>
+
+                {renderStars(
+                  ratingEstablecimiento,
+                  setRatingEstablecimiento
+                )}
+              </section>
+
+              <textarea
+                className="mt-6 min-h-[120px] w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm text-slate-800 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                placeholder="Cuéntanos tu experiencia (opcional)..."
+                value={comentario}
+                maxLength={500}
+                onChange={(event) =>
+                  setComentario(event.target.value)
+                }
+              />
+
+              {errorEnvio && (
+                <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-700">
+                  {errorEnvio}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={enviarEvaluacion}
+                disabled={loading}
+                className="mt-5 h-12 w-full rounded-xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] font-semibold text-white shadow transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading
+                  ? "Enviando evaluación..."
+                  : "Enviar evaluación"}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

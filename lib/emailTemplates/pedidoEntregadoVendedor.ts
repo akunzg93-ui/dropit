@@ -1,9 +1,14 @@
-import { baseEmailTemplate } from "./baseEmailTemplate";
+import {
+  baseEmailTemplate,
+  emailButton,
+} from "./baseEmailTemplate";
 
 export function emailPedidoEntregadoVendedor({
   folio,
+  urlEvaluacion,
 }: {
   folio: string;
+  urlEvaluacion: string;
 }) {
   const contenido = `
     <div style="
@@ -82,6 +87,26 @@ export function emailPedidoEntregadoVendedor({
       line-height:22px;
     ">
       ✅ Ya no se requiere ninguna acción adicional de tu parte para este pedido.
+    </div>
+
+    <div style="
+      margin-top:28px;
+      text-align:center;
+    ">
+      <p style="
+        margin:0 0 14px;
+        color:#475569;
+        font-size:15px;
+        line-height:24px;
+      ">
+        Tu opinión sobre el establecimiento nos ayuda a mejorar la experiencia de toda la comunidad Dropit.
+      </p>
+
+      ${emailButton({
+        texto: "⭐ Evaluar experiencia",
+        url: urlEvaluacion,
+        tipo: "informativo",
+      })}
     </div>
   `;
 
