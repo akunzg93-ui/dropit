@@ -47,9 +47,11 @@ export default function DashboardVendedor() {
       }
 
       const { data: lotes } = await supabase
-        .from("coin_lotes")
-        .select("tipo, cantidad_disponible")
-        .eq("user_id", user.id);
+  .from("coin_lotes")
+  .select("tipo, cantidad_disponible, fecha_expiracion")
+  .eq("user_id", user.id)
+  .gt("cantidad_disponible", 0)
+  .gt("fecha_expiracion", new Date().toISOString());
 
       if (lotes) {
         const small = lotes

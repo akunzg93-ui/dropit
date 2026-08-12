@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
+import BillingRequestModal from "@/app/components/billing/BillingRequestModal";
+import BillingCard from "@/app/components/billing/BillingCard";
+import BillingSuccessModal from "@/app/components/billing/BillingSuccessModal";
+import useBilling from "@/hooks/useBilling";
 import {
   Select,
   SelectTrigger,
@@ -26,6 +30,7 @@ import {
   Search,
   Download,
   XCircle,
+  ReceiptText,
 } from "lucide-react";
 
 const estadoBadge = {
@@ -54,6 +59,53 @@ function formatEstado(estado) {
     ?.replace(/\b\w/g, (letra) => letra.toUpperCase());
 }
 
+const estadosFacturables = [
+  "pendiente_recoleccion",
+  "entregado",
+  "devolucion_pendiente",
+  "devuelto",
+  "custodia_vencida",
+];
+
+function puedeFacturarse(pedido) {
+  return (
+    !!pedido?.recibido_en ||
+    estadosFacturables.includes(pedido?.estado)
+  );
+}
+
+const BILLING_TIMEZONE = "America/Mexico_City";
+
+function obtenerFechaLimiteFactura(recibidoEn) {
+  if (!recibidoEn) return null;
+
+  const recibido = new Date(recibidoEn);
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: BILLING_TIMEZONE,
+    year: "numeric",
+    month: "numeric",
+  }).formatToParts(recibido);
+
+  const year = Number(
+    parts.find((part) => part.type === "year")?.value
+  );
+
+  const month = Number(
+    parts.find((part) => part.type === "month")?.value
+  );
+
+  if (!year || !month) return null;
+
+  const ultimoDia = new Date(year, month, 0);
+
+  return ultimoDia.toLocaleDateString("es-MX", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function MisPedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [filtered, setFiltered] = useState([]);
@@ -61,6 +113,34 @@ export default function MisPedidos() {
   const [tamanoFiltro, setTamanoFiltro] = useState("");
   const [estadoFiltro, setEstadoFiltro] = useState("");
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
+ const {
+  modalFacturaAbierto,
+  perfilesFiscales,
+  perfilFiscalSeleccionado,
+  setPerfilFiscalSeleccionado,
+  cargandoPerfiles,
+  errorFacturacion,
+  modoPerfilFiscal,
+  setModoPerfilFiscal,
+  solicitandoFactura,
+
+  solicitudFactura,
+  cargandoEstadoFacturacion,
+  solicitudFacturaExitosa,
+
+  nuevoPerfilFiscal,
+  setNuevoPerfilFiscal,
+  guardandoPerfilFiscal,
+
+  abrirSolicitudFactura,
+  crearPerfilFiscal,
+  solicitarFactura,
+  cerrarModalFactura,
+  aceptarSolicitudExitosa,
+} = useBilling({
+  pedidoSeleccionado,
+  setPedidoSeleccionado,
+});
   const [pedidoACancelar, setPedidoACancelar] = useState(null);
   const [cancelando, setCancelando] = useState(false);
 
@@ -83,6 +163,7 @@ export default function MisPedidos() {
         tamano,
         estado,
         codigo_vendedor,
+        recibido_en,
         created_at
       `)
       .eq("vendedor_id", userId)
@@ -362,6 +443,8 @@ async function cancelarPedido() {
               pedido.estado
             );
 
+            const puedeFacturar = puedeFacturarse(pedido);
+
             return (
               <div
                 key={pedido.id}
@@ -411,41 +494,57 @@ async function cancelarPedido() {
                 </div>
 
                 <div
-                  className={
-                    puedeCancelar
-                      ? "grid grid-cols-2 gap-2"
-                      : "grid grid-cols-1"
-                  }
-                >
+  className={`grid gap-2 ${
+    puedeCancelar && puedeFacturar
+      ? "grid-cols-3"
+      : puedeCancelar || puedeFacturar
+      ? "grid-cols-2"
+      : "grid-cols-1"
+  }`}
+>
                   <Button
-                    variant="outline"
-                    className="h-11 rounded-xl"
-                    onClick={(event) => {
-                      event.stopPropagation();
+  variant="outline"
+  className="h-11 rounded-xl"
+  onClick={(event) => {
+    event.stopPropagation();
 
-                      descargarEtiqueta(
-                        pedido.folio,
-                        pedido.codigo_vendedor
-                      );
-                    }}
-                    disabled={!pedido.codigo_vendedor}
-                  >
-                    <Download size={16} className="mr-2" />
-                    Etiqueta
-                  </Button>
+    descargarEtiqueta(
+      pedido.folio,
+      pedido.codigo_vendedor
+    );
+  }}
+  disabled={!pedido.codigo_vendedor}
+>
+  <Download size={16} className="mr-2" />
+  Etiqueta
+</Button>
 
-                  {puedeCancelar && (
-                    <Button
-                      variant="outline"
-                      className="h-11 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                      onClick={(event) =>
-                        abrirCancelacion(event, pedido)
-                      }
-                    >
-                      <XCircle size={16} className="mr-2" />
-                      Cancelar
-                    </Button>
-                  )}
+{puedeFacturar && (
+  <Button
+    variant="outline"
+    className="h-11 rounded-xl border-blue-200 text-[#2563eb] hover:bg-blue-50 hover:text-[#1e40af]"
+    onClick={(event) => {
+      event.stopPropagation();
+      setPedidoSeleccionado(pedido);
+    }}
+  >
+    <ReceiptText size={16} className="mr-2" />
+    Factura
+  </Button>
+)}
+
+{puedeCancelar && (
+  <Button
+    variant="outline"
+    className="h-11 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+    onClick={(event) =>
+      abrirCancelacion(event, pedido)
+    }
+  >
+    <XCircle size={16} className="mr-2" />
+    Cancelar
+  </Button>
+)}
                 </div>
 
                 <p className="text-center text-xs text-slate-400">
@@ -473,6 +572,9 @@ async function cancelarPedido() {
               {filtered.map((pedido) => {
                 const puedeCancelar =
                   estadosCancelables.includes(pedido.estado);
+
+                  const puedeFacturar = puedeFacturarse(pedido);
+                  
 
                 return (
                   <tr
@@ -507,46 +609,64 @@ async function cancelarPedido() {
                     </td>
 
                     <td className="p-5">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="rounded-xl"
-                          onClick={(event) => {
-                            event.stopPropagation();
+  <div className="flex justify-end gap-2">
+    <Button
+      size="sm"
+      variant="outline"
+      className="rounded-xl"
+      onClick={(event) => {
+        event.stopPropagation();
 
-                            descargarEtiqueta(
-                              pedido.folio,
-                              pedido.codigo_vendedor
-                            );
-                          }}
-                          disabled={!pedido.codigo_vendedor}
-                        >
-                          <Download
-                            size={15}
-                            className="mr-1"
-                          />
-                          Etiqueta
-                        </Button>
+        descargarEtiqueta(
+          pedido.folio,
+          pedido.codigo_vendedor
+        );
+      }}
+      disabled={!pedido.codigo_vendedor}
+    >
+      <Download
+        size={15}
+        className="mr-1"
+      />
+      Etiqueta
+    </Button>
 
-                        {puedeCancelar && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            onClick={(event) =>
-                              abrirCancelacion(event, pedido)
-                            }
-                          >
-                            <XCircle
-                              size={15}
-                              className="mr-1"
-                            />
-                            Cancelar
-                          </Button>
-                        )}
-                      </div>
-                    </td>
+    {puedeFacturar && (
+      <Button
+        size="sm"
+        variant="outline"
+        className="rounded-xl border-blue-200 text-[#2563eb] hover:bg-blue-50 hover:text-[#1e40af]"
+        onClick={(event) => {
+          event.stopPropagation();
+          setPedidoSeleccionado(pedido);
+        }}
+      >
+        <ReceiptText
+          size={15}
+          className="mr-1"
+        />
+        Factura
+      </Button>
+    )}
+
+    {puedeCancelar && (
+      <Button
+        size="sm"
+        variant="outline"
+        className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+        onClick={(event) =>
+          abrirCancelacion(event, pedido)
+        }
+      >
+        <XCircle
+          size={15}
+          className="mr-1"
+        />
+        Cancelar
+      </Button>
+    )}
+  </div>
+</td>
                   </tr>
                 );
               })}
@@ -631,21 +751,18 @@ async function cancelarPedido() {
                   </p>
                 </div>
 
-                <Button
-                  className="h-12 w-full rounded-xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] font-semibold text-white"
-                  onClick={() =>
-                    descargarEtiqueta(
-                      pedidoSeleccionado.folio,
-                      pedidoSeleccionado.codigo_vendedor
-                    )
-                  }
-                  disabled={
-                    !pedidoSeleccionado.codigo_vendedor
-                  }
-                >
-                  <Download size={16} className="mr-2" />
-                  Descargar etiqueta
-                </Button>
+{puedeFacturarse(pedidoSeleccionado) && (
+  <BillingCard
+    pedido={pedidoSeleccionado}
+    fechaLimite={obtenerFechaLimiteFactura(
+      pedidoSeleccionado.recibido_en
+    )}
+    cargandoPerfiles={cargandoPerfiles}
+    cargandoEstadoFacturacion={cargandoEstadoFacturacion}
+    solicitudFactura={solicitudFactura}
+    onSolicitar={abrirSolicitudFactura}
+  />
+)}
 
                 {estadosCancelables.includes(
                   pedidoSeleccionado.estado
@@ -666,6 +783,28 @@ async function cancelarPedido() {
           </DrawerContent>
         </Drawer>
       </div>
+
+<BillingRequestModal
+  open={modalFacturaAbierto}
+  onClose={cerrarModalFactura}
+  perfilesFiscales={perfilesFiscales}
+  perfilFiscalSeleccionado={perfilFiscalSeleccionado}
+  setPerfilFiscalSeleccionado={setPerfilFiscalSeleccionado}
+  modoPerfilFiscal={modoPerfilFiscal}
+  setModoPerfilFiscal={setModoPerfilFiscal}
+  nuevoPerfilFiscal={nuevoPerfilFiscal}
+  setNuevoPerfilFiscal={setNuevoPerfilFiscal}
+  errorFacturacion={errorFacturacion}
+  guardandoPerfilFiscal={guardandoPerfilFiscal}
+  crearPerfilFiscal={crearPerfilFiscal}
+  solicitandoFactura={solicitandoFactura}
+  solicitarFactura={solicitarFactura}
+/>
+
+<BillingSuccessModal
+  open={solicitudFacturaExitosa}
+  onAccept={aceptarSolicitudExitosa}
+/>
 
       {pedidoACancelar && (
         <div

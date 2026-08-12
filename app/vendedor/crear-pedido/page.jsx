@@ -419,12 +419,12 @@ export default function CrearPedido() {
 
             <div className="grid grid-cols-2 gap-3">
               <CoinBalanceCard
-                label="Paquetes medianos"
+                label="Paquetes pequeños"
                 value={coinsDisponibles.small}
               />
 
               <CoinBalanceCard
-                label="Paquetes grandes"
+                label="Paquetes medianos"
                 value={coinsDisponibles.medium}
               />
             </div>

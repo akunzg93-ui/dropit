@@ -2,11 +2,11 @@
 
 > Documento Oficial
 >
-> Versión: 1.0
+> Versión: 1.1
 >
 > Estado: Activo
 >
-> Última actualización: 18/07/2026
+> Última actualización: 07/08/2026
 
 ---
 
@@ -44,7 +44,7 @@ La documentación oficial es la fuente de verdad.
 
 ## Estado
 
-Aceptada
+Aceptada.
 
 ## Contexto
 
@@ -64,6 +64,8 @@ La documentación oficial representa el comportamiento del sistema.
 - Incorporación más sencilla de nuevos desarrolladores.
 - Mayor consistencia del proyecto.
 
+---
+
 # ADR-002
 
 ## Nombre
@@ -72,7 +74,7 @@ No refactorizar código estable.
 
 ## Estado
 
-Aceptada
+Aceptada.
 
 ## Contexto
 
@@ -89,15 +91,17 @@ Todo refactor deberá justificar un beneficio funcional o de mantenimiento.
 - Mayor estabilidad.
 - Menor riesgo en producción.
 
+---
+
 # ADR-003
 
 ## Nombre
 
-Las APIs actuales permanecen bajo app/api/orders.
+Las APIs actuales permanecen bajo `app/api/orders`.
 
 ## Estado
 
-Aceptada
+Aceptada.
 
 ## Contexto
 
@@ -113,6 +117,8 @@ La reorganización de APIs se realizará únicamente mediante un refactor planif
 
 La estructura actual permanece estable hasta una futura versión mayor.
 
+---
+
 # ADR-004
 
 ## Nombre
@@ -121,7 +127,7 @@ Row Level Security es obligatorio.
 
 ## Estado
 
-Aceptada
+Aceptada.
 
 ## Contexto
 
@@ -135,7 +141,10 @@ Toda tabla nueva deberá contar con políticas de acceso.
 
 ## Consecuencias
 
-Mayor seguridad y aislamiento de datos.
+- Mayor seguridad.
+- Aislamiento de datos.
+
+---
 
 # ADR-005
 
@@ -145,7 +154,7 @@ El vendedor controla la red de establecimientos disponibles.
 
 ## Estado
 
-Aceptada
+Aceptada.
 
 ## Contexto
 
@@ -163,28 +172,6 @@ Siempre elegirá uno de los propuestos por el vendedor.
 - Menor riesgo logístico.
 - Flujo consistente.
 
-Componentes UI
-
-↓
-
-No conocen Dropit
-
-↓
-
-Reutilizables
-
-
-
-Componentes negocio
-
-↓
-
-Conocen Dropit
-
-↓
-
-Implementan reglas del producto
-
 ---
 
 # ADR-006
@@ -195,7 +182,7 @@ Los vencimientos logísticos se resuelven con timestamps persistidos, RPC idempo
 
 ## Estado
 
-Aceptada
+Aceptada.
 
 ## Contexto
 
@@ -230,7 +217,7 @@ La devolución por falta de recolección forma parte de la máquina oficial de e
 
 ## Estado
 
-Aceptada
+Aceptada.
 
 ## Contexto
 
@@ -238,16 +225,25 @@ Un paquete no recogido no puede permanecer indefinidamente en el establecimiento
 
 ## Decisión
 
-Después de 48 horas en `pendiente_recoleccion`, el pedido pasa a `devolucion_pendiente`. El vendedor dispone de 48 horas adicionales. La devolución termina en `devuelto` o, si vence el segundo plazo, en `custodia_vencida`.
+Después de 48 horas en `pendiente_recoleccion`, el pedido pasa a `devolucion_pendiente`.
+
+El vendedor dispone de 48 horas adicionales para recogerlo.
+
+La devolución termina en:
+
+- `devuelto`
+- `custodia_vencida`
 
 ## Consecuencias
 
 - Se delimita la responsabilidad temporal del establecimiento.
-- El vendedor recibe una oportunidad formal de recuperar el paquete.
-- El tracking necesita una ruta visual de devolución distinta del flujo normal.
-- Los Términos y Condiciones deben reflejar estos plazos.
+- El vendedor recibe una oportunidad formal para recuperar el paquete.
+- El tracking requiere una ruta específica para devoluciones.
+- Los Términos y Condiciones deberán reflejar estos plazos.
 
-# ADR-005
+---
+
+# ADR-008
 
 ## Nombre
 
@@ -259,23 +255,100 @@ Aceptada.
 
 ## Contexto
 
-Las primeras implementaciones permitían que el frontend enviara `evaluador_id` y `evaluado_id`, lo que podía producir inconsistencias y permitir relaciones incorrectas entre actores.
+Las primeras implementaciones permitían que el frontend enviara `evaluador_id` y `evaluado_id`, generando posibles inconsistencias.
 
 ## Decisión
 
-La API obtiene automáticamente los UUID del vendedor, establecimiento y comprador a partir del pedido.
+La API obtiene automáticamente los participantes a partir del pedido.
 
 El frontend únicamente envía:
 
-- pedido_id
-- rating
-- comentario
-- tipo_evaluador
-- tipo_evaluado
+- `pedido_id`
+- `rating`
+- `comentario`
+- `tipo_evaluador`
+- `tipo_evaluado`
 
 ## Consecuencias
 
 - Mayor seguridad.
 - Menor lógica en el cliente.
 - Imposibilidad de falsificar participantes.
-- Arquitectura consistente para futuras evaluaciones.
+- Arquitectura consistente.
+
+---
+
+# ADR-009
+
+## Nombre
+
+Las Coins representan un prepago y se consumen al iniciar la prestación del servicio.
+
+## Estado
+
+Aceptada.
+
+## Contexto
+
+Inicialmente las Coins se consumían al crear un pedido.
+
+Con la incorporación del dominio Billing se identificó que la creación del pedido no representa el inicio efectivo de la prestación del servicio.
+
+El servicio comienza cuando el establecimiento recibe físicamente el paquete.
+
+## Decisión
+
+Las Coins representan un prepago del servicio.
+
+Su ciclo de vida será:
+
+- Disponible.
+- Reservada al crear el pedido.
+- Consumida cuando el establecimiento recibe el paquete.
+
+El evento oficial que provoca el consumo será la transición del pedido a `pendiente_recoleccion`.
+
+## Consecuencias
+
+- Se separa el prepago del consumo efectivo.
+- El flujo económico queda alineado con el inicio del servicio.
+- Billing utiliza un evento único para iniciar facturación y liquidaciones.
+- Las cancelaciones anteriores a la recepción liberan la reserva de la Coin.
+
+---
+
+# ADR-010
+
+## Nombre
+
+Dropit centraliza todo el proceso de facturación.
+
+## Estado
+
+Aceptada.
+
+## Contexto
+
+El vendedor interactúa únicamente con Dropit durante todo el proceso de facturación.
+
+La plataforma coordina internamente la emisión de los documentos necesarios sin requerir que el vendedor contacte directamente al establecimiento.
+
+## Decisión
+
+Toda solicitud de factura se realiza desde Dropit.
+
+Internamente Billing administra:
+
+- la factura correspondiente a la comisión de Dropit;
+- la solicitud de factura al establecimiento;
+- la recepción y validación de los documentos fiscales;
+- la liberación de la liquidación cuando corresponda.
+
+El vendedor nunca interactúa directamente con el establecimiento para obtener sus facturas.
+
+## Consecuencias
+
+- Experiencia consistente.
+- Un único punto de contacto para el vendedor.
+- Menor carga operativa.
+- Billing se convierte en el dominio responsable de la facturación y las liquidaciones.
