@@ -207,3 +207,86 @@ El vendedor únicamente podrá acceder a:
 Los establecimientos únicamente podrán acceder a la información necesaria para cumplir sus obligaciones dentro del flujo de liquidación.
 
 Las operaciones sensibles deberán ejecutarse desde servidor.
+
+# Modelo de datos
+
+El módulo de facturación está compuesto por dos entidades principales:
+
+```
+invoice_requests
+        │
+        ├──────────────┐
+        │              │
+        ▼              ▼
+invoice(dropit)   invoice(establecimiento)
+```
+
+Cada solicitud genera exactamente dos facturas:
+
+- una emitida por **Dropit**;
+- una emitida por el **establecimiento**.
+
+Ambas permanecen vinculadas a la misma solicitud durante todo su ciclo de vida.
+
+## invoice_requests
+
+Representa la solicitud realizada por el vendedor.
+
+Campos principales:
+
+| Campo | Descripción |
+|--------|-------------|
+| id | Identificador de la solicitud |
+| pedido_id | Pedido asociado |
+| vendedor_id | Usuario que solicita |
+| fiscal_profile_id | Perfil fiscal utilizado |
+| fiscal_data_snapshot | Snapshot de los datos fiscales utilizados |
+| estado | Estado actual de la solicitud |
+| fecha_solicitud | Fecha de creación |
+| fecha_limite | Último día permitido para solicitar |
+| fecha_completada | Fecha de finalización |
+| motivo_rechazo | Motivo en caso de rechazo |
+
+## Estados de invoice_requests
+
+Actualmente el flujo contempla los siguientes estados:
+
+| Estado | Descripción |
+|---------|-------------|
+| solicitada | El vendedor envió correctamente la solicitud |
+| dropit_emitida | La factura de Dropit fue emitida |
+| establecimiento_emitida | La factura del establecimiento fue emitida |
+| completada | Ambas facturas fueron emitidas |
+| cancelada | Solicitud cancelada |
+| rechazada | Solicitud rechazada |
+
+## invoices
+
+Cada registro representa una factura individual.
+
+Actualmente se generan automáticamente dos registros por cada solicitud.
+
+Campos principales:
+
+| Campo | Descripción |
+|--------|-------------|
+| invoice_request_id | Solicitud a la que pertenece |
+| tipo_emisor | dropit / establecimiento |
+| estado | Estado del CFDI |
+| uuid_fiscal | UUID SAT |
+| serie | Serie |
+| folio | Folio |
+| subtotal | Importe |
+| impuestos | IVA |
+| total | Total |
+| xml_path | Ruta XML |
+| pdf_path | Ruta PDF |
+| fecha_emision | Fecha de timbrado |
+| fecha_cancelacion | Fecha de cancelación |
+| error_mensaje | Error devuelto por el PAC |
+
+## Snapshot fiscal
+
+Cuando el vendedor solicita una factura, los datos fiscales utilizados se almacenan dentro de `invoice_requests.fiscal_data_snapshot`.
+
+Esto garantiza que futuras modificaciones al perfil fiscal del usuario no alteren la información utilizada para emitir el CFDI correspondiente.

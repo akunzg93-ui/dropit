@@ -93,3 +93,22 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 
 - Resolución automática de participantes de las evaluaciones desde el servidor.
 - Prevención de evaluaciones duplicadas.
+
+## 2026-08-11
+
+### Facturación
+
+- Se implementó el flujo completo de solicitud de factura.
+- Se añadieron perfiles fiscales reutilizables.
+- Se agregó creación automática de invoice_requests.
+- Se crean automáticamente dos registros en invoices (Dropit y Establecimiento).
+- Se implementó consulta persistente del estado de facturación.
+- Se agregó Timeline dinámico.
+- Se agregó popup de confirmación.
+- Se modularizó el frontend de Facturación mediante componentes y el hook useBilling.
+
+### Pendiente
+
+- Integración con SW Sapien (JSON).
+- Timbrado CFDI.
+- Descarga de XML/PDF.

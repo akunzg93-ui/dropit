@@ -46,26 +46,40 @@ El vendedor ingresa a **Mis pedidos** y selecciona:
 
 Si es la primera solicitud:
 
-- captura sus datos fiscales.
+- captura sus datos fiscales;
+- crea un perfil fiscal.
 
 En solicitudes posteriores:
 
-- los datos aparecen precargados y pueden editarse.
+- puede seleccionar cualquiera de sus perfiles fiscales;
+- crear un nuevo perfil;
+- continuar utilizando el perfil predeterminado.
 
----
+Al confirmar:
+
+- se crea la solicitud de facturación;
+- se generan automáticamente los registros de facturación para Dropit y para el establecimiento;
+- se muestra un mensaje confirmando que la solicitud fue recibida correctamente.
+
+Después de cerrar el mensaje de confirmación:
+
+- el pedido actualiza automáticamente el estado de facturación;
+- el Timeline cambia a **Solicitud enviada**;
+- el botón **Solicitar factura** deja de estar disponible.
 
 ### 5. Procesamiento
 
 Dropit recibe una única solicitud de factura.
 
-Internamente gestiona:
+Internamente ejecuta una transacción que:
 
-- la factura correspondiente a Dropit;
-- la factura correspondiente al establecimiento.
+- registra la solicitud de facturación;
+- crea la factura correspondiente a Dropit;
+- crea la factura correspondiente al establecimiento;
+- conserva un snapshot de los datos fiscales utilizados;
+- deja el proceso listo para el timbrado posterior.
 
 Todo el proceso es transparente para el vendedor.
-
----
 
 ### 6. Resultado
 
@@ -74,6 +88,16 @@ Cuando las facturas estén disponibles, el vendedor podrá descargarlas desde la
 Dropit notificará el avance del proceso cuando corresponda.
 
 ---
+
+---
+
+## Consulta del estado
+
+Cada vez que el vendedor abre nuevamente el pedido, Dropit consulta el estado actual de la solicitud mediante:
+
+`GET /api/orders/billing/invoice-requests`
+
+Con esta información el Timeline refleja automáticamente el avance del proceso sin requerir acciones adicionales del usuario.
 
 ## Principio
 

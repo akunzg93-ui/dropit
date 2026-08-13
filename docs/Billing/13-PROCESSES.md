@@ -132,3 +132,110 @@ Acciones
 2. Registrar fecha.
 3. Cambiar estado.
 4. Registrar historial.
+
+# Proceso: Solicitud de factura
+
+## Objetivo
+
+Registrar una solicitud de facturación y preparar automáticamente ambas facturas necesarias para el pedido.
+
+---
+
+## Flujo
+
+Vendedor
+
+↓
+
+Selecciona un pedido elegible
+
+↓
+
+Solicita factura
+
+↓
+
+Selecciona un perfil fiscal
+(o crea uno nuevo)
+
+↓
+
+POST /api/orders/billing/invoice-requests
+
+↓
+
+Validaciones
+
+- Usuario autenticado
+- Pedido pertenece al vendedor
+- Servicio iniciado
+- Coin consumida
+- Perfil fiscal válido
+- Sin solicitudes previas
+- Periodo de facturación vigente
+
+↓
+
+RPC create_billing_invoice_request()
+
+↓
+
+Se crea invoice_request
+
+↓
+
+Se genera snapshot fiscal
+
+↓
+
+Se crean automáticamente:
+
+- invoice (Dropit)
+- invoice (Establecimiento)
+
+↓
+
+Settlement bloqueado (cuando aplica)
+
+↓
+
+Respuesta exitosa
+
+↓
+
+Popup
+"Solicitud enviada correctamente"
+
+↓
+
+Al volver al pedido
+
+↓
+
+GET /api/orders/billing/invoice-requests
+
+↓
+
+Timeline actualizado
+
+## Resultado esperado
+
+Al finalizar el proceso debe existir:
+
+- 1 registro en `invoice_requests`
+- 2 registros en `invoices`
+- snapshot fiscal almacenado
+- timeline actualizado para el vendedor
+- botón "Solicitar factura" deshabilitado
+
+## Próxima etapa
+
+Una vez creada la solicitud, el proceso continuará con la integración del PAC.
+
+Ese flujo será responsable de:
+
+1. Emitir la factura de Dropit.
+2. Emitir la factura del establecimiento.
+3. Almacenar UUID fiscal.
+4. Guardar XML y PDF.
+5. Actualizar automáticamente el estado del Timeline.
