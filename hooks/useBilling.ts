@@ -375,6 +375,47 @@ export default function useBilling({
         estado: "solicitada",
       });
 
+      /*
+  La solicitud ya quedó persistida.
+  Ahora intentamos emitir automáticamente
+  la factura correspondiente a Dropit.
+
+  Si el PAC falla, NO revertimos la solicitud:
+  la factura podrá reintentarse posteriormente.
+*/
+try {
+  const issueRes = await fetch(
+    "/api/orders/billing/dropit-invoices/issue",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization:
+          `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        pedido_id:
+          pedidoFacturacion.id,
+      }),
+    }
+  );
+
+  const issueJson =
+    await issueRes.json();
+
+  if (!issueRes.ok) {
+    console.error(
+      "Error emitiendo factura Dropit:",
+      issueJson
+    );
+  }
+} catch (issueError) {
+  console.error(
+    "Error emitiendo factura Dropit:",
+    issueError
+  );
+}
+
       setModalFacturaAbierto(false);
       setModoPerfilFiscal("lista");
       setErrorFacturacion("");

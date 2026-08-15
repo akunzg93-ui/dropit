@@ -1,3 +1,8 @@
+import type {
+  CfdiIssuePayload,
+  IssuedInvoice,
+} from "../invoice";
+
 export type PacCfdiValidationResult = {
   valid: boolean;
   status?: string;
@@ -5,12 +10,22 @@ export type PacCfdiValidationResult = {
   errors: string[];
 };
 
+export type PacPaymentData = {
+  formaPago: string;
+  metodoPago: "PUE";
+};
+
 export interface PacProvider {
-  validateCfdi(xml: string): Promise<PacCfdiValidationResult>;
+  validateCfdi(
+    xml: string
+  ): Promise<PacCfdiValidationResult>;
 
-  // Los implementaremos cuando lleguemos
-  // a emisión y cancelación.
-  issueInvoice?(xml: string): Promise<unknown>;
+  issueInvoice(
+    payload: CfdiIssuePayload,
+    payment: PacPaymentData
+  ): Promise<IssuedInvoice>;
 
-  cancelInvoice?(uuid: string): Promise<unknown>;
+  cancelInvoice?(
+    uuid: string
+  ): Promise<unknown>;
 }

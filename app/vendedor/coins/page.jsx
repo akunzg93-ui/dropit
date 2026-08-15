@@ -305,10 +305,11 @@ export default function ComprarCoinsPage() {
               {total > 0 && stripePromise ? (
                 <Elements stripe={stripePromise}>
                   <CheckoutForm
-                    items={items}
-                    total={total}
-                    onSuccess={handleSuccess}
-                  />
+  items={items}
+  total={total}
+  cupon={cuponAplicado}
+  onSuccess={handleSuccess}
+/>
                 </Elements>
               ) : (
                 <div className="text-center py-10">
