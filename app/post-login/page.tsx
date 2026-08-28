@@ -57,10 +57,63 @@ export default function PostLogin() {
         return;
       }
 
-      if (profile.role === "establishment") {
-        router.replace("/establecimiento");
-        return;
-      }
+     if (profile.role === "establishment") {
+  const {
+    data: establecimientos,
+    error: establecimientoError,
+  } = await supabase
+    .from("establecimientos")
+    .select(`
+      id,
+      activo,
+      fiscal_profile_id,
+      created_at
+    `)
+    .eq("usuario_id", user.id)
+    .order("created_at", {
+      ascending: false,
+    });
+
+  if (establecimientoError) {
+    console.error(
+      "Error revisando onboarding del establecimiento:",
+      establecimientoError
+    );
+
+    router.replace("/establecimiento");
+    return;
+  }
+
+  // Nunca ha registrado una ubicación.
+  if (
+    !establecimientos ||
+    establecimientos.length === 0
+  ) {
+    router.replace("/establecimiento");
+    return;
+  }
+
+  const ultimoEstablecimiento =
+    establecimientos[0];
+
+  // Nuevo establecimiento creado pero
+  // todavía sin completar onboarding fiscal.
+  if (
+    ultimoEstablecimiento.activo === false ||
+    !ultimoEstablecimiento.fiscal_profile_id
+  ) {
+    router.replace(
+      `/establecimiento/onboarding-fiscal?establecimiento_id=${ultimoEstablecimiento.id}`
+    );
+    return;
+  }
+
+  // Onboarding completo.
+  router.replace(
+    "/establecimiento/estado"
+  );
+  return;
+}
 
       if (profile.role === "buyer") {
         router.replace("/comprador");

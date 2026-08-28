@@ -2,13 +2,27 @@ import { XMLParser } from "fast-xml-parser";
 
 export type CfdiData = {
   uuid: string;
+
   rfcEmisor: string;
   nombreEmisor?: string;
+
   rfcReceptor: string;
   nombreReceptor?: string;
+
   subtotal: number;
   total: number;
+
   fecha: string;
+
+  // Datos del comprobante
+  noCertificadoCfdi?: string;
+  selloCfdi?: string;
+
+  // Timbre Fiscal Digital
+  fechaTimbrado?: string;
+  noCertificadoSat?: string;
+  selloSat?: string;
+  rfcProvCertif?: string;
 };
 
 export type CfdiValidationResult = {
@@ -23,6 +37,22 @@ function normalizarRFC(value?: string) {
     .toUpperCase();
 }
 
+function textoOpcional(
+  value: unknown
+): string | undefined {
+  if (
+    value === undefined ||
+    value === null
+  ) {
+    return undefined;
+  }
+
+  const result =
+    String(value).trim();
+
+  return result || undefined;
+}
+
 function numero(value: unknown) {
   const result = Number(value);
 
@@ -33,7 +63,9 @@ function numero(value: unknown) {
   return result;
 }
 
-export function parseCfdiXml(xml: string): CfdiValidationResult {
+export function parseCfdiXml(
+  xml: string
+): CfdiValidationResult {
   const errors: string[] = [];
 
   try {
@@ -43,36 +75,51 @@ export function parseCfdiXml(xml: string): CfdiValidationResult {
       removeNSPrefix: true,
     });
 
-    const parsed = parser.parse(xml);
+    const parsed =
+      parser.parse(xml);
 
-    const comprobante = parsed?.Comprobante;
+    const comprobante =
+      parsed?.Comprobante;
 
     if (!comprobante) {
       return {
         valid: false,
-        errors: ["El XML no contiene un CFDI válido"],
+        errors: [
+          "El XML no contiene un CFDI válido",
+        ],
       };
     }
 
-    const emisor = comprobante.Emisor;
-    const receptor = comprobante.Receptor;
+    const emisor =
+      comprobante.Emisor;
 
-    const complemento = comprobante.Complemento;
+    const receptor =
+      comprobante.Receptor;
+
+    const complemento =
+      comprobante.Complemento;
 
     const timbre =
       complemento?.TimbreFiscalDigital ||
       (Array.isArray(complemento)
         ? complemento.find(
-            (item) => item?.TimbreFiscalDigital
-          )?.TimbreFiscalDigital
+            (item) =>
+              item
+                ?.TimbreFiscalDigital
+          )
+            ?.TimbreFiscalDigital
         : null);
 
     if (!emisor?.Rfc) {
-      errors.push("El CFDI no contiene RFC del emisor");
+      errors.push(
+        "El CFDI no contiene RFC del emisor"
+      );
     }
 
     if (!receptor?.Rfc) {
-      errors.push("El CFDI no contiene RFC del receptor");
+      errors.push(
+        "El CFDI no contiene RFC del receptor"
+      );
     }
 
     if (!timbre?.UUID) {
@@ -82,14 +129,25 @@ export function parseCfdiXml(xml: string): CfdiValidationResult {
     }
 
     if (!comprobante.Fecha) {
-      errors.push("El CFDI no contiene fecha de emisión");
+      errors.push(
+        "El CFDI no contiene fecha de emisión"
+      );
     }
 
-    const total = numero(comprobante.Total);
-    const subtotal = numero(comprobante.SubTotal);
+    const total =
+      numero(
+        comprobante.Total
+      );
+
+    const subtotal =
+      numero(
+        comprobante.SubTotal
+      );
 
     if (total <= 0) {
-      errors.push("El total del CFDI no es válido");
+      errors.push(
+        "El total del CFDI no es válido"
+      );
     }
 
     if (errors.length > 0) {
@@ -102,39 +160,114 @@ export function parseCfdiXml(xml: string): CfdiValidationResult {
     return {
       valid: true,
       errors: [],
-      data: {
-        uuid: String(timbre.UUID).toUpperCase(),
-        rfcEmisor: normalizarRFC(emisor.Rfc),
-        nombreEmisor: emisor.Nombre
-          ? String(emisor.Nombre).trim()
-          : undefined,
 
-        rfcReceptor: normalizarRFC(receptor.Rfc),
-        nombreReceptor: receptor.Nombre
-          ? String(receptor.Nombre).trim()
-          : undefined,
+      data: {
+        uuid:
+          String(
+            timbre.UUID
+          ).toUpperCase(),
+
+        rfcEmisor:
+          normalizarRFC(
+            emisor.Rfc
+          ),
+
+        nombreEmisor:
+          textoOpcional(
+            emisor.Nombre
+          ),
+
+        rfcReceptor:
+          normalizarRFC(
+            receptor.Rfc
+          ),
+
+        nombreReceptor:
+          textoOpcional(
+            receptor.Nombre
+          ),
 
         subtotal,
         total,
-        fecha: String(comprobante.Fecha),
+
+        fecha:
+          String(
+            comprobante.Fecha
+          ),
+
+        // ==========================================
+        // Certificado / sello CFDI
+        // ==========================================
+
+        noCertificadoCfdi:
+          textoOpcional(
+            comprobante.NoCertificado
+          ),
+
+        // ==========================================
+        // Timbre Fiscal Digital
+        // ==========================================
+
+        fechaTimbrado:
+          textoOpcional(
+            timbre.FechaTimbrado
+          ),
+
+        noCertificadoSat:
+          textoOpcional(
+            timbre.NoCertificadoSAT
+          ),
+
+        selloSat:
+          textoOpcional(
+            timbre.SelloSAT
+          ),
+
+        /*
+          SW/SAT usan SelloCFD dentro del
+          Timbre Fiscal Digital.
+
+          Preferimos este valor sobre el
+          Sello del comprobante cuando
+          exista.
+        */
+        selloCfdi:
+          textoOpcional(
+            timbre.SelloCFD
+          ) ||
+          textoOpcional(
+            comprobante.Sello
+          ),
+
+        rfcProvCertif:
+          textoOpcional(
+            timbre.RfcProvCertif
+          ),
       },
     };
   } catch (error) {
-    console.error("Error leyendo CFDI:", error);
+    console.error(
+      "Error leyendo CFDI:",
+      error
+    );
 
     return {
       valid: false,
-      errors: ["No fue posible interpretar el XML"],
+      errors: [
+        "No fue posible interpretar el XML",
+      ],
     };
   }
 }
 
-export function validarCfdiContraOperacion(params: {
-  cfdi: CfdiData;
-  rfcEstablecimiento: string;
-  rfcVendedor: string;
-  totalEsperado?: number;
-}): CfdiValidationResult {
+export function validarCfdiContraOperacion(
+  params: {
+    cfdi: CfdiData;
+    rfcEstablecimiento: string;
+    rfcVendedor: string;
+    totalEsperado?: number;
+  }
+): CfdiValidationResult {
   const {
     cfdi,
     rfcEstablecimiento,
@@ -145,8 +278,12 @@ export function validarCfdiContraOperacion(params: {
   const errors: string[] = [];
 
   if (
-    normalizarRFC(cfdi.rfcEmisor) !==
-    normalizarRFC(rfcEstablecimiento)
+    normalizarRFC(
+      cfdi.rfcEmisor
+    ) !==
+    normalizarRFC(
+      rfcEstablecimiento
+    )
   ) {
     errors.push(
       "El RFC emisor no corresponde al establecimiento"
@@ -154,8 +291,12 @@ export function validarCfdiContraOperacion(params: {
   }
 
   if (
-    normalizarRFC(cfdi.rfcReceptor) !==
-    normalizarRFC(rfcVendedor)
+    normalizarRFC(
+      cfdi.rfcReceptor
+    ) !==
+    normalizarRFC(
+      rfcVendedor
+    )
   ) {
     errors.push(
       "El RFC receptor no corresponde al vendedor"
@@ -163,8 +304,12 @@ export function validarCfdiContraOperacion(params: {
   }
 
   if (
-    totalEsperado !== undefined &&
-    Math.abs(cfdi.total - totalEsperado) > 0.01
+    totalEsperado !==
+      undefined &&
+    Math.abs(
+      cfdi.total -
+        totalEsperado
+    ) > 0.01
   ) {
     errors.push(
       "El importe del CFDI no corresponde al servicio"
@@ -172,8 +317,12 @@ export function validarCfdiContraOperacion(params: {
   }
 
   return {
-    valid: errors.length === 0,
-    data: cfdi,
+    valid:
+      errors.length === 0,
+
+    data:
+      cfdi,
+
     errors,
   };
 }

@@ -1,6 +1,7 @@
 // app/api/orders/recibido/route.ts
 
 console.log("🔥 API /orders/recibido CARGADA");
+import { getOrderServiceValue } from "@/lib/billing/getOrderServiceValue";
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
@@ -118,9 +119,38 @@ console.log("🏪 establecimiento_id:", establecimiento_id);
   if (!establecimiento_id) {
     console.error("❌ NO hay establecimiento_id");
   } else {
-    const monto_bruto = 60;
-    const comision_rate = 0.2;
-    const iva_rate = 0.16;
+    const serviceValue =
+  await getOrderServiceValue(
+    pedidoAny.id
+  );
+
+const monto_bruto =
+  serviceValue.importeServicio;
+
+const comision_rate = 0.2;
+const iva_rate = 0.16;
+
+console.log(
+  "💰 Valor financiero del servicio:",
+  {
+    pedido_id:
+      pedidoAny.id,
+
+    coin_tipo:
+      serviceValue.coinTipo,
+
+    origen:
+      serviceValue.origen,
+
+    precio_unitario:
+      serviceValue.precioUnitario,
+
+    descuento:
+      serviceValue.descuentoPorcentaje,
+
+    monto_bruto,
+  }
+);
 
     const comision_monto = monto_bruto * comision_rate;
     const iva_monto = comision_monto * iva_rate;
@@ -139,7 +169,7 @@ console.log("🏪 establecimiento_id:", establecimiento_id);
         comision_monto,
         iva_monto,
         neto_establecimiento,
-        status: "available",
+        status: "pending",
       });
 
     if (error) {

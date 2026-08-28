@@ -1,63 +1,47 @@
 # Billing - Invoice Processing
 
-## Objetivo
+> Última actualización: 27/08/2026
 
-Definir el proceso interno de emisión y gestión de facturas dentro de Dropit.
+## Solicitud
 
----
+El vendedor crea una única solicitud. El backend valida elegibilidad y crea:
 
-## Principios
+- `invoice_requests` con snapshot fiscal;
+- un `invoices` de `tipo_emisor = establecimiento`.
 
-- El vendedor realiza una única solicitud de factura.
-- Dropit administra todo el proceso de facturación.
-- El vendedor nunca interactúa directamente con el establecimiento.
-- Cada factura conserva su propio ciclo de vida.
+No se crea actualmente una factura Dropit por pedido.
 
----
+## Recepción del CFDI del establecimiento
 
-## Flujo
+El establecimiento carga XML y PDF. El upload:
 
-### 1. Solicitud
+- valida autenticación y propiedad del establecimiento;
+- valida tipo/tamaño de archivos;
+- almacena ambos documentos en el bucket privado `billing-documents`;
+- actualiza la factura a `procesando`.
 
-El vendedor solicita la factura desde un pedido.
+## Validación local
 
-Dropit valida:
+`validateEstablishmentCfdi` descarga y parsea el XML y compara:
 
-- plazo permitido;
-- perfil fiscal seleccionado.
+- RFC emisor = RFC del perfil fiscal del establecimiento;
+- RFC receptor = RFC del snapshot del vendedor;
+- total CFDI = `balance_movimientos.monto_bruto`.
 
----
+También persiste UUID, subtotal, total y fecha de emisión.
 
-### 2. Factura Dropit
+## Validación fiscal
 
-Dropit genera la factura correspondiente a los servicios prestados por la plataforma.
+Después de la validación local se usa la abstracción PAC. Con SW, `/validate/cfdi` debe devolver una operación exitosa y un CFDI vigente/localizado ante SAT. Un HTTP 200 por sí solo no es suficiente.
 
----
+Resultado válido:
 
-### 3. Factura del establecimiento
+`invoices.estado = emitida`
 
-Dropit solicita al establecimiento la emisión de la factura correspondiente.
+Resultado inválido:
 
-El establecimiento deberá cumplir con las condiciones definidas en los Términos y Condiciones.
+`invoices.estado = error` + `error_mensaje`.
 
----
+## Separación financiera
 
-### 4. Recepción
-
-Cuando el establecimiento entrega su factura:
-
-- Dropit valida la información.
-- La factura queda disponible para el vendedor.
-- Continúa el proceso de liquidación.
-
----
-
-### 5. Finalización
-
-Cuando todas las facturas del servicio estén disponibles, la solicitud se considera completada.
-
----
-
-## Principio
-
-Toda la comunicación relacionada con la facturación ocurre entre el vendedor y Dropit.
+Este proceso no libera ni paga `balance_movimientos`. La conciliación mensual es un proceso independiente.

@@ -1,116 +1,38 @@
 # Billing - PAC Integration
 
-## Objetivo
+> Última actualización: 27/08/2026
 
-Definir la integración entre Billing y el Proveedor Autorizado de Certificación (PAC) para la emisión de los CFDI correspondientes a Dropit.
+## Proveedor actual
 
----
+QA utiliza SW Sapien mediante una capa de abstracción (`PacProvider`). El dominio no debe depender directamente de SW fuera del adapter.
 
-## Principios
+## Emisión
 
-- Dropit únicamente timbra los CFDI que le corresponden como emisor.
-- Dropit no timbra los CFDI emitidos por los establecimientos.
-- La integración deberá ser independiente del PAC seleccionado.
-- El cambio de proveedor no deberá afectar el flujo funcional de Billing.
+La capacidad de timbrado JSON con SW fue probada en sandbox. Se conserva para CFDI que Dropit deba emitir en el futuro. No se usa actualmente para emitir automáticamente el CFDI del establecimiento.
 
----
+## Validación de CFDI externo
 
-## Alcance
+El establecimiento emite su CFDI fuera de Dropit. Dropit envía el XML al PAC para validación fiscal después de superar las validaciones locales.
 
-La integración con el PAC será utilizada para:
+Con SW se utiliza `/validate/cfdi`. El adapter no debe considerar válido un CFDI únicamente porque la petición HTTP sea 200. Debe interpretar la respuesta fiscal y aceptar únicamente un comprobante exitoso, localizado y `Vigente` ante SAT.
 
-- emisión de CFDI;
-- timbrado;
-- obtención del UUID;
-- generación de XML;
-- generación de PDF;
-- cancelaciones;
-- consultas de estado cuando sean necesarias.
+## Responsabilidades
 
----
+PAC/SW:
+- validación fiscal y consulta SAT;
+- timbrado cuando Dropit sea emisor;
+- UUID/XML de emisiones propias.
 
-## Flujo
+Dropit:
+- validación de correspondencia con la operación;
+- almacenamiento privado de XML/PDF;
+- estados internos;
+- trazabilidad y conciliación.
 
-### 1. Solicitud
+## PDF
 
-Billing determina que corresponde emitir un CFDI de Dropit.
+Para la prueba QA se comprobó la generación de representación PDF a partir del XML mediante SW. La arquitectura objetivo mantiene al XML timbrado como documento fiscal fuente y permite que Dropit genere su propia representación PDF para documentos propios, evitando dependencia visual del PAC.
 
----
+## Seguridad
 
-### 2. Generación
-
-Dropit construye la información necesaria para generar el CFDI.
-
----
-
-### 3. Timbrado
-
-Dropit envía la solicitud al PAC.
-
----
-
-### 4. Respuesta
-
-El PAC devuelve:
-
-- UUID fiscal;
-- XML timbrado;
-- representación PDF (cuando aplique);
-- resultado de la operación.
-
----
-
-### 5. Almacenamiento
-
-Dropit almacena:
-
-- UUID;
-- XML;
-- PDF;
-- fecha de emisión;
-- estado.
-
----
-
-### 6. Disponibilidad
-
-La factura queda disponible para el vendedor.
-
----
-
-## Cancelaciones
-
-Cuando un CFDI de Dropit deba cancelarse:
-
-- Billing solicitará la cancelación al PAC.
-- Se almacenará el resultado.
-- Se conservará el historial de la operación.
-
----
-
-## Webhooks
-
-Cuando el PAC los soporte, Billing podrá recibir eventos relacionados con:
-
-- timbrado;
-- cancelación;
-- errores;
-- cambios de estado.
-
-Billing deberá validar la autenticidad de cada evento recibido antes de procesarlo.
-
----
-
-## Independencia tecnológica
-
-Billing no dependerá de un proveedor específico.
-
-Toda integración deberá implementarse mediante una capa de abstracción que permita reemplazar el PAC sin modificar el resto del dominio.
-
----
-
-## Principio
-
-Billing controla el proceso de emisión de los CFDI de Dropit.
-
-Los CFDI emitidos por establecimientos permanecen fuera del proceso de timbrado de la plataforma y únicamente son recibidos y validados para efectos de liquidación.
+Credenciales, tokens y CSD nunca deben exponerse al cliente ni persistirse en documentación. Toda interacción con PAC se ejecuta en servidor mediante variables de entorno.

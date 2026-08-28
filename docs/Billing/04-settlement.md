@@ -1,85 +1,31 @@
-# Billing - Settlement
+# Billing - Conciliación y liquidación
 
-## Objetivo
+> Última actualización: 27/08/2026
 
-Definir el flujo de liquidación económica entre Dropit, el vendedor y el establecimiento.
+## Modelo vigente
 
----
+El modelo anterior de retiros/settlements por solicitud no es la arquitectura objetivo. La fuente financiera vigente es `balance_movimientos`.
 
-## Principios
+Cuando el establecimiento recibe el paquete se registra una línea financiera con el valor real del servicio, comisión, IVA de comisión y neto del establecimiento. La línea nace con `status = pending`.
 
-- El vendedor paga por adelantado mediante una Coin.
-- La Coin representa un prepago del servicio.
-- El servicio inicia cuando el establecimiento recibe el paquete.
-- Dropit administra todo el proceso de liquidación.
+## Cierre mensual
 
----
+El modelo acordado es:
 
-## Flujo
+1. cerrar el periodo mensual;
+2. conciliar operaciones y solicitudes de factura;
+3. verificar cumplimiento documental por línea;
+4. bloquear líneas con factura requerida pero no validada;
+5. aprobar las líneas conciliadas;
+6. ejecutar pago al establecimiento;
+7. posteriormente gestionar el CFDI consolidado mensual de comisión de Dropit al establecimiento, sujeto a validación fiscal final con contador.
 
-### 1. Compra de Coin
+## Regla documental
 
-El vendedor compra una Coin.
+Si el vendedor solicitó factura, el establecimiento debe entregar un CFDI válido por el `monto_bruto` de esa operación antes de que la línea pueda liquidarse.
 
-La Coin queda disponible para utilizarse.
+La validación del CFDI **no** cambia automáticamente el estado financiero. En la prueba QA del 27/08/2026, una factura quedó `emitida` mientras su `balance_movimientos.status` permaneció `pending`, comportamiento esperado.
 
----
+## Incumplimiento
 
-### 2. Reserva
-
-Al crear un pedido:
-
-- la Coin se asigna al pedido;
-- cambia a estado **Reservada**.
-
----
-
-### 3. Consumo
-
-Cuando el establecimiento recibe el paquete:
-
-- inicia la prestación del servicio;
-- la Coin cambia a **Consumida**;
-- Dropit reconoce el ingreso del servicio.
-
----
-
-### 4. Comisión
-
-Del importe del servicio:
-
-- Dropit retiene su comisión.
-- Se calcula el importe correspondiente al establecimiento.
-
----
-
-### 5. Solicitud de factura
-
-Si el vendedor solicita factura:
-
-- Dropit emite su factura.
-- Dropit solicita la factura correspondiente al establecimiento.
-
-El vendedor interactúa únicamente con Dropit.
-
----
-
-### 6. Liberación del pago
-
-El pago al establecimiento se libera únicamente cuando se cumplen las condiciones definidas por la plataforma.
-
----
-
-### 7. Incumplimiento
-
-Si el establecimiento no cumple con las condiciones necesarias para liberar el pago:
-
-- Dropit no libera la liquidación.
-- Se notifica al establecimiento.
-- Se aplican las políticas definidas en los Términos y Condiciones.
-
----
-
-## Principio
-
-La liquidación económica es independiente del flujo logístico del pedido.
+Una línea con factura requerida y no validada permanece bloqueada. La política definitiva de compensación/reembolso al vendedor y sus plazos debe formalizarse en reglas de negocio y Términos y Condiciones.

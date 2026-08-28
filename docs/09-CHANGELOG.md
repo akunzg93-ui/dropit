@@ -112,3 +112,19 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 - Integración con SW Sapien (JSON).
 - Timbrado CFDI.
 - Descarga de XML/PDF.
+
+## 2026-08-27
+
+### Facturación - CFDI establecimiento
+
+- Se cerró y validó en QA el flujo de carga de XML/PDF del establecimiento.
+- Se agregó validación de RFC emisor contra perfil fiscal del establecimiento.
+- Se valida RFC receptor contra snapshot fiscal del vendedor.
+- Se valida el total contra `balance_movimientos.monto_bruto`.
+- Se integró validación fiscal PAC/SAT con SW y aceptación únicamente de CFDI vigente/localizado.
+- La factura validada cambia a `emitida` y conserva UUID, subtotal, total y fecha.
+- La validación fiscal no libera el balance; permanece `pending` hasta conciliación mensual.
+- Se consolidó `balance_movimientos` como fuente financiera operativa y se descartó `settlements` para nueva lógica.
+- Se definió que el establecimiento emite externamente su CFDI y Dropit no emite en su nombre.
+- Se definió como arquitectura objetivo un CFDI mensual consolidado de comisión Dropit por establecimiento, pendiente de validación final con contador.
+- Se documentó ADR-011.

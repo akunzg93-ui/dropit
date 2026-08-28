@@ -1,64 +1,48 @@
 # Billing - Overview
 
+> Estado: Implementado parcialmente y validado en QA  
+> Última actualización: 27/08/2026
+
 ## Objetivo
 
-El dominio Billing administra el flujo económico de Dropit.
+Billing administra el flujo económico y fiscal asociado a los servicios de Dropit, manteniéndolo separado del flujo logístico de Orders.
 
-Su responsabilidad es gestionar el ciclo de vida financiero de un servicio, desde la reserva de una Coin hasta la emisión de facturas y la liquidación a los establecimientos.
+## Fuente económica
 
-Billing es independiente del flujo logístico de los pedidos.
+El valor real del servicio se obtiene de la Coin efectivamente utilizada por el pedido. Cuando la Coin proviene de una compra, se usa el precio unitario efectivo después del descuento. Para Coins promocionales administrativas sin pago asociado se usa el precio nominal vigente por tipo. No se inventa un importe cuando no existe trazabilidad suficiente.
 
----
+Al recibir el establecimiento el paquete (`pendiente_recoleccion`) se crea `balance_movimientos` con:
 
-## Principios
+- `monto_bruto`: valor real del servicio;
+- comisión Dropit: 20%;
+- IVA sobre la comisión: 16%;
+- `neto_establecimiento`;
+- `status = pending`.
 
-- Una Coin representa un prepago del servicio, no el servicio en sí.
-- La Coin se reserva al crear el pedido.
-- La Coin se consume cuando el establecimiento recibe el paquete, momento en el que inicia la prestación efectiva del servicio.
-- El vendedor interactúa únicamente con Dropit para cualquier proceso de facturación.
-- Dropit coordina internamente la emisión de las facturas necesarias.
-- La liberación del pago al establecimiento depende del cumplimiento de las condiciones definidas por la plataforma.
+`balance_movimientos` es la fuente financiera operativa vigente. `settlements` no participa en el flujo actual.
 
----
+## Facturación al vendedor
 
-## Responsabilidades
+El vendedor solicita factura desde Dropit y selecciona un perfil fiscal. La solicitud conserva un snapshot fiscal inmutable.
 
-Billing administra:
+La solicitud crea actualmente un único registro `invoices` de tipo `establecimiento`. El establecimiento es responsable de emitir externamente el CFDI por el valor bruto real del servicio y cargar XML + PDF en Dropit.
 
-- Coins
-- Facturación
-- Datos fiscales
-- Solicitudes de factura
-- Liquidaciones
-- Pagos a establecimientos
-- Integración con PAC
-- Historial financiero
+Dropit valida:
 
-Billing no administra:
+1. estructura del XML;
+2. RFC emisor contra el perfil fiscal asociado al establecimiento;
+3. RFC receptor contra el snapshot de la solicitud;
+4. total contra `balance_movimientos.monto_bruto`;
+5. vigencia fiscal mediante PAC/SAT.
 
-- Estados del pedido
-- Tracking logístico
-- Establecimientos
-- Entregas
-- Recepciones
+Una validación satisfactoria deja `invoices.estado = emitida`.
 
-Estas responsabilidades pertenecen al dominio Orders.
+## Factura de comisión Dropit
 
----
+Dropit no emite actualmente un CFDI de comisión por cada pedido. El modelo acordado es una factura consolidada mensual de comisión por establecimiento, posterior al cierre y conciliación del periodo. El disparador fiscal definitivo debe validarse con contador antes de implementarse.
 
-## Relación con Orders
+## Liquidación
 
-Billing no modifica el flujo de pedidos.
+La validación de un CFDI no libera automáticamente el dinero. El balance permanece `pending` hasta el proceso mensual de conciliación y pago.
 
-Billing únicamente reacciona a eventos generados por Orders.
-
-El principal evento económico es:
-
-Pendiente Recolección
-
-Cuando el establecimiento recibe el paquete:
-
-- inicia la prestación del servicio;
-- la Coin cambia de Reservada a Consumida;
-- se habilita la solicitud de factura;
-- inicia el flujo de liquidación.
+Si el vendedor solicitó factura, la línea requiere CFDI válido del establecimiento para poder liquidarse. Si no se entrega en el plazo definido, la línea queda bloqueada y deberá aplicar la política de compensación/reembolso que se formalice.

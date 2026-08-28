@@ -55,3 +55,14 @@ Los jobs validan `CRON_SECRET`, delegan la transición a RPC idempotentes y devu
 # Regla de mantenimiento
 
 Las rutas estables no se mueven únicamente para mejorar la organización de carpetas.
+
+
+# Billing - rutas vigentes (27/08/2026)
+
+- `GET/POST /api/orders/billing/invoice-requests`
+- `GET /api/orders/billing/establishment-invoices`
+- `POST /api/orders/billing/establishment-invoices/upload`
+- `POST /api/orders/billing/establishment-invoices/[id]/validate`
+- `POST /api/orders/establishments/complete-onboarding`
+
+La validación de factura no cambia el estado de `balance_movimientos`.

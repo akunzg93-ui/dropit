@@ -33,53 +33,47 @@ export default function Navbar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const cargar = async () => {
-      const { data } = await supabase.auth.getUser();
+  let mounted = true;
 
-      const u = data?.user || null;
+  async function cargarUsuarioYRol() {
+    const {
+      data: { user: currentUser },
+    } = await supabase.auth.getUser();
 
-      setUser(u);
+    if (!mounted) return;
 
-      if (u) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", u.id)
-          .single();
+    setUser(currentUser || null);
 
-        if (profile?.role) {
-          setRole(profile.role);
-        }
-      }
-    };
+    if (!currentUser) {
+      setRole(null);
+      return;
+    }
 
-    cargar();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", currentUser.id)
+      .maybeSingle();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
-      const u = session?.user || null;
+    if (!mounted) return;
 
-      setUser(u);
+    setRole(profile?.role || null);
+  }
 
-      if (!u) {
-        setRole(null);
-        return;
-      }
+  cargarUsuarioYRol();
 
-      setTimeout(async () => {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", u.id)
-          .maybeSingle();
-
-        if (profile?.role) {
-          setRole(profile.role);
-        }
+  const { data: listener } =
+    supabase.auth.onAuthStateChange(() => {
+      setTimeout(() => {
+        cargarUsuarioYRol();
       }, 0);
     });
 
-    return () => listener.subscription.unsubscribe();
-  }, []);
+  return () => {
+    mounted = false;
+    listener.subscription.unsubscribe();
+  };
+}, [pathname]);
 
 useEffect(() => {
   function handleClickOutside(event) {

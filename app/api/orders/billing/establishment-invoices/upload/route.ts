@@ -80,32 +80,32 @@ export async function POST(req: Request) {
 
     // 2. Obtener pedido
     const { data: pedido, error: pedidoError } =
-      await supabase
-        .from("pedidos")
-        .select("id, establecimiento_id")
-        .eq("id", invoiceRequest.pedido_id)
-        .single();
+  await supabase
+    .from("pedidos")
+    .select("id, establecimiento_uuid")
+    .eq("id", invoiceRequest.pedido_id)
+    .single();
 
-    if (
-      pedidoError ||
-      !pedido ||
-      !pedido.establecimiento_id
-    ) {
-      return NextResponse.json(
-        { error: "Pedido o establecimiento no encontrado" },
-        { status: 404 }
-      );
-    }
+if (
+  pedidoError ||
+  !pedido ||
+  !pedido.establecimiento_uuid
+) {
+  return NextResponse.json(
+    { error: "Pedido o establecimiento no encontrado" },
+    { status: 404 }
+  );
+}
 
     // 3. Confirmar que el usuario autenticado
     //    controla ese establecimiento
     const { data: establecimiento, error: establecimientoError } =
-      await supabase
-        .from("establecimientos")
-        .select("id, usuario_id")
-        .eq("id", pedido.establecimiento_id)
-        .eq("usuario_id", user.id)
-        .single();
+  await supabase
+    .from("establecimientos")
+    .select("id, uuid, usuario_id, fiscal_profile_id")
+    .eq("uuid", pedido.establecimiento_uuid)
+    .eq("usuario_id", user.id)
+    .single();
 
     if (establecimientoError || !establecimiento) {
       return NextResponse.json(
@@ -113,6 +113,16 @@ export async function POST(req: Request) {
         { status: 403 }
       );
     }
+
+if (!establecimiento.fiscal_profile_id) {
+  return NextResponse.json(
+    {
+      error:
+        "Configura los datos fiscales del establecimiento antes de subir la factura",
+    },
+    { status: 409 }
+  );
+}
 
     // 4. Obtener invoice del establecimiento
     const { data: invoice, error: invoiceError } =

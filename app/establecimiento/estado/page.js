@@ -11,6 +11,7 @@ import {
   Bell,
   Store,
   Eye,
+  ReceiptText,
 } from "lucide-react";
 
 export default function EstablecimientoEstadoPage() {
@@ -22,6 +23,7 @@ export default function EstablecimientoEstadoPage() {
   const [loadingInicial, setLoadingInicial] = useState(true);
   const [pedidos, setPedidos] = useState([]);
   const [pendientesGlobales, setPendientesGlobales] = useState([]);
+  const [facturasPendientes, setFacturasPendientes] = useState(0);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -36,6 +38,23 @@ export default function EstablecimientoEstadoPage() {
         const userId = session?.user?.id;
 
         if (!userId) return;
+
+        const resFacturas = await fetch(
+  "/api/orders/billing/establishment-invoices",
+  {
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  }
+);
+
+const jsonFacturas =
+  await resFacturas.json();
+
+console.log(
+  "🧾 FACTURAS ESTABLECIMIENTO:",
+  jsonFacturas
+);
 
         const { data, error } = await supabase
           .from("establecimientos")
@@ -163,6 +182,57 @@ export default function EstablecimientoEstadoPage() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+  const cargarFacturasPendientes = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) return;
+
+    try {
+      const response = await fetch(
+        "/api/orders/billing/establishment-invoices",
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          cache: "no-store",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(
+          "Error cargando facturas pendientes:",
+          data
+        );
+        return;
+      }
+
+      setFacturasPendientes(
+        Number(data?.pending_count || 0)
+      );
+    } catch (error) {
+      console.error(
+        "Error cargando facturas pendientes:",
+        error
+      );
+    }
+  };
+
+  cargarFacturasPendientes();
+
+  const interval = setInterval(
+    cargarFacturasPendientes,
+    15000
+  );
+
+  return () => clearInterval(interval);
+}, []);
+
+
   const pendientes = pedidos.filter(
     (p) => p.estado === "pendiente_aprobacion_establecimiento"
   );
@@ -212,15 +282,32 @@ export default function EstablecimientoEstadoPage() {
               </p>
             </div>
 
-            {pendientesGlobales.length > 0 && (
-              <button
-                onClick={irAPendientesGlobales}
-                className="flex w-fit items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 font-semibold text-amber-700 transition hover:bg-amber-100"
-              >
-                <Bell size={20} />
-                {pendientesGlobales.length} por revisar
-              </button>
-            )}
+           <div className="flex flex-wrap items-center gap-3">
+  {facturasPendientes > 0 && (
+    <button
+      onClick={() =>
+        router.push("/establecimiento/facturacion")
+      }
+      className="flex w-fit items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 font-semibold text-blue-700 transition hover:bg-blue-100"
+    >
+      <ReceiptText size={20} />
+
+      {facturasPendientes === 1
+        ? "1 factura pendiente"
+        : `${facturasPendientes} facturas pendientes`}
+    </button>
+  )}
+
+  {pendientesGlobales.length > 0 && (
+    <button
+      onClick={irAPendientesGlobales}
+      className="flex w-fit items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 font-semibold text-amber-700 transition hover:bg-amber-100"
+    >
+      <Bell size={20} />
+      {pendientesGlobales.length} por revisar
+    </button>
+  )}
+</div>
           </div>
         </section>
 

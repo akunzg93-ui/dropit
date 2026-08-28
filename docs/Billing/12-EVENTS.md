@@ -1,136 +1,35 @@
 # Billing - Events
 
-## Objetivo
-
-Definir los eventos de negocio que activan procesos dentro del dominio Billing.
-
-Billing no depende de pantallas ni de llamadas entre componentes.
-
-Billing reacciona a eventos del negocio.
-
----
-
-# Principios
-
-- Un evento representa un hecho ocurrido.
-- Los eventos son inmutables.
-- Un mismo evento puede producir múltiples acciones.
-- Billing nunca depende del frontend para iniciar procesos internos.
-
----
-
-# Eventos
-
-## OrderCreated
-
-Descripción
-
-El vendedor creó un pedido correctamente.
-
-Acciones
-
-- Reservar una Coin.
-- Crear el contexto económico del pedido.
-
----
+> Última actualización: 27/08/2026
 
 ## OrderReceivedByEstablishment
 
-Descripción
-
-El establecimiento recibió físicamente el paquete.
-
-Acciones
-
-- Consumir la Coin.
-- Crear la liquidación.
-- Habilitar la futura solicitud de factura.
-
----
+El establecimiento recibe físicamente el paquete. Se reconoce el inicio económico del servicio y se crea `balance_movimientos` con el valor real de la Coin utilizada y `status = pending`.
 
 ## InvoiceRequested
 
-Descripción
+El vendedor solicita factura. Se crea `invoice_requests`, snapshot fiscal y el invoice pendiente del establecimiento.
 
-El vendedor solicita una factura.
+## EstablishmentInvoiceUploaded
 
-Acciones
+El establecimiento carga XML/PDF. Los documentos se almacenan y la factura pasa a `procesando`.
 
-- Crear Invoice Request.
-- Capturar Snapshot Fiscal.
-- Bloquear temporalmente la liquidación cuando corresponda.
+## EstablishmentInvoiceValidated
 
----
+El CFDI supera validaciones locales y PAC/SAT. La factura pasa a `emitida`. Este evento no libera el balance.
 
-## DropitInvoiceIssued
+## EstablishmentInvoiceRejected
 
-Descripción
+La validación falla. La factura pasa a `error` con motivo trazable.
 
-Dropit emitió correctamente su CFDI.
+## MonthlyReconciliationClosed
 
-Acciones
+Evento futuro: cierre y conciliación mensual de líneas financieras antes del pago.
 
-- Registrar UUID.
-- Almacenar XML.
-- Almacenar PDF.
+## EstablishmentPaid
 
----
+Evento futuro: pago confirmado después de conciliación.
 
-## EstablishmentInvoiceReceived
+## DropitMonthlyCommissionInvoiceIssued
 
-Descripción
-
-El establecimiento entregó su CFDI.
-
-Acciones
-
-- Validar documentos.
-- Desbloquear liquidación cuando corresponda.
-
----
-
-## SettlementReleased
-
-Descripción
-
-La liquidación quedó autorizada para pago.
-
-Acciones
-
-- Marcar Settlement como listo para pago.
-
----
-
-## SettlementPaid
-
-Descripción
-
-Dropit confirmó el pago al establecimiento.
-
-Acciones
-
-- Registrar fecha de pago.
-- Finalizar Settlement.
-
----
-
-## InvoiceCancelled
-
-Descripción
-
-Un CFDI fue cancelado.
-
-Acciones
-
-- Actualizar estado.
-- Registrar historial.
-
----
-
-# Principio
-
-Los eventos representan hechos del negocio.
-
-Las reglas de negocio reaccionan a los eventos.
-
-Nunca al revés.
+Evento futuro: CFDI consolidado mensual de comisión de Dropit al establecimiento, sujeto a validación fiscal definitiva.

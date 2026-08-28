@@ -60,3 +60,20 @@ Debe:
 # Custodia vencida
 
 Si pasan 48 horas desde `devolucion_iniciada_at`, el job cambia el estado a `custodia_vencida`. A partir de ese punto termina la obligación ordinaria de resguardo bajo el flujo Dropit, sin transferencia automática de propiedad.
+
+
+# Facturación del establecimiento
+
+> Actualización: 27/08/2026
+
+## Pantallas
+
+- `/establecimiento/facturacion`: lista solicitudes y pendientes.
+- `/establecimiento/facturacion/[id]`: muestra folio, importe esperado, receptor y permite cargar XML/PDF.
+- `/establecimiento/onboarding-fiscal`: selección/creación de perfil fiscal asociado al establecimiento.
+
+## Flujo
+
+El establecimiento emite el CFDI fuera de Dropit. Dropit recibe XML/PDF, valida que el RFC emisor corresponda al perfil fiscal asociado, que receptor y monto correspondan a la solicitud/operación y finalmente valida vigencia mediante PAC/SAT. Éxito: `invoices.estado = emitida`.
+
+La factura emitida no libera automáticamente `balance_movimientos`; el pago se resolverá en conciliación mensual.

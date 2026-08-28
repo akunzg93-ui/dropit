@@ -50,9 +50,7 @@ Dropit emitirá el CFDI correspondiente a la comisión generada por la plataform
 
 Estado:
 
-✅ Aprobado.
-
-Pendiente de validación final con el contador.
+🟡 Aprobado como decisión de producto; pendiente de validación fiscal final con el contador.
 
 ---
 
@@ -62,13 +60,11 @@ Pendiente de validación final con el contador.
 
 El establecimiento será responsable de emitir el CFDI correspondiente al servicio prestado.
 
-Dropit gestionará la solicitud y recepción del documento.
+Dropit gestionará la solicitud, recepción y validación del documento.
 
 Estado:
 
-✅ Aprobado.
-
-Pendiente de validación final con el contador.
+🟡 Aprobado como decisión de producto; pendiente de validación fiscal final con el contador.
 
 ---
 

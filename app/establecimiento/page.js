@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -61,6 +62,7 @@ function withTimeout(promise, ms, label = "Operación") {
 }
 
 export default function EstablecimientoPage() {
+  const router = useRouter();
   const [nombre, setNombre] = useState("");
   const [direccion, setDireccion] = useState("");
   const [cp, setCp] = useState("");
@@ -309,11 +311,18 @@ export default function EstablecimientoPage() {
           behavior: "smooth",
         });
       } else {
-        const { data, error } = await withTimeout(
-          supabase.from("establecimientos").insert(payload).select().single(),
-          15000,
-          "INSERT Supabase"
-        );
+       const { data, error } = await withTimeout(
+  supabase
+    .from("establecimientos")
+    .insert({
+      ...payload,
+      activo: false,
+    })
+    .select()
+    .single(),
+  15000,
+  "INSERT Supabase"
+);
 
         if (error) {
           setMensaje(
@@ -324,13 +333,12 @@ export default function EstablecimientoPage() {
         }
 
         setEstablecimientos((prev) => [data, ...prev]);
-        setMensaje("✅ Establecimiento guardado.");
-        limpiarFormulario();
 
-        window.scrollTo({
-          top: 0,
-          behavior: "smooth",
-        });
+router.push(
+  `/establecimiento/onboarding-fiscal?establecimiento_id=${data.id}`
+);
+
+return;
       }
     } catch (err) {
       setMensaje("Ocurrió un error: " + (err?.message || "desconocido"));

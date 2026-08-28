@@ -1,104 +1,30 @@
 # Billing - User Flow
 
-## Objetivo
+> Última actualización: 27/08/2026
 
-Permitir que el vendedor solicite sus facturas desde Dropit sin interactuar directamente con los establecimientos.
+## Vendedor
 
----
+1. El servicio inicia económicamente cuando el establecimiento recibe el paquete.
+2. El pedido queda habilitado para solicitar factura dentro del periodo permitido.
+3. En **Mis pedidos**, el vendedor selecciona **Solicitar factura**.
+4. Selecciona o crea un perfil fiscal reutilizable.
+5. `POST /api/orders/billing/invoice-requests` valida propiedad, servicio iniciado, perfil, plazo y duplicados.
+6. Se crea `invoice_requests`, se conserva `fiscal_data_snapshot` y se crea el `invoice` de tipo `establecimiento` en estado pendiente.
+7. El vendedor ve el estado persistente al volver al pedido.
 
-## Flujo
+El vendedor no necesita contactar directamente al establecimiento; Dropit centraliza la solicitud, seguimiento y disponibilidad documental.
 
-### 1. Compra de Coins
+## Establecimiento
 
-El vendedor compra Coins para utilizar los servicios de Dropit.
+1. El panel muestra las facturas pendientes.
+2. El establecimiento entra a `/establecimiento/facturacion` y abre la solicitud.
+3. La pantalla muestra folio, importe esperado y datos fiscales del receptor.
+4. El establecimiento emite el CFDI fuera de Dropit y carga XML + PDF.
+5. Dropit almacena los documentos en `billing-documents` y marca temporalmente la factura como `procesando`.
+6. Se ejecuta validación local y fiscal PAC/SAT.
+7. Si todo es correcto, `invoices.estado = emitida`.
+8. Si falla, `invoices.estado = error` y se registra `error_mensaje`.
 
-Las Coins quedan disponibles en su cuenta.
+## Resultado
 
----
-
-### 2. Creación del pedido
-
-Al crear un pedido:
-
-- se asigna una Coin al pedido;
-- la Coin cambia a estado **Reservada**.
-
-Todavía no existe consumo del servicio.
-
----
-
-### 3. Inicio del servicio
-
-Cuando el establecimiento recibe el paquete:
-
-- el pedido cambia a **Pendiente Recolección**;
-- inicia la prestación efectiva del servicio;
-- la Coin cambia a **Consumida**;
-- se habilita la opción **Solicitar factura**.
-
----
-
-### 4. Solicitud de factura
-
-El vendedor ingresa a **Mis pedidos** y selecciona:
-
-**Solicitar factura**
-
-Si es la primera solicitud:
-
-- captura sus datos fiscales;
-- crea un perfil fiscal.
-
-En solicitudes posteriores:
-
-- puede seleccionar cualquiera de sus perfiles fiscales;
-- crear un nuevo perfil;
-- continuar utilizando el perfil predeterminado.
-
-Al confirmar:
-
-- se crea la solicitud de facturación;
-- se generan automáticamente los registros de facturación para Dropit y para el establecimiento;
-- se muestra un mensaje confirmando que la solicitud fue recibida correctamente.
-
-Después de cerrar el mensaje de confirmación:
-
-- el pedido actualiza automáticamente el estado de facturación;
-- el Timeline cambia a **Solicitud enviada**;
-- el botón **Solicitar factura** deja de estar disponible.
-
-### 5. Procesamiento
-
-Dropit recibe una única solicitud de factura.
-
-Internamente ejecuta una transacción que:
-
-- registra la solicitud de facturación;
-- crea la factura correspondiente a Dropit;
-- crea la factura correspondiente al establecimiento;
-- conserva un snapshot de los datos fiscales utilizados;
-- deja el proceso listo para el timbrado posterior.
-
-Todo el proceso es transparente para el vendedor.
-
-### 6. Resultado
-
-Cuando las facturas estén disponibles, el vendedor podrá descargarlas desde la plataforma.
-
-Dropit notificará el avance del proceso cuando corresponda.
-
----
-
----
-
-## Consulta del estado
-
-Cada vez que el vendedor abre nuevamente el pedido, Dropit consulta el estado actual de la solicitud mediante:
-
-`GET /api/orders/billing/invoice-requests`
-
-Con esta información el Timeline refleja automáticamente el avance del proceso sin requerir acciones adicionales del usuario.
-
-## Principio
-
-Para el vendedor existe un único responsable del proceso de facturación: **Dropit**.
+La factura validada queda asociada a la solicitud. Su validación no cambia por sí sola `balance_movimientos.status`; la liberación económica ocurre posteriormente en conciliación mensual.

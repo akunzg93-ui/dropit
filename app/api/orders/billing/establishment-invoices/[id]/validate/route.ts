@@ -40,13 +40,11 @@ export async function POST(
     }
 
     return NextResponse.json({
-      ok: true,
-      stage: result.stage,
-      requires_sat_validation:
-        result.requiresSatValidation,
-      invoice_id: result.invoiceId,
-      cfdi: result.cfdi,
-    });
+  ok: true,
+  stage: result.stage,
+  invoice_id: result.invoiceId,
+  cfdi: result.cfdi,
+});
   } catch (error) {
     if (!(error instanceof Error)) {
       return NextResponse.json(
@@ -75,7 +73,7 @@ export async function POST(
       case "ORDER_NOT_FOUND":
       case "ESTABLISHMENT_NOT_FOUND":
       case "INVOICE_NOT_FOUND":
-      case "SETTLEMENT_NOT_FOUND":
+      case "BALANCE_MOVEMENT_NOT_FOUND":
         return NextResponse.json(
           {
             error:

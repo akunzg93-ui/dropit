@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { getPacProvider } from "@/lib/billing/pac/factory";
 import {
   parseCfdiXml,
   validarCfdiContraOperacion,
@@ -48,24 +49,23 @@ export async function validateEstablishmentCfdi(params: {
   // 2. Pedido
   // =====================================================
 
-  const { data: pedido, error: pedidoError } =
-    await supabase
-      .from("pedidos")
-      .select(`
-        id,
-        establecimiento_id
-      `)
-      .eq("id", invoiceRequest.pedido_id)
-      .single();
+ const { data: pedido, error: pedidoError } =
+  await supabase
+    .from("pedidos")
+    .select(`
+      id,
+      establecimiento_uuid
+    `)
+    .eq("id", invoiceRequest.pedido_id)
+    .single();
 
-  if (
-    pedidoError ||
-    !pedido ||
-    !pedido.establecimiento_id
-  ) {
-    throw new Error("ORDER_NOT_FOUND");
-  }
-
+if (
+  pedidoError ||
+  !pedido ||
+  !pedido.establecimiento_uuid
+) {
+  throw new Error("ORDER_NOT_FOUND");
+}
   // =====================================================
   // 3. Establecimiento
   // =====================================================
@@ -80,7 +80,7 @@ export async function validateEstablishmentCfdi(params: {
       usuario_id,
       fiscal_profile_id
     `)
-    .eq("id", pedido.establecimiento_id)
+    .eq("uuid", pedido.establecimiento_uuid)
     .single();
 
   if (
@@ -172,26 +172,33 @@ export async function validateEstablishmentCfdi(params: {
   }
 
   // =====================================================
-  // 6. Settlement
+  // 6. Movimiento financiero del pedido
   // =====================================================
 
-  const {
-    data: settlement,
-    error: settlementError,
-  } = await supabase
-    .from("settlements")
-    .select(`
-      id,
-      importe_establecimiento,
-      estado
-    `)
-    .eq("pedido_id", invoiceRequest.pedido_id)
-    .single();
+ const {
+  data: balanceMovimiento,
+  error: balanceError,
+} = await supabase
+  .from("balance_movimientos")
+  .select(`
+    id,
+    monto_bruto,
+    status
+  `)
+  .eq(
+    "pedido_id",
+    invoiceRequest.pedido_id
+  )
+  .single();
 
-  if (settlementError || !settlement) {
-    throw new Error("SETTLEMENT_NOT_FOUND");
-  }
-
+if (
+  balanceError ||
+  !balanceMovimiento
+) {
+  throw new Error(
+    "BALANCE_MOVEMENT_NOT_FOUND"
+  );
+}
   // =====================================================
   // 7. RFC receptor desde Snapshot
   // =====================================================
@@ -261,8 +268,8 @@ export async function validateEstablishmentCfdi(params: {
       rfcVendedor,
 
       totalEsperado: Number(
-        settlement.importe_establecimiento
-      ),
+  balanceMovimiento.monto_bruto
+),
     });
 
   if (!validation.valid) {
@@ -320,22 +327,97 @@ export async function validateEstablishmentCfdi(params: {
     );
   }
 
-  /*
-    IMPORTANTE:
+   // =====================================================
+  // 12. Validación fiscal con PAC / SAT
+  // =====================================================
 
-    Aquí todavía NO hacemos:
+  const pac = getPacProvider();
 
-    invoice → emitida
-    settlement → lista_pago
+  let pacValidation;
 
-    Primero deberá pasar la validación
-    oficial contra SAT.
-  */
+  try {
+    pacValidation =
+      await pac.validateCfdi(xmlText);
+  } catch (error) {
+    console.error(
+      "Error consultando validación fiscal:",
+      error
+    );
+
+    await supabase
+      .from("invoices")
+      .update({
+        estado: "error",
+        error_mensaje:
+          "No fue posible validar fiscalmente el CFDI",
+      })
+      .eq("id", invoice.id);
+
+    return {
+      valid: false,
+      stage: "pac",
+      errors: [
+        "No fue posible validar fiscalmente el CFDI",
+      ],
+    };
+  }
+
+  // =====================================================
+  // 13. CFDI rechazado fiscalmente
+  // =====================================================
+
+  if (!pacValidation.valid) {
+    const errors =
+      pacValidation.errors.length > 0
+        ? pacValidation.errors
+        : [
+            "El CFDI no pasó la validación fiscal",
+          ];
+
+    await supabase
+      .from("invoices")
+      .update({
+        estado: "error",
+        error_mensaje:
+          errors.join(" | "),
+      })
+      .eq("id", invoice.id);
+
+    return {
+      valid: false,
+      stage: "pac",
+      errors,
+    };
+  }
+
+  // =====================================================
+  // 14. CFDI válido → emitida
+  // =====================================================
+
+  const {
+    error: emitidaError,
+  } = await supabase
+    .from("invoices")
+    .update({
+      estado: "emitida",
+      error_mensaje: null,
+    })
+    .eq("id", invoice.id);
+
+  if (emitidaError) {
+    console.error(
+      "Error marcando CFDI como emitido:",
+      emitidaError
+    );
+
+    throw new Error(
+      "INVOICE_UPDATE_ERROR"
+    );
+  }
 
   return {
     valid: true,
-    stage: "local",
-    requiresSatValidation: true,
+    stage: "pac",
 
     invoiceId: invoice.id,
 

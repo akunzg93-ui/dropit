@@ -133,93 +133,114 @@ export class SwPacProvider
   // ========================================================
 
   async validateCfdi(
-    xml: string
-  ): Promise<PacCfdiValidationResult> {
-    const token =
-      await this.getToken();
+  xml: string
+): Promise<PacCfdiValidationResult> {
+  const token = await this.getToken();
 
-    const formData =
-      new FormData();
+  const formData = new FormData();
 
-    formData.append(
-      "xml",
-      new Blob(
-        [xml],
-        {
-          type: "application/xml",
-        }
-      ),
-      "cfdi.xml"
+  formData.append(
+    "xml",
+    new Blob([xml], {
+      type: "application/xml",
+    }),
+    "cfdi.xml"
+  );
+
+  const response = await fetch(
+    `${this.baseUrl}/validate/cfdi`,
+    {
+      method: "POST",
+
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+
+      body: formData,
+
+      cache: "no-store",
+    }
+  );
+
+  let data: any;
+
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("SW_INVALID_RESPONSE");
+  }
+
+  // =====================================================
+  // Error HTTP / SW
+  // =====================================================
+
+  if (!response.ok || data?.status !== "success") {
+    console.error(
+      "Error validando CFDI con SW:",
+      data
     );
 
-    const response =
-      await fetch(
-        `${this.baseUrl}/validate/cfdi`,
-        {
-          method: "POST",
-
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-
-          body: formData,
-
-          cache: "no-store",
-        }
-      );
-
-    let data: any;
-
-    try {
-      data =
-        await response.json();
-    } catch {
-      throw new Error(
-        "SW_INVALID_RESPONSE"
-      );
-    }
-
-    if (!response.ok) {
-      console.error(
-        "Error validando CFDI con SW:",
-        data
-      );
-
-      return {
-        valid: false,
-
-        status: "error",
-
-        raw: data,
-
-        errors: [
-          data?.message ||
-            data?.messageDetail ||
-            "SW rechazó la validación del CFDI",
-        ],
-      };
-    }
-
-    /*
-      Seguimos sin interpretar todavía
-      semánticamente el estado fiscal
-      devuelto por /validate/cfdi.
-
-      Solo confirmamos que SW aceptó
-      y procesó la solicitud.
-    */
     return {
-      valid: true,
-
-      status:
-        data?.status,
-
+      valid: false,
+      status: data?.status ?? "error",
       raw: data,
-
-      errors: [],
+      errors: [
+        data?.messageDetail ||
+          data?.message ||
+          "SW rechazó la validación del CFDI",
+      ],
     };
   }
+
+  // =====================================================
+  // Validación fiscal SAT
+  // =====================================================
+
+  const statusSat =
+    typeof data?.statusSat === "string"
+      ? data.statusSat.trim()
+      : "";
+
+  const statusCodeSat =
+    typeof data?.statusCodeSat === "string"
+      ? data.statusCodeSat.trim()
+      : "";
+
+  const vigente =
+    statusSat.toLowerCase() === "vigente";
+
+  const encontrado =
+    statusCodeSat
+      .toUpperCase()
+      .startsWith("S -");
+
+  if (!vigente || !encontrado) {
+    return {
+      valid: false,
+      status: statusSat || data?.status,
+      raw: data,
+      errors: [
+        `CFDI no válido fiscalmente. SAT: ${
+          statusSat || "Sin estatus"
+        }. ${
+          statusCodeSat ||
+          "Sin respuesta de consulta SAT"
+        }`,
+      ],
+    };
+  }
+
+  // =====================================================
+  // CFDI vigente y localizado ante SAT
+  // =====================================================
+
+  return {
+    valid: true,
+    status: statusSat,
+    raw: data,
+    errors: [],
+  };
+}
 
   // ========================================================
   // EMISIÓN / TIMBRADO
@@ -250,11 +271,6 @@ export class SwPacProvider
     formaPago: payment.formaPago,
     metodoPago: payment.metodoPago,
   }
-);
-
-console.log(
-  "SW ISSUE PAYLOAD:",
-  JSON.stringify(swPayload, null, 2)
 );
 
     // ------------------------------------------------------

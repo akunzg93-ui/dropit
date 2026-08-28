@@ -325,7 +325,7 @@ Dropit centraliza todo el proceso de facturación.
 
 ## Estado
 
-Aceptada.
+Parcialmente reemplazada por ADR-011.
 
 ## Contexto
 
@@ -352,3 +352,43 @@ El vendedor nunca interactúa directamente con el establecimiento para obtener s
 - Un único punto de contacto para el vendedor.
 - Menor carga operativa.
 - Billing se convierte en el dominio responsable de la facturación y las liquidaciones.
+
+---
+
+# ADR-011
+
+## Nombre
+
+CFDI externo del establecimiento, validación fiscal por Dropit y conciliación mensual separada.
+
+## Estado
+
+Aceptada.
+
+## Contexto
+
+El diseño inicial contemplaba que una solicitud generara dos facturas y que Dropit coordinara la emisión por pedido. Esto implicaba que Dropit pudiera emitir en nombre del establecimiento o custodiar/operar sus certificados, además de acoplar la validación fiscal con la liberación económica.
+
+Durante la implementación se validó que el establecimiento puede emitir su CFDI externamente y que Dropit puede verificarlo contra la operación y contra SAT mediante PAC, sin asumir la emisión en nombre del establecimiento. También se decidió abandonar la liquidación por retiro como arquitectura objetivo y conciliar por periodos mensuales.
+
+## Decisión
+
+- El vendedor solicita factura exclusivamente desde Dropit.
+- La solicitud crea actualmente el CFDI requerido al establecimiento; no una factura Dropit por pedido.
+- El establecimiento emite externamente el CFDI por el valor bruto real del servicio y carga XML + PDF.
+- Dropit valida emisor, receptor, monto y vigencia fiscal mediante PAC/SAT.
+- Un CFDI válido queda `emitida`, pero no libera automáticamente el balance.
+- `balance_movimientos` es la fuente financiera operativa; `settlements` no se usa para nueva lógica.
+- El pago al establecimiento se resolverá mediante cierre y conciliación mensual.
+- La comisión de Dropit se plantea mediante CFDI consolidado mensual por establecimiento, sujeto a validación fiscal final con contador.
+
+Esta decisión reemplaza las partes de ADR-010 que implicaban emisión de factura Dropit por pedido o liberación automática de liquidación al recibir el CFDI. Se conserva de ADR-010 el principio de que el vendedor gestiona la solicitud y seguimiento desde Dropit.
+
+## Consecuencias
+
+- Dropit no necesita custodiar el CSD del establecimiento para este flujo.
+- Se reduce el riesgo de emitir fiscalmente en nombre de terceros.
+- La validación documental y el pago quedan desacoplados.
+- El establecimiento conserva la responsabilidad de emitir su CFDI.
+- Se requiere un proceso administrativo mensual de conciliación.
+- La política de incumplimiento/reembolso y el disparador fiscal del CFDI mensual de comisión deben cerrarse con contador y Términos y Condiciones.

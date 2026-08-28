@@ -1,85 +1,39 @@
 # Billing - Invoice Lifecycle
 
-## Objetivo
+> Última actualización: 27/08/2026
 
-Definir el ciclo de vida de una solicitud de factura dentro de Dropit.
+## Solicitud (`invoice_requests`)
 
----
+La solicitud representa la intención del vendedor de obtener CFDI para un pedido elegible. Conserva el perfil seleccionado y un snapshot fiscal para impedir que cambios posteriores alteren el receptor esperado.
 
-## Estados
+## Factura del establecimiento (`invoices`)
 
-### Disponible
+Estados operativos utilizados:
 
-La solicitud puede realizarse.
+- `pendiente`: existe la obligación documental y todavía no se han validado documentos;
+- `procesando`: XML/PDF recibidos y validación en curso;
+- `emitida`: CFDI aceptado por validaciones locales y fiscal PAC/SAT;
+- `error`: documento rechazado o validación fallida;
+- `cancelada`: CFDI cancelado cuando aplique.
 
-Condiciones:
+### Transición validada en QA
 
-- La Coin fue consumida.
-- El servicio inició.
-- La solicitud se encuentra dentro del plazo permitido.
-- No existe una solicitud previa.
+```text
+pendiente
+   ↓ carga XML/PDF
+procesando
+   ↓ validación local + PAC/SAT
+emitida
+```
 
----
+En caso de error:
 
-### Solicitada
+```text
+pendiente/procesando → error
+```
 
-El vendedor envió la solicitud.
+La factura puede reintentarse con documentos corregidos mientras el estado permita validación.
 
-Dropit valida:
+## Independencia del pago
 
-- datos fiscales;
-- plazo para solicitar la factura.
-
----
-
-### Procesando
-
-Dropit inició el proceso interno de facturación.
-
-Incluye:
-
-- emisión de la factura correspondiente a Dropit;
-- solicitud de factura al establecimiento.
-
----
-
-### Parcial
-
-Al menos una factura ya está disponible.
-
-La otra continúa en proceso.
-
----
-
-### Completada
-
-Todas las facturas del servicio se encuentran disponibles para descarga.
-
----
-
-### Rechazada
-
-La solicitud no pudo procesarse.
-
-Ejemplos:
-
-- plazo vencido;
-- datos fiscales inválidos;
-- otra condición definida por la plataforma.
-
----
-
-## Descarga
-
-Las facturas emitidas podrán descargarse desde:
-
-- Mis pedidos.
-- Facturación.
-
----
-
-## Principio
-
-El vendedor realiza una única solicitud.
-
-Dropit administra internamente todos los procesos necesarios hasta completar la facturación.
+`emitida` significa que el CFDI fue aceptado fiscalmente por Dropit. No significa que el saldo del establecimiento haya sido pagado ni liberado.

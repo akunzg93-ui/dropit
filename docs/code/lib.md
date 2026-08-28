@@ -1,63 +1,22 @@
 # Librerías Compartidas
 
-> Documento Oficial
->
-> Versión: 1.0
+> Documento Oficial  
+> Última actualización: 27/08/2026
 
----
+## Billing
 
-# Objetivo
+`lib/billing/` concentra la lógica fiscal y económica reutilizable.
 
-La carpeta `lib/` concentra los servicios y utilidades reutilizables de Dropit.
+- `cfdi.ts`: parseo de CFDI y validaciones locales contra la operación.
+- `getOrderServiceValue.ts`: reconstruye el valor real del servicio desde `coin_movimientos`/`coin_lotes`; no debe adivinar importes sin trazabilidad.
+- `validateEstablishmentCfdi.ts`: valida propiedad, perfil fiscal, RFC emisor/receptor, monto y PAC/SAT; éxito deja `invoices.estado = emitida`. No libera el balance.
+- `pac/provider.ts`: contrato independiente del PAC.
+- `pac/factory.ts`: selección del proveedor.
+- `pac/sw.ts`: adapter SW para autenticación, validación y capacidad de timbrado. La validación exige interpretar el estatus fiscal, no solo HTTP 200.
+- `pac/swMapper.ts`: mapeo de payload genérico a SW.
 
-No contiene pantallas.
+## Principios
 
-No contiene reglas de presentación.
-
-Su responsabilidad es encapsular lógica compartida.
-
----
-
-# Componentes
-
-## supabaseClient.ts
-
-Cliente oficial de Supabase utilizado por el frontend.
-
----
-
-## coins.ts
-
-Funciones relacionadas con el sistema de Coins.
-
----
-
-## email.ts
-
-Servicio centralizado para envío de correos mediante Resend.
-
----
-
-## emailTemplates/
-
-Plantillas HTML reutilizables.
-
----
-
-## roleLabels.ts
-
-Conversión entre roles internos y nombres visibles para el usuario.
-
----
-
-## utils.ts
-
-Funciones auxiliares reutilizables.
-
----
-
-# Principios
-
-- No acceder directamente a servicios externos desde las pantallas.
-- Centralizar integraciones.
-- Evitar duplicar lógica.
+- Integraciones externas solo desde servidor.
+- Credenciales PAC/CSD nunca en frontend ni documentación.
+- Mantener separadas validación fiscal y liberación económica.

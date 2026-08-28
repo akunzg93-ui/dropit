@@ -1,69 +1,34 @@
 # Billing - Fiscal Profiles
 
+> Última actualización: 27/08/2026
+
 ## Objetivo
 
-Permitir que cada vendedor almacene y administre uno o más perfiles fiscales para solicitar facturas de manera rápida.
+Guardar datos fiscales reutilizables a nivel de cuenta.
 
----
+## Modelo
 
-## Principios
+`fiscal_profiles.user_id` identifica al propietario del perfil. Un mismo usuario puede mantener múltiples perfiles activos y uno predeterminado.
 
-- Un vendedor puede tener uno o más perfiles fiscales.
-- Uno de ellos será el perfil predeterminado.
-- Los perfiles pueden crearse, editarse o desactivarse.
-- Cada solicitud de factura utiliza el perfil seleccionado por el vendedor.
+Campos principales:
 
----
+- RFC;
+- razón social;
+- código postal fiscal;
+- régimen fiscal;
+- uso CFDI;
+- email;
+- perfil predeterminado;
+- activo.
 
-## Datos requeridos
+## Vendedor
 
-- RFC
-- Nombre o Razón Social
-- Código Postal Fiscal
-- Régimen Fiscal
-- Uso del CFDI
-- Correo electrónico
+El vendedor selecciona un perfil al solicitar factura. `invoice_requests.fiscal_data_snapshot` conserva los datos usados en ese momento.
 
----
+## Establecimiento
 
-## Flujo
+`establecimientos.fiscal_profile_id` apunta al perfil fiscal que el establecimiento utilizará como emisor. El perfil debe pertenecer al mismo `usuario_id` propietario del establecimiento.
 
-### Primera solicitud
+Los perfiles son de cuenta, no copias propias de cada establecimiento. La UX puede preseleccionar el predeterminado, pero debe confirmar cuál perfil se asocia al establecimiento.
 
-Si el vendedor no tiene perfiles fiscales:
-
-- captura un nuevo perfil;
-- el perfil queda como predeterminado.
-
----
-
-### Solicitudes posteriores
-
-Antes de enviar la solicitud, el vendedor podrá:
-
-- seleccionar un perfil existente;
-- crear un nuevo perfil;
-- editar un perfil existente.
-
-Al confirmar la solicitud, se utilizará el perfil seleccionado.
-
----
-
-## Administración
-
-Los perfiles fiscales estarán disponibles desde:
-
-**Mi Cuenta → Facturación → Perfiles fiscales**
-
-Acciones disponibles:
-
-- Crear perfil.
-- Editar perfil.
-- Establecer como predeterminado.
-- Desactivar perfil.
-
----
-
-## Principio
-
-Los perfiles fiscales se administran una sola vez y pueden reutilizarse en cualquier solicitud de factura futura.
+El onboarding fiscal puede asociar el perfil después del alta operativa. Un establecimiento sin perfil fiscal no puede validar un CFDI como emisor.
