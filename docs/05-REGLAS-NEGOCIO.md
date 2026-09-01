@@ -15,7 +15,11 @@ Cada pedido consume exactamente una Coin del tamaño correspondiente al momento 
 
 ## Regla 2 — Consumo FIFO
 
-Las Coins se consumen desde el lote disponible más antiguo.
+Las Coins se consumen desde el lote disponible más antiguo. Los lotes vencidos por `fecha_expiracion` quedan excluidos del consumo.
+
+## Regla 2.1 — Expiración de saldo remanente
+
+Cuando un lote alcanza su fecha de expiración, cualquier `cantidad_disponible` remanente debe pasar a `0` y registrarse como movimiento `expiracion` con referencia `expiracion_automatica`. Este cierre se ejecuta diariamente mediante el job `expirar-coins-vencidas`.
 
 ## Regla 3 — Un vendedor responsable
 

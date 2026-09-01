@@ -3,7 +3,7 @@
 > Documento Oficial  
 > Versión: 1.1  
 > Estado: En construcción  
-> Última actualización: 18/07/2026
+> Última actualización: 31/08/2026
 
 # Responsabilidad
 
@@ -17,6 +17,7 @@ Supabase centraliza Auth, PostgreSQL, RLS, RPC y persistencia operativa.
 - `restore_coin_for_cancelation`
 - `cancel_order_by_vendor`
 - `cancel_order_automatic`
+- `expirar_coins_vencidas`
 
 ## Devoluciones
 
@@ -29,6 +30,19 @@ Supabase centraliza Auth, PostgreSQL, RLS, RPC y persistencia operativa.
 - `get_pedido_tracking(text)`
 
 La RPC de tracking devuelve datos públicos controlados, timestamps de plazos y eventos en JSON ordenados por fecha.
+
+# Jobs PostgreSQL
+
+`pg_cron` está habilitado en QA y Producción para tareas periódicas de base de datos.
+
+Job activo de Coins:
+
+- Nombre: `expirar-coins-vencidas`
+- Schedule: `10 0 * * *`
+- Ejecución: `select public.expirar_coins_vencidas();`
+- Frecuencia: diaria, `00:10 UTC`
+
+La función registra la expiración en `coin_movimientos` antes de llevar `coin_lotes.cantidad_disponible` a `0`.
 
 # Seguridad
 

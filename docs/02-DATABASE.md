@@ -136,6 +136,13 @@ RPC relacionadas:
 - `restore_coin_for_cancelation`
 - `cancel_order_by_vendor`
 - `cancel_order_automatic`
+- `expirar_coins_vencidas`
+
+## Expiración de Coins
+
+Los lotes con `fecha_expiracion <= now()` no son elegibles para consumo. Adicionalmente, `expirar_coins_vencidas()` cierra cualquier saldo remanente de un lote vencido: registra en `coin_movimientos` un movimiento `expiracion` con referencia `expiracion_automatica` y actualiza `coin_lotes.cantidad_disponible` a `0`.
+
+La función se ejecuta automáticamente mediante `pg_cron` con el job `expirar-coins-vencidas`, diariamente a las `00:10 UTC` (`10 0 * * *`). La configuración está activa tanto en QA como en Producción.
 
 ---
 

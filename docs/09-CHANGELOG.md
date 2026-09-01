@@ -8,6 +8,18 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 
 # [1.0.0] - En desarrollo
 
+
+## 2026-08-31
+
+### Coins - expiración automática
+
+- Se validó `expirar_coins_vencidas()` sin modificar su lógica: registra un movimiento `expiracion` y lleva a cero el saldo restante del lote vencido.
+- Se habilitó `pg_cron` en QA y Producción.
+- Se programó el job `expirar-coins-vencidas` con ejecución diaria a las `00:10 UTC` (`10 0 * * *`).
+- Se sanearon los lotes vencidos que conservaban `cantidad_disponible > 0`: 6 lotes / 25 Coins en QA y 3 lotes / 10 Coins small en Producción.
+- Se verificó que cada saneamiento generara su movimiento `expiracion` con referencia `expiracion_automatica`.
+- El consumo FIFO ya excluía lotes vencidos por fecha; el cambio elimina saldos persistentes “fantasma” y automatiza su cierre contable en BD.
+
 ## Agregado
 
 - Flujo completo de pedidos.
