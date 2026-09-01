@@ -2,11 +2,11 @@
 
 > Documento Oficial
 >
-> Versión: 1.0
+> Versión: 1.1
 >
 > Estado: Oficial
 >
-> Última actualización: 08/07/2026
+> Última actualización: 31/08/2026
 
 ---
 
@@ -163,3 +163,8 @@ En futuras versiones podrán incorporarse mecanismos adicionales como:
 - Auditoría ampliada.
 - Alertas de fraude.
 - Bitácora administrativa.
+# Autorización de aceptación por establecimiento
+
+`POST /api/orders/aceptar-establecimiento` requiere una sesión autenticada mediante Bearer token. El servidor obtiene al usuario con Supabase Auth y valida que `pedidos.establecimiento_uuid` corresponda a un registro de `establecimientos` cuyo `usuario_id` sea el usuario autenticado.
+
+Conocer el `pedido_id` no autoriza la aceptación. Si el usuario no es propietario del establecimiento asignado, la API responde `403` y el pedido no cambia de estado. El uso de Service Role queda limitado a la operación privilegiada del servidor y no sustituye la autorización del actor.

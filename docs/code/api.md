@@ -1,9 +1,9 @@
 # API Routes
 
 > Documento Oficial  
-> Versión: 1.1  
+> Versión: 1.2  
 > Estado: En construcción  
-> Última actualización: 18/07/2026
+> Última actualización: 31/08/2026
 
 ---
 
@@ -16,6 +16,7 @@ Las rutas permanecen bajo `app/api/orders/` por estabilidad. No se reorganizan s
 ## Flujo
 
 - `aceptar-establecimiento`
+  - Requiere Bearer token y valida que el usuario autenticado sea propietario del establecimiento asignado al pedido antes de pasar a `en_transito`.
 - `rechazar-establecimiento`
 - `preview-vendedor`
 - `recibido`

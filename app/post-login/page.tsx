@@ -57,7 +57,7 @@ export default function PostLogin() {
         return;
       }
 
-     if (profile.role === "establishment") {
+    if (profile.role === "establishment") {
   const {
     data: establecimientos,
     error: establecimientoError,
@@ -80,7 +80,7 @@ export default function PostLogin() {
       establecimientoError
     );
 
-    router.replace("/establecimiento");
+    router.replace("/establecimiento/estado");
     return;
   }
 
@@ -93,24 +93,28 @@ export default function PostLogin() {
     return;
   }
 
-  const ultimoEstablecimiento =
-    establecimientos[0];
-
-  // Nuevo establecimiento creado pero
-  // todavía sin completar onboarding fiscal.
-  if (
-    ultimoEstablecimiento.activo === false ||
-    !ultimoEstablecimiento.fiscal_profile_id
-  ) {
-    router.replace(
-      `/establecimiento/onboarding-fiscal?establecimiento_id=${ultimoEstablecimiento.id}`
+  // Si ya existe al menos un establecimiento
+  // operativo y con perfil fiscal vinculado,
+  // la cuenta ya completó onboarding.
+  const tieneEstablecimientoConfigurado =
+    establecimientos.some(
+      (establecimiento) =>
+        establecimiento.activo === true &&
+        !!establecimiento.fiscal_profile_id
     );
+
+  if (tieneEstablecimientoConfigurado) {
+    router.replace("/establecimiento/estado");
     return;
   }
 
-  // Onboarding completo.
+  // Ningún establecimiento ha completado onboarding.
+  // Continuamos con el más reciente.
+  const ultimoEstablecimiento =
+    establecimientos[0];
+
   router.replace(
-    "/establecimiento/estado"
+    `/establecimiento/onboarding-fiscal?establecimiento_id=${ultimoEstablecimiento.id}`
   );
   return;
 }

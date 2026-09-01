@@ -2,11 +2,11 @@
 
 > Documento Oficial
 >
-> Versión: 1.0
+> Versión: 1.1
 >
 > Estado: En construcción
 >
-> Última actualización: 11/07/2026
+> Última actualización: 31/08/2026
 
 ---
 
@@ -87,6 +87,20 @@ Procesar los enlaces enviados por Supabase para:
 ## Resultado
 
 El usuario obtiene una sesión válida para continuar con el flujo correspondiente.
+
+---
+
+---
+
+# Redirección posterior al login de establecimiento
+
+`/post-login` valida los establecimientos asociados al usuario autenticado.
+
+- Si no existe ningún establecimiento, redirige a `/establecimiento`.
+- Si existe al menos un establecimiento activo con `fiscal_profile_id`, redirige a `/establecimiento/estado`.
+- Si existen establecimientos pero ninguno completó el onboarding fiscal, redirige al onboarding fiscal del establecimiento más reciente.
+
+Un establecimiento nuevo e incompleto no debe forzar nuevamente el onboarding al iniciar sesión si la cuenta ya posee otro establecimiento activo con perfil fiscal vinculado.
 
 ---
 

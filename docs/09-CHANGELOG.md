@@ -55,6 +55,21 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 - Glosario.
 - Reglas de negocio.
 
+
+## 2026-08-31
+
+### Seguridad - aceptación de pedidos
+
+- `POST /api/orders/aceptar-establecimiento` ahora exige autenticación y valida propiedad del establecimiento asignado.
+- Un usuario de otro establecimiento recibe `403` y no puede modificar el pedido.
+- Se validaron en QA tanto el caso autorizado como el intento de aceptación por un establecimiento ajeno.
+
+### Autenticación - post-login de establecimiento
+
+- `/post-login` envía directamente a `/establecimiento/estado` cuando la cuenta ya posee al menos un establecimiento activo con perfil fiscal vinculado.
+- Si ningún establecimiento ha completado el onboarding fiscal, se retoma el onboarding del establecimiento más reciente.
+- Un establecimiento nuevo incompleto ya no obliga a repetir onboarding cuando la cuenta ya tiene otro establecimiento correctamente configurado.
+
 ## 2026-07-18
 
 ### Agregado

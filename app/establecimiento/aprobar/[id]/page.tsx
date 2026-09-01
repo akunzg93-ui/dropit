@@ -41,18 +41,76 @@ export default function AprobarPedido() {
     fetchPedido();
   }, [id]);
 
-  async function aceptar() {
+  useEffect(() => {
+  if (!modalAceptado) return;
+
+  const timer = window.setTimeout(() => {
+    router.push("/establecimiento/estado");
+  }, 5000);
+
+  return () => {
+    window.clearTimeout(timer);
+  };
+}, [modalAceptado, router]);
+
+ async function aceptar() {
+  try {
     setAceptando(true);
 
-    await fetch("/api/orders/aceptar-establecimiento", {
-      method: "POST",
-      body: JSON.stringify({ pedido_id: id }),
-    });
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    setAceptando(false);
+    if (!session?.access_token) {
+      alert("Tu sesión ha expirado. Inicia sesión nuevamente.");
+      router.push("/login");
+      return;
+    }
+
+    const response = await fetch(
+      "/api/orders/aceptar-establecimiento",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          pedido_id: id,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error(
+        "Error aceptando pedido:",
+        result
+      );
+
+      alert(
+        result.error ||
+          "No fue posible aceptar el pedido"
+      );
+
+      return;
+    }
+
     setModalAceptado(true);
-  }
+  } catch (error) {
+    console.error(
+      "Error aceptando pedido:",
+      error
+    );
 
+    alert(
+      "No fue posible aceptar el pedido"
+    );
+  } finally {
+    setAceptando(false);
+  }
+}
   async function rechazar() {
     await fetch("/api/orders/rechazar-pedido", {
       method: "POST",
@@ -179,7 +237,7 @@ export default function AprobarPedido() {
         subtitle="El vendedor ya puede llevar el paquete a tu establecimiento."
         heroLabel="Folio del pedido"
         heroValue={pedido.folio}
-        onClose={() => setModalAceptado(false)}
+        onClose={() => router.push("/establecimiento/estado")}
         tip="Si por alguna razón el QR no está disponible, utiliza el código manual de recepción."
         steps={[
           {
