@@ -3,7 +3,7 @@
 > Documento Oficial  
 > Versión: 1.1  
 > Estado: Oficial  
-> Última actualización: 18/07/2026
+> Última actualización: 04/09/2026
 
 ---
 
@@ -110,6 +110,32 @@ Cada contador utiliza el timestamp persistido correspondiente y no una fecha cal
 En UX se usa **cliente**, no **comprador**. Los nombres técnicos históricos de rutas o columnas pueden conservarse mientras sean estables.
 
 ---
+
+# Retiros de establecimientos
+
+## Regla 19 — El retiro se construye por movimientos
+
+El establecimiento no captura un monto arbitrario. Selecciona servicios elegibles y el servidor calcula el total con `balance_movimientos.neto_establecimiento`.
+
+## Regla 20 — Elegibilidad después del cierre mensual
+
+Un movimiento se vuelve elegible para retiro únicamente cuando su mes ya cerró, usando `America/Mexico_City` como zona horaria oficial. Los movimientos del mes corriente se muestran como generación del próximo cierre, pero no pueden retirarse.
+
+## Regla 21 — El saldo ganado no expira
+
+Los movimientos no retirados de meses cerrados permanecen elegibles indefinidamente mientras no hayan sido pagados, revertidos o estén incluidos en un retiro activo. Pueden combinarse movimientos de distintos meses cerrados.
+
+## Regla 22 — Una solicitud puede abarcar varios establecimientos
+
+Una cuenta de establecimiento puede seleccionar movimientos de cualquiera de sus establecimientos en una sola solicitud. El servidor valida propiedad, calcula el total global y registra subtotales por establecimiento.
+
+## Regla 23 — Un movimiento no participa en dos retiros activos
+
+Si un movimiento ya pertenece a una solicitud `pending` o `approved`, no puede seleccionarse nuevamente. Un retiro `reversed` conserva su historial, pero libera sus movimientos para una nueva solicitud.
+
+## Regla 24 — Pago exacto de la selección
+
+El flujo administrativo permitido es `pending → approved → paid` o `pending → reversed`. Al pagar se marcan `paid` exclusivamente los `balance_movimientos` registrados en `retiro_aplicaciones`; no existe FIFO, reparto parcial ni creación de sobrantes.
 
 # Reglas pendientes
 

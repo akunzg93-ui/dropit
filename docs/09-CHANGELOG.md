@@ -8,6 +8,23 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 
 # [1.0.0] - En desarrollo
 
+## 2026-09-04
+
+### Establecimientos - retiros por movimientos y cierre mensual
+
+- `/establecimiento/balance` pasó de retiro por monto arbitrario a selección explícita de servicios elegibles.
+- Una cuenta puede solicitar en un solo retiro movimientos de varios establecimientos.
+- El backend calcula el total y valida propiedad, mes cerrado y ausencia de otro retiro activo.
+- La elegibilidad inicia al cerrar el mes en `America/Mexico_City`; el saldo ganado de meses anteriores no expira.
+- `retiro_aplicaciones` define los movimientos exactos del retiro y `retiro_detalles` conserva subtotales por establecimiento.
+- El pago dejó de usar FIFO/splits: sólo se marcan `paid` los movimientos seleccionados.
+- El rechazo conserva historial y vuelve a habilitar los movimientos.
+- `POST /api/orders/retiros/update` exige autenticación y rol `admin`.
+- QA validó solicitud multi-establecimiento, pago exacto y rechazo/liberación.
+- Se agregaron en QA FKs desde `retiro_aplicaciones` hacia `retiros` y `balance_movimientos`, y `retiros` admite `user_id` y `establecimiento_id` nullable para el modelo global.
+- Pendiente antes de Producción: encapsular creación/pago en transacciones/RPC atómicas y revisar datos históricos antes de aplicar FKs/migración.
+
+
 
 ## 2026-08-31
 

@@ -41,41 +41,75 @@ export default function AdminRetiros() {
 
   // 🔥 USAR API
   async function updateStatus(id: string, status: string) {
-    await fetch("/api/orders/retiros/update", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        retiro_id: id,
-        status,
-      }),
-    });
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-    fetchRetiros();
+  if (!session?.access_token) {
+    alert("Sesión inválida");
+    return;
   }
 
+  const res = await fetch("/api/orders/retiros/update", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      retiro_id: id,
+      status,
+    }),
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    alert(json.error || "Error al actualizar retiro");
+    return;
+  }
+
+  await fetchRetiros();
+}
   // 🔥 USAR API
   async function marcarPagado() {
-    if (!retiroSeleccionado) return;
+  if (!retiroSeleccionado) return;
 
-    await fetch("/api/orders/retiros/update", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        retiro_id: retiroSeleccionado.id,
-        status: "paid",
-        referencia_pago: referencia,
-      }),
-    });
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-    setModalOpen(false);
-    setReferencia("");
-    setRetiroSeleccionado(null);
-    fetchRetiros();
+  if (!session?.access_token) {
+    alert("Sesión inválida");
+    return;
   }
+
+  const res = await fetch("/api/orders/retiros/update", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      retiro_id: retiroSeleccionado.id,
+      status: "paid",
+      referencia_pago: referencia,
+    }),
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    alert(json.error || "Error al registrar pago");
+    return;
+  }
+
+  setModalOpen(false);
+  setReferencia("");
+  setRetiroSeleccionado(null);
+
+  await fetchRetiros();
+}
 
   const statusStyle = (status: string) => {
     if (status === "pending") return "bg-yellow-100 text-yellow-700";

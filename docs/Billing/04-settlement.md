@@ -1,31 +1,43 @@
-# Billing - Conciliación y liquidación
+# Billing - Conciliación y retiros
 
-> Última actualización: 27/08/2026
+> Última actualización: 04/09/2026
 
 ## Modelo vigente
 
-El modelo anterior de retiros/settlements por solicitud no es la arquitectura objetivo. La fuente financiera vigente es `balance_movimientos`.
+`balance_movimientos` es la fuente financiera operativa. `settlements` permanece como estructura histórica y no se utiliza para nueva lógica.
 
-Cuando el establecimiento recibe el paquete se registra una línea financiera con el valor real del servicio, comisión, IVA de comisión y neto del establecimiento. La línea nace con `status = pending`.
+Cuando el establecimiento recibe el paquete se registra una línea financiera con el valor real del servicio, comisión, IVA de comisión y neto del establecimiento. La validación fiscal y la disponibilidad económica permanecen desacopladas.
 
-## Cierre mensual
+## Cierre mensual y derecho de retiro
 
-El modelo acordado es:
+El cierre del mes habilita el derecho a solicitar retiro de los movimientos de ese periodo. La zona horaria oficial es `America/Mexico_City`. El establecimiento no está obligado a retirar el mes completo: puede elegir servicios individuales, combinar meses cerrados y combinar varios establecimientos de su cuenta en una sola solicitud.
 
-1. cerrar el periodo mensual;
-2. conciliar operaciones y solicitudes de factura;
-3. verificar cumplimiento documental por línea;
-4. bloquear líneas con factura requerida pero no validada;
-5. aprobar las líneas conciliadas;
-6. ejecutar pago al establecimiento;
-7. posteriormente gestionar el CFDI consolidado mensual de comisión de Dropit al establecimiento, sujeto a validación fiscal final con contador.
+El saldo ganado no expira. Los movimientos del mes corriente se muestran como generación del próximo cierre, pero no son elegibles todavía.
+
+## Construcción de la solicitud
+
+El establecimiento selecciona `balance_movimientos`; no captura un monto. El backend valida la propiedad y elegibilidad y calcula el total.
+
+- `retiros`: cabecera global de la solicitud.
+- `retiro_aplicaciones`: movimientos exactos seleccionados y `monto_aplicado` como snapshot.
+- `retiro_detalles`: subtotal por establecimiento.
+
+Un movimiento incluido en un retiro `pending` o `approved` no puede estar en otra solicitud activa. Un retiro `reversed` conserva el historial y vuelve a liberar sus movimientos.
+
+## Administración y pago
+
+Estados permitidos:
+
+`pending → approved → paid`
+
+`pending → reversed`
+
+Al pagar, sólo se marcan `paid` los movimientos incluidos en `retiro_aplicaciones`. No se usa FIFO, no se hacen pagos parciales de un movimiento y no se crean líneas de sobrante.
 
 ## Regla documental
 
-Si el vendedor solicitó factura, el establecimiento debe entregar un CFDI válido por el `monto_bruto` de esa operación antes de que la línea pueda liquidarse.
+Si una operación requiere CFDI del establecimiento, la validación fiscal sigue siendo un control separado del estado financiero. Un CFDI válido no cambia automáticamente `balance_movimientos.status`. La conciliación fiscal definitiva y las reglas de bloqueo/reembolso siguen sujetas al flujo Billing y a validación fiscal.
 
-La validación del CFDI **no** cambia automáticamente el estado financiero. En la prueba QA del 27/08/2026, una factura quedó `emitida` mientras su `balance_movimientos.status` permaneció `pending`, comportamiento esperado.
+## Estado técnico
 
-## Incumplimiento
-
-Una línea con factura requerida y no validada permanece bloqueada. La política definitiva de compensación/reembolso al vendedor y sus plazos debe formalizarse en reglas de negocio y Términos y Condiciones.
+El flujo funcional fue validado en QA con solicitud multi-establecimiento, pago exacto de los movimientos seleccionados y rechazo con liberación posterior. Antes de Producción queda pendiente endurecer la creación y el pago con transacciones/RPC atómicas para proteger concurrencia y fallos parciales.

@@ -392,3 +392,41 @@ Esta decisión reemplaza las partes de ADR-010 que implicaban emisión de factur
 - El establecimiento conserva la responsabilidad de emitir su CFDI.
 - Se requiere un proceso administrativo mensual de conciliación.
 - La política de incumplimiento/reembolso y el disparador fiscal del CFDI mensual de comisión deben cerrarse con contador y Términos y Condiciones.
+
+# ADR-012
+
+## Nombre
+
+Retiros por movimientos después del cierre mensual, con solicitud global multi-establecimiento.
+
+## Estado
+
+Aceptada en QA; despliegue a Producción pendiente de endurecimiento transaccional.
+
+## Contexto
+
+ADR-011 estableció `balance_movimientos` como fuente financiera y separó validación fiscal de liquidación. Durante el diseño del cierre mensual se concluyó que eliminar por completo la solicitud de retiro quitaba al establecimiento control sobre cuándo cobrar servicios ya ganados y dificultaba agrupar varios establecimientos de una misma cuenta. El modelo anterior de retiro por monto arbitrario, FIFO y partición de movimientos tampoco garantizaba trazabilidad exacta entre solicitud y servicios pagados.
+
+## Decisión
+
+- El cierre mensual habilita elegibilidad; no fuerza el retiro completo del periodo.
+- La zona horaria oficial para determinar el mes cerrado es `America/Mexico_City`.
+- El establecimiento selecciona movimientos concretos de `balance_movimientos`; no captura un monto.
+- El saldo de meses cerrados no expira y puede mezclarse entre periodos.
+- Una solicitud puede incluir movimientos de varios establecimientos pertenecientes al mismo usuario.
+- `retiros` funciona como cabecera global; `retiro_detalles` conserva subtotales por establecimiento; `retiro_aplicaciones` define los movimientos exactos y su snapshot monetario.
+- Un movimiento no puede pertenecer a dos retiros activos (`pending`/`approved`). Un retiro `reversed` conserva historial pero libera sus movimientos.
+- El pago sigue `pending → approved → paid`; el rechazo es `pending → reversed`.
+- Al pagar se actualizan únicamente los movimientos seleccionados. Se elimina FIFO, split y generación de sobrantes.
+- Backend calcula montos y valida propiedad/elegibilidad; el frontend nunca es autoridad financiera.
+
+Esta ADR precisa y reemplaza únicamente la parte de ADR-011 que describía una conciliación mensual sin retiro elegido por el establecimiento. Se mantienen de ADR-011 `balance_movimientos` como fuente financiera, el desacoplamiento fiscal y el no uso de `settlements` para nueva lógica.
+
+## Consecuencias
+
+- Existe trazabilidad pedido → movimiento → aplicación → retiro.
+- El establecimiento conserva control sobre cuándo cobrar saldo ya ganado.
+- Una cuenta puede retirar conjuntamente saldo de varias sucursales.
+- El administrador paga exactamente lo solicitado, sin selección FIFO implícita.
+- Rechazar una solicitud no destruye historial.
+- La implementación crítica debe ejecutarse transaccionalmente antes de Producción para impedir doble selección concurrente o estados parciales.

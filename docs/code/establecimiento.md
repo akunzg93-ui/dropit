@@ -77,3 +77,13 @@ Si pasan 48 horas desde `devolucion_iniciada_at`, el job cambia el estado a `cus
 El establecimiento emite el CFDI fuera de Dropit. Dropit recibe XML/PDF, valida que el RFC emisor corresponda al perfil fiscal asociado, que receptor y monto correspondan a la solicitud/operación y finalmente valida vigencia mediante PAC/SAT. Éxito: `invoices.estado = emitida`.
 
 La factura emitida no libera automáticamente `balance_movimientos`; el pago se resolverá en conciliación mensual.
+
+# Balance y retiros
+
+> Actualización: 04/09/2026
+
+`/establecimiento/balance` opera a nivel de cuenta y carga todos los establecimientos asociados al usuario autenticado. El filtro por establecimiento es sólo una ayuda visual.
+
+La pantalla muestra generado histórico, disponible para retiro, en proceso, pagado y generación del mes corriente. Los movimientos elegibles de meses cerrados se agrupan por establecimiento y pueden seleccionarse individualmente o en conjunto.
+
+La solicitud envía únicamente `balance_movimiento_ids` a `POST /api/orders/retiros/solicitar`; el frontend no decide el monto. El servidor vuelve a validar propiedad, elegibilidad y total. Una solicitud puede contener movimientos de varios establecimientos.

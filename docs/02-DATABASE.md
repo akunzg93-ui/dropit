@@ -3,7 +3,7 @@
 > Documento Oficial  
 > Versión: 1.1  
 > Estado: Oficial  
-> Última actualización: 18/07/2026
+> Última actualización: 04/09/2026
 
 ---
 
@@ -174,6 +174,36 @@ Se concede ejecución a `anon` y `authenticated`, manteniendo el contrato de sal
 Estas funciones validan el estado actual, actualizan timestamps, registran eventos y evitan ejecuciones repetidas.
 
 ---
+
+# Saldos y retiros de establecimientos
+
+`balance_movimientos` es la fuente financiera operativa de los servicios prestados por los establecimientos. Cada fila corresponde a un pedido y conserva el bruto, comisión, IVA sobre comisión y neto del establecimiento.
+
+Tablas del retiro:
+
+| Tabla | Responsabilidad |
+|---|---|
+| balance_movimientos | Ledger financiero por pedido |
+| retiros | Cabecera global de una solicitud de retiro |
+| retiro_aplicaciones | Movimientos exactos seleccionados y snapshot de `monto_aplicado` |
+| retiro_detalles | Subtotal de la solicitud por establecimiento |
+
+Reglas de integridad:
+
+- Un retiro nuevo puede agrupar movimientos de varios establecimientos pertenecientes al mismo usuario.
+- `retiros.establecimiento_id` queda nullable para compatibilidad con retiros históricos; los retiros multi-establecimiento usan `NULL`.
+- `retiros.user_id` identifica al propietario de la solicitud global.
+- `retiro_aplicaciones.retiro_id` referencia `retiros.id`.
+- `retiro_aplicaciones.balance_movimiento_id` referencia `balance_movimientos.id`.
+- `monto_aplicado` es un snapshot inmutable del neto seleccionado al crear la solicitud.
+- `retiro_detalles` no sustituye a `retiro_aplicaciones`: resume por establecimiento; las aplicaciones determinan qué movimientos se pagan.
+- Al pagar no se usa FIFO ni se fraccionan movimientos. Sólo pasan a `paid` los movimientos incluidos en la solicitud.
+- Un movimiento `paid` o `reversed` no es elegible para una nueva solicitud.
+- Un movimiento asociado a un retiro padre `pending` o `approved` no puede volver a seleccionarse. Si el retiro padre queda `reversed`, el movimiento vuelve a ser seleccionable.
+
+La elegibilidad temporal se determina por mes cerrado usando `America/Mexico_City`: el mes corriente no puede retirarse. El saldo ganado de meses cerrados no expira.
+
+> Estado al 04/09/2026: modelo y FKs validados en QA. La migración equivalente a Producción debe inspeccionar previamente datos históricos/orfandades.
 
 # Integridad y seguridad
 

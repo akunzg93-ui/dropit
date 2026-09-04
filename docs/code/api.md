@@ -67,3 +67,19 @@ Las rutas estables no se mueven únicamente para mejorar la organización de car
 - `POST /api/orders/establishments/complete-onboarding`
 
 La validación de factura no cambia el estado de `balance_movimientos`.
+
+# Retiros
+
+> Actualización: 04/09/2026
+
+## `POST /api/orders/retiros/solicitar`
+
+Entrada: `{ balance_movimiento_ids: number[] }`. Requiere Bearer token. El servidor obtiene el usuario con Supabase Auth, valida que todos los movimientos pertenezcan a establecimientos de ese usuario, que correspondan a meses cerrados en `America/Mexico_City`, que no estén `paid`/`reversed` y que no tengan otra aplicación activa. Calcula el total y crea `retiros`, `retiro_aplicaciones` y `retiro_detalles`.
+
+## `POST /api/orders/retiros/update`
+
+Requiere Bearer token y `profiles.role = admin`. Transiciones válidas: `pending → approved`, `pending → reversed`, `approved → paid`. En `paid` valida aplicaciones y total, y actualiza exactamente los `balance_movimientos` seleccionados. No usa FIFO ni divide movimientos.
+
+## Deuda técnica conocida
+
+La implementación actual realiza varias operaciones de BD desde la API y usa limpieza compensatoria en errores; no constituye una transacción atómica. Antes del cierre de Producción debe migrarse la creación/pago crítico a una transacción/RPC con bloqueo adecuado para impedir carreras de doble selección o estados parciales.
