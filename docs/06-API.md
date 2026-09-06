@@ -1,9 +1,9 @@
 # APIs Oficiales de Dropit
 
 > Documento Oficial  
-> Versión: 1.1  
+> Versión: 1.2  
 > Estado: Oficial  
-> Última actualización: 18/07/2026
+> Última actualización: 06/09/2026
 
 ---
 
@@ -115,3 +115,19 @@ Responsabilidades:
 - Validar que la combinación de actores sea permitida.
 - Evitar evaluaciones duplicadas por pedido y tipo de evaluación.
 - Registrar la calificación y comentario.
+
+---
+
+# Retiros de establecimientos
+
+## `POST /api/orders/retiros/solicitar`
+
+Requiere Bearer token. Recibe `{ balance_movimiento_ids: number[] }`, autentica al usuario y delega la operación a `crear_retiro_desde_movimientos`. La RPC valida propiedad, cierre mensual en `America/Mexico_City`, elegibilidad y ausencia de otro retiro activo; bloquea los movimientos y crea cabecera, aplicaciones y subtotales atómicamente.
+
+## `POST /api/orders/retiros/update`
+
+Requiere Bearer token y rol `admin`. Delega a `actualizar_retiro_admin`. Sólo permite `pending → approved`, `pending → reversed` y `approved → paid`. El pago actualiza únicamente los movimientos exactos de `retiro_aplicaciones` y la cabecera dentro de la misma transacción.
+
+## `GET /api/orders/retiros/admin`
+
+Requiere Bearer token y rol `admin`. Expone al módulo Admin el detalle de retiros mediante una consulta server-side con Service Role; no se amplía RLS de `balance_movimientos` para lectura financiera desde el navegador.

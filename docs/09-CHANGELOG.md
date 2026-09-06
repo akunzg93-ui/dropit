@@ -8,6 +8,21 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 
 # [1.0.0] - En desarrollo
 
+## 2026-09-06
+
+### Retiros - endurecimiento transaccional y Admin
+
+- `POST /api/orders/retiros/solicitar` delega la creación a `crear_retiro_desde_movimientos`.
+- La RPC bloquea con `FOR UPDATE` los movimientos seleccionados y crea `retiros`, `retiro_aplicaciones` y `retiro_detalles` en una sola transacción.
+- `POST /api/orders/retiros/update` delega las transiciones a `actualizar_retiro_admin`.
+- Aprobación, rechazo y pago quedaron protegidos transaccionalmente; el pago actualiza únicamente los movimientos exactos de la solicitud.
+- Las RPC críticas son `SECURITY DEFINER` y sólo `service_role` conserva permiso de ejecución.
+- Se agregó `GET /api/orders/retiros/admin` para lectura financiera server-side con validación de rol Admin, sin ampliar RLS del ledger al navegador.
+- QA validó solicitud, prevención de doble solicitud activa, rechazo/liberación, aprobación, pago y sincronización entre `retiros`, `retiro_aplicaciones` y `balance_movimientos`.
+- Se corrigió el comando local de Stripe CLI para reenviar webhooks a `/api/orders/stripe/webhook`.
+- En tracking se desactivó `scrollWheelZoom` para evitar el error de lifecycle `_leaflet_pos` y no capturar el scroll de la página.
+- Pendiente para Producción: inspección de históricos/orfandades y migración controlada de esquema, FKs, permisos y RPC.
+
 ## 2026-09-04
 
 ### Establecimientos - retiros por movimientos y cierre mensual

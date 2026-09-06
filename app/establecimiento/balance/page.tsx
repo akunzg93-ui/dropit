@@ -9,6 +9,7 @@ import {
   Wallet,
   Building2,
   PackageCheck,
+  X,
 } from "lucide-react";
 
 type Establecimiento = {
@@ -95,6 +96,9 @@ export default function BalanceEstablecimiento() {
   const [loading, setLoading] = useState(true);
   const [loadingRetiro, setLoadingRetiro] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [modalExitoOpen, setModalExitoOpen] = useState(false);
+const [montoRetiroSolicitado, setMontoRetiroSolicitado] =
+  useState(0);
 
   useEffect(() => {
     cargarBalance();
@@ -427,13 +431,12 @@ export default function BalanceEstablecimiento() {
         return;
       }
 
-      setMensaje(
-        `✅ Solicitud creada por ${formatMoney(json.monto)}`
-      );
+     setMontoRetiroSolicitado(Number(json.monto || 0));
+setSeleccionados([]);
 
-      setSeleccionados([]);
+await cargarBalance();
 
-      await cargarBalance();
+setModalExitoOpen(true);
     } catch (error) {
       console.error(error);
       setMensaje("No fue posible solicitar el retiro");
@@ -734,16 +737,56 @@ export default function BalanceEstablecimiento() {
         </section>
 
         {mensaje && (
-          <div
-            className={`rounded-2xl border px-5 py-4 text-sm font-medium ${
-              mensaje.startsWith("✅")
-                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                : "bg-red-50 border-red-200 text-red-600"
-            }`}
-          >
-            {mensaje}
-          </div>
-        )}
+  <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-600">
+    {mensaje}
+  </div>
+)}
+
+{modalExitoOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-[2px]">
+    <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
+      <button
+        type="button"
+        onClick={() => setModalExitoOpen(false)}
+        className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+        aria-label="Cerrar"
+      >
+        <X size={19} />
+      </button>
+
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+        <CheckCircle2 size={30} />
+      </div>
+
+      <h2 className="mt-6 text-2xl font-bold text-[#1e3a8a]">
+        Retiro solicitado
+      </h2>
+
+      <p className="mt-3 text-sm leading-6 text-slate-600">
+        Tu solicitud fue enviada a revisión. Una vez aprobada,
+        realizaremos el pago en los próximos días.
+      </p>
+
+      <div className="mt-6 rounded-2xl bg-slate-50 p-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Total solicitado
+        </p>
+
+        <p className="mt-1 text-3xl font-bold text-[#1e3a8a]">
+          {formatMoney(montoRetiroSolicitado)}
+        </p>
+      </div>
+
+      <Button
+        type="button"
+        onClick={() => setModalExitoOpen(false)}
+        className="mt-6 h-12 w-full rounded-xl bg-[#1e3a8a] font-bold text-white hover:bg-[#172554]"
+      >
+        Entendido
+      </Button>
+    </div>
+  </div>
+)}
       </div>
     </div>
   );

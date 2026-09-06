@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:pdf": "cd pdf-service && node index.js",
-    "dev:stripe": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
+    "dev:stripe": "stripe listen --forward-to localhost:3000/api/orders/stripe/webhook",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:pdf\" \"npm run dev:stripe\"",
     "build": "next build",
     "start": "next start",

@@ -45,3 +45,7 @@ Mapa principal utilizado en:
 El mapa es un apoyo visual.
 
 Las decisiones del negocio nunca dependen exclusivamente de la ubicación geográfica.
+
+## Tracking y scroll
+
+En mapas embebidos dentro de páginas de tracking, `scrollWheelZoom` permanece desactivado para evitar que Leaflet procese eventos de rueda durante desmontajes/remounts del componente y para no capturar accidentalmente el scroll de la página. El zoom táctil y los controles del mapa permanecen disponibles.

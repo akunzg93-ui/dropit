@@ -1,6 +1,6 @@
 # Billing - Conciliación y retiros
 
-> Última actualización: 04/09/2026
+> Última actualización: 06/09/2026
 
 ## Modelo vigente
 
@@ -40,4 +40,6 @@ Si una operación requiere CFDI del establecimiento, la validación fiscal sigue
 
 ## Estado técnico
 
-El flujo funcional fue validado en QA con solicitud multi-establecimiento, pago exacto de los movimientos seleccionados y rechazo con liberación posterior. Antes de Producción queda pendiente endurecer la creación y el pago con transacciones/RPC atómicas para proteger concurrencia y fallos parciales.
+El flujo funcional y el endurecimiento transaccional fueron validados en QA. `crear_retiro_desde_movimientos` bloquea los movimientos seleccionados y crea cabecera, aplicaciones y detalles atómicamente. `actualizar_retiro_admin` bloquea el retiro y los movimientos aplicados para ejecutar aprobación, rechazo o pago sin estados parciales. Se validaron solicitud, prevención de doble solicitud activa, rechazo/liberación, aprobación, pago exacto y sincronización entre `retiros`, `retiro_aplicaciones` y `balance_movimientos`.
+
+Antes de Producción queda pendiente inspeccionar los datos históricos/orfandades del entorno y aplicar la migración equivalente de esquema, FKs, permisos y RPC.

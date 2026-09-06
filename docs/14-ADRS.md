@@ -401,7 +401,7 @@ Retiros por movimientos después del cierre mensual, con solicitud global multi-
 
 ## Estado
 
-Aceptada en QA; despliegue a Producción pendiente de endurecimiento transaccional.
+Aceptada e implementada en QA; despliegue a Producción pendiente de migración controlada.
 
 ## Contexto
 
@@ -429,4 +429,6 @@ Esta ADR precisa y reemplaza únicamente la parte de ADR-011 que describía una 
 - Una cuenta puede retirar conjuntamente saldo de varias sucursales.
 - El administrador paga exactamente lo solicitado, sin selección FIFO implícita.
 - Rechazar una solicitud no destruye historial.
-- La implementación crítica debe ejecutarse transaccionalmente antes de Producción para impedir doble selección concurrente o estados parciales.
+- La creación y actualización crítica se ejecutan mediante RPC transaccionales con `FOR UPDATE`, evitando doble selección concurrente y estados parciales.
+- QA validó solicitud, bloqueo de reutilización activa, rechazo/liberación, aprobación y pago exacto.
+- Antes de Producción debe inspeccionarse el histórico y aplicar de forma controlada el esquema, FKs, permisos y RPC.

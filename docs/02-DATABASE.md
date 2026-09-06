@@ -203,7 +203,19 @@ Reglas de integridad:
 
 La elegibilidad temporal se determina por mes cerrado usando `America/Mexico_City`: el mes corriente no puede retirarse. El saldo ganado de meses cerrados no expira.
 
-> Estado al 04/09/2026: modelo y FKs validados en QA. La migración equivalente a Producción debe inspeccionar previamente datos históricos/orfandades.
+## RPC transaccionales de retiros
+
+### `crear_retiro_desde_movimientos(uuid, bigint[])`
+
+Operación atómica para crear una solicitud. Bloquea con `FOR UPDATE` los `balance_movimientos` seleccionados, valida propiedad, mes cerrado en `America/Mexico_City`, estado y ausencia de otro retiro activo; después crea `retiros`, `retiro_aplicaciones` y `retiro_detalles` dentro de la misma transacción.
+
+### `actualizar_retiro_admin(uuid, uuid, text, text)`
+
+Operación atómica para las transiciones administrativas `pending → approved`, `pending → reversed` y `approved → paid`. Bloquea el retiro y, al pagar, los movimientos exactos de `retiro_aplicaciones`; valida integridad monetaria y actualiza ledger y cabecera en una sola transacción.
+
+Ambas funciones son `SECURITY DEFINER`, tienen `search_path = public` y su ejecución está revocada para `PUBLIC`, `anon` y `authenticated`; sólo `service_role` tiene `EXECUTE`.
+
+> Estado al 06/09/2026: modelo, FKs y RPC transaccionales validados en QA. La migración equivalente a Producción debe inspeccionar previamente datos históricos/orfandades.
 
 # Integridad y seguridad
 

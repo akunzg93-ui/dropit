@@ -6,7 +6,7 @@
 >
 > Estado: En construcción
 >
-> Última actualización: 11/07/2026
+> Última actualización: 06/09/2026
 
 ---
 
@@ -160,3 +160,18 @@ Permite asignar Coins manualmente a vendedores y auditar esas asignaciones.
 - Coins admin disponibles.
 - Coins admin consumidas.
 - Fecha, cantidad y motivo de cada asignación. :contentReference[oaicite:2]{index=2}
+---
+
+# Pantalla: Retiros
+
+## Ruta
+
+`/admin/retiros`
+
+## Responsabilidad
+
+Permite revisar solicitudes globales, consultar los servicios y establecimientos incluidos, aprobar o rechazar solicitudes pendientes y registrar el pago de solicitudes aprobadas.
+
+La lectura del detalle financiero se realiza mediante `GET /api/orders/retiros/admin`, con autenticación y validación server-side de `profiles.role = admin`. El frontend no obtiene acceso financiero amplio a `balance_movimientos` mediante RLS.
+
+Las mutaciones usan `POST /api/orders/retiros/update`, que delega las transiciones financieras a una RPC transaccional.

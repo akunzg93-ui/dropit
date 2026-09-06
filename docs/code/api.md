@@ -70,16 +70,20 @@ La validación de factura no cambia el estado de `balance_movimientos`.
 
 # Retiros
 
-> Actualización: 04/09/2026
+> Actualización: 06/09/2026
 
 ## `POST /api/orders/retiros/solicitar`
 
-Entrada: `{ balance_movimiento_ids: number[] }`. Requiere Bearer token. El servidor obtiene el usuario con Supabase Auth, valida que todos los movimientos pertenezcan a establecimientos de ese usuario, que correspondan a meses cerrados en `America/Mexico_City`, que no estén `paid`/`reversed` y que no tengan otra aplicación activa. Calcula el total y crea `retiros`, `retiro_aplicaciones` y `retiro_detalles`.
+Entrada: `{ balance_movimiento_ids: number[] }`. Requiere Bearer token. La API autentica al usuario y delega la operación financiera a `crear_retiro_desde_movimientos`. El RPC bloquea los movimientos seleccionados, valida propiedad, mes cerrado en `America/Mexico_City`, estados y ausencia de otra solicitud activa; calcula el total y crea `retiros`, `retiro_aplicaciones` y `retiro_detalles` atómicamente.
 
 ## `POST /api/orders/retiros/update`
 
-Requiere Bearer token y `profiles.role = admin`. Transiciones válidas: `pending → approved`, `pending → reversed`, `approved → paid`. En `paid` valida aplicaciones y total, y actualiza exactamente los `balance_movimientos` seleccionados. No usa FIFO ni divide movimientos.
+Requiere Bearer token. La API autentica al usuario y delega a `actualizar_retiro_admin`, que exige `profiles.role = admin`. Transiciones válidas: `pending → approved`, `pending → reversed`, `approved → paid`. En pago se bloquean y actualizan exactamente los movimientos de `retiro_aplicaciones` junto con la cabecera del retiro en una sola transacción.
 
-## Deuda técnica conocida
+## `GET /api/orders/retiros/admin`
 
-La implementación actual realiza varias operaciones de BD desde la API y usa limpieza compensatoria en errores; no constituye una transacción atómica. Antes del cierre de Producción debe migrarse la creación/pago crítico a una transacción/RPC con bloqueo adecuado para impedir carreras de doble selección o estados parciales.
+Lectura administrativa de solicitudes y detalle financiero. Requiere Bearer token y `profiles.role = admin`. La consulta se ejecuta server-side con Service Role después de validar al administrador, evitando abrir al navegador una política RLS amplia sobre `balance_movimientos`.
+
+## Atomicidad
+
+La creación y las transiciones críticas ya no usan secuencias de inserts/updates con limpieza compensatoria. Las RPC usan locks `FOR UPDATE` y semántica transaccional de PostgreSQL para impedir doble selección concurrente y estados parciales.
