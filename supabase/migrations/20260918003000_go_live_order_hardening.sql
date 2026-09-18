@@ -503,26 +503,21 @@ $function$;
 
 
 -- ============================================================================
--- 7. BALANCE SOLO AL MARCAR PEDIDO COMO ENTREGADO
+-- 7. ELIMINAR TRIGGERS FINANCIEROS LEGACY
 -- ============================================================================
+-- El balance se genera al recibir físicamente el pedido en el establecimiento.
+-- Evitamos que actualizaciones posteriores de pedidos creen movimientos
+-- financieros fuera de ese flujo.
 
--- Eliminar trigger histórico que ejecutaba la función de balance
--- ante cualquier UPDATE del pedido.
 DROP TRIGGER IF EXISTS trg_balance_on_entregado
 ON public.pedidos;
 
--- Normalizar el trigger correcto para que la migration sea reproducible.
 DROP TRIGGER IF EXISTS trg_pedido_entregado_balance
 ON public.pedidos;
 
-CREATE TRIGGER trg_pedido_entregado_balance
-AFTER UPDATE ON public.pedidos
-FOR EACH ROW
-WHEN (
-  NEW.entregado = true
-  AND OLD.entregado IS DISTINCT FROM true
-)
-EXECUTE FUNCTION public.trg_pedido_entregado_balance();
+-- ============================================================================
+-- 8. PERMISOS EXPLÍCITOS
+-- ============================================================================
 
 
 -- ============================================================================

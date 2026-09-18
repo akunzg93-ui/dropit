@@ -43,6 +43,7 @@ export async function POST(req: Request) {
         codigo_entrega,
         email_comprador,
         correo_comprador_enviado,
+        establecimiento_uuid,
         pedido_establecimientos (
           establecimientos (
             id,
@@ -103,18 +104,9 @@ export async function POST(req: Request) {
 try {
   console.log("🔥 INTENTO GENERAR BALANCE");
 
-  const relaciones = pedidoAny.pedido_establecimientos || [];
-
-// 🔥 tomar el que tenga uuid válido (primer match real)
-const establecimientoMatch = relaciones.find(
-  (r: any) => r?.establecimientos?.uuid
-);
-
-const establecimiento_id = establecimientoMatch?.establecimientos?.uuid;
+  const establecimiento_id = pedidoAny.establecimiento_uuid;
 
 console.log("🏪 establecimiento_id:", establecimiento_id);
-
-  console.log("🏪 establecimiento_id:", establecimiento_id);
 
   if (!establecimiento_id) {
     console.error("❌ NO hay establecimiento_id");
@@ -127,7 +119,7 @@ console.log("🏪 establecimiento_id:", establecimiento_id);
 const monto_bruto =
   serviceValue.importeServicio;
 
-const comision_rate = 0.2;
+const comision_rate = 0.10;
 const iva_rate = 0.16;
 
 console.log(
@@ -169,7 +161,7 @@ console.log(
         comision_monto,
         iva_monto,
         neto_establecimiento,
-        status: "pending",
+        status: "available",
       });
 
     if (error) {
@@ -216,11 +208,19 @@ if (uploadError) {
 
     const qrUrl = publicUrlData.publicUrl;
 
-    const establecimiento =
-      pedidoAny.pedido_establecimientos?.[0]?.establecimientos;
+        const establecimiento =
+      pedidoAny.pedido_establecimientos
+        ?.map((r: any) => r?.establecimientos)
+        .find(
+          (e: any) =>
+            e?.uuid === pedidoAny.establecimiento_uuid
+        );
 
-    const establecimientoNombre = establecimiento?.nombre ?? "—";
-    const direccionEstablecimiento = establecimiento?.direccion ?? "—";
+    const establecimientoNombre =
+      establecimiento?.nombre ?? "—";
+
+    const direccionEstablecimiento =
+      establecimiento?.direccion ?? "—";
 
     if (!pedidoAny.correo_comprador_enviado) {
       await sendEmail({
