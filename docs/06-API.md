@@ -3,7 +3,7 @@
 > Documento Oficial  
 > Versión: 1.2  
 > Estado: Oficial  
-> Última actualización: 17/09/2026
+> Última actualización: 18/09/2026
 
 ---
 
@@ -30,6 +30,16 @@
 Las rutas históricas estables no se mueven sólo por organización.
 
 ---
+
+## Recepción física
+
+`POST /api/orders/recibido` requiere Bearer token.
+
+El servidor autentica al usuario con Supabase Auth y valida que sea propietario del `establecimiento_uuid` asignado al pedido.
+
+Antes de modificar el pedido obtiene el valor real del servicio mediante `getOrderServiceValue`. Después delega la operación crítica a `recibir_pedido_con_balance`, que crea el balance y registra la recepción atómicamente.
+
+QR, Storage y correo se ejecutan después de la transacción crítica y no forman parte de la atomicidad financiera.
 
 # Cancelaciones
 
@@ -101,6 +111,7 @@ La protección usa compensación y no atomicidad distribuida: si el cobro fue ex
 - `crear_pedido_con_coin`: ejecutable por `authenticated` y `service_role`; no por `anon`.
 - `confirmar_establecimiento_pedido`: sólo `service_role`.
 - `rechazar_establecimiento_pedido`: sólo `service_role`.
+- `recibir_pedido_con_balance`: sólo `service_role`; registra recepción y movimiento financiero en una misma transacción.
 
 Los permisos anteriores fueron alineados en QA y Producción durante el Go Live Audit.
 

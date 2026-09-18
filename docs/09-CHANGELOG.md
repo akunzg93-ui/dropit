@@ -8,6 +8,19 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 
 # [1.0.0] - En desarrollo
 
+## 2026-09-18
+
+### Go Live Audit - recepción atómica y autorización
+
+- `POST /api/orders/recibido` exige Bearer token y valida que el usuario autenticado sea propietario del establecimiento asignado.
+- El valor financiero del servicio se resuelve antes de modificar el pedido.
+- Se agregó `recibir_pedido_con_balance`, que bloquea el pedido y registra `codigo_entrega`, `pendiente_recoleccion`, `recibido_en` y `balance_movimientos` en una sola transacción.
+- Si falla la creación del balance, toda la recepción hace rollback.
+- La RPC sólo permite `EXECUTE` a `service_role`.
+- Los nuevos movimientos mantienen comisión de 10% + IVA 16% sobre comisión y nacen como `available`.
+- La atomicidad fue validada mediante rollback controlado y prueba end-to-end en QA.
+- Producción validó el flujo end-to-end con recepción y movimiento financiero creados en la misma transacción.
+
 ## 2026-09-17
 
 ### Go Live Audit - pagos, protección y seguridad

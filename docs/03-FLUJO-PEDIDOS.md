@@ -153,14 +153,28 @@ Reglas:
 
 - El pedido debe estar en `en_transito`.
 - El folio y `codigo_vendedor` deben ser válidos.
+- El establecimiento autenticado debe ser propietario del establecimiento asignado al pedido.
+- El valor financiero del servicio debe poder determinarse mediante la trazabilidad de la Coin consumida.
+
+La transición crítica se ejecuta mediante `recibir_pedido_con_balance`.
+
+En una misma transacción:
+
+- se bloquea el pedido;
+- se valida estado, código y establecimiento;
+- se genera `codigo_entrega` si no existe;
+- se crea el `balance_movimientos`;
+- el pedido pasa a `pendiente_recoleccion`;
+- se registra `recibido_en`.
+
+Si falla la creación del movimiento financiero, la recepción completa hace rollback y el pedido permanece sin recibir.
+
+Después del commit se realizan las operaciones no críticas de QR y notificación al cliente.
 
 Resultado:
 
-- El pedido pasa a `pendiente_recoleccion`.
-- Se registra `recibido_en`.
-- Se genera `codigo_entrega` si no existe.
-- Se registra el evento.
-- Se notifica al cliente.
+- El pedido queda en `pendiente_recoleccion`.
+- Existe un único movimiento financiero asociado al pedido.
 - Comienza el plazo de 48 horas para recolección.
 
 ## T-007 — Cliente recoge

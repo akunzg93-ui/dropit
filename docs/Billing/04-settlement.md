@@ -1,12 +1,18 @@
 # Billing - Conciliación y retiros
 
-> Última actualización: 06/09/2026
+> Última actualización: 18/09/2026
 
 ## Modelo vigente
 
 `balance_movimientos` es la fuente financiera operativa. `settlements` permanece como estructura histórica y no se utiliza para nueva lógica.
 
 Cuando el establecimiento recibe el paquete se registra una línea financiera con el valor real del servicio, comisión, IVA de comisión y neto del establecimiento. La validación fiscal y la disponibilidad económica permanecen desacopladas.
+
+La creación del movimiento financiero y la transición del pedido a `pendiente_recoleccion` son atómicas mediante `recibir_pedido_con_balance`. Si el movimiento financiero no puede crearse, la recepción hace rollback.
+
+El bruto corresponde al valor económico trazable del servicio. Para nuevos movimientos la comisión vigente es 10% y el IVA es 16% sobre la comisión. El movimiento se crea con `status = available`.
+
+La recepción atómica fue validada end-to-end en QA y Producción el 18/09/2026.
 
 ## Cierre mensual y derecho de retiro
 

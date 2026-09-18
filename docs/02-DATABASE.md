@@ -236,6 +236,31 @@ Si el establecimiento rechaza el pedido, `rechazar_establecimiento_pedido` liber
 
 Las cancelaciones liberan únicamente la capacidad del establecimiento efectivamente reservado.
 
+# Recepción atómica y balance
+
+La recepción física del pedido se ejecuta mediante `recibir_pedido_con_balance`.
+
+La RPC bloquea el pedido con `FOR UPDATE` y valida:
+
+- pedido existente;
+- estado `en_transito`;
+- `codigo_vendedor`;
+- establecimiento definitivo asignado;
+- monto bruto positivo.
+
+Dentro de una misma transacción:
+
+- genera y guarda `codigo_entrega`;
+- crea el `balance_movimientos`;
+- cambia el pedido a `pendiente_recoleccion`;
+- registra `recibido_en`.
+
+Para nuevos movimientos la comisión vigente es 10% y el IVA es 16% sobre la comisión. El movimiento nace con `status = available`.
+
+El monto bruto se obtiene antes de ejecutar la RPC mediante la trazabilidad financiera de la Coin. Si el valor del servicio no puede determinarse de forma confiable, la recepción no debe modificar el pedido.
+
+`recibir_pedido_con_balance` es `SECURITY DEFINER` y sólo `service_role` tiene permiso de ejecución.
+
 # Integridad y seguridad
 
 - `pedido_eventos` no se usa como sustituto del estado actual; ambos se complementan.

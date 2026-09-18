@@ -519,3 +519,44 @@ El cobro de protección ocurre en Stripe y la creación del pedido y su registro
 - La cancelación reutiliza la lógica oficial de Orders y no replica manualmente el reintegro de Coins.
 - QA validó tanto el happy path como el fallo forzado de `pedido_protecciones`, comprobando pedido cancelado, movimiento `reintegro_cancelacion` y refund exitoso en Stripe.
 - La solución no equivale a atomicidad distribuida: persiste una ventana ante crash o pérdida de conectividad entre operaciones externas. Una reconciliación/webhook adicional puede incorporarse si el volumen operativo lo requiere.
+
+---
+
+# ADR-015
+
+## Nombre
+
+Recepción física y generación de balance como una sola transacción.
+
+## Estado
+
+Aceptada, implementada y validada en QA y Producción.
+
+## Contexto
+
+La recepción física actualizaba primero el pedido a `pendiente_recoleccion` y posteriormente intentaba crear `balance_movimientos`.
+
+Si fallaba la determinación del valor financiero o la creación del movimiento, el pedido podía quedar recibido sin saldo asociado al establecimiento.
+
+Además, conocer folio y `codigo_vendedor` no debía ser suficiente para ejecutar una transición reservada al establecimiento asignado.
+
+## Decisión
+
+- `POST /api/orders/recibido` requiere Bearer token.
+- El servidor valida que el usuario autenticado sea propietario del establecimiento asignado.
+- `getOrderServiceValue` determina el bruto antes de realizar cualquier mutación crítica.
+- La recepción se delega a `recibir_pedido_con_balance`.
+- La RPC bloquea el pedido con `FOR UPDATE`.
+- La generación de `codigo_entrega`, creación de `balance_movimientos`, transición a `pendiente_recoleccion` y registro de `recibido_en` ocurren en una sola transacción.
+- Si falla cualquiera de esas operaciones, toda la recepción hace rollback.
+- La RPC es `SECURITY DEFINER` y sólo `service_role` puede ejecutarla.
+- QR, Storage y correo permanecen fuera de la transacción financiera.
+
+## Consecuencias
+
+- No puede confirmarse una recepción crítica sin crear simultáneamente su movimiento financiero.
+- Los errores de trazabilidad financiera dejan el pedido en su estado anterior.
+- El establecimiento que recibe queda vinculado al mismo `establecimiento_uuid` utilizado para generar su saldo.
+- Las operaciones externas no prolongan ni condicionan la transacción de PostgreSQL.
+- QA validó rollback ante fallo financiero y el flujo end-to-end.
+- Producción validó un pedido real de prueba con bruto de $90.00, comisión de $9.00, IVA de $1.44 y neto de $79.56.

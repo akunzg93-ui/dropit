@@ -177,12 +177,23 @@ Los permisos de ejecución se mantienen con mínimo privilegio:
 - `crear_pedido_con_coin`: `authenticated` y `service_role`; `anon` sin `EXECUTE`.
 - `confirmar_establecimiento_pedido`: sólo `service_role`.
 - `rechazar_establecimiento_pedido`: sólo `service_role`.
+- `recibir_pedido_con_balance`: sólo `service_role`.
 
 La autorización del actor se valida en las APIs server-side antes de delegar a RPC privilegiadas.
 
 # Rechazo por establecimiento
 
 `POST /api/orders/rechazar-pedido` exige Bearer token, obtiene al usuario mediante Supabase Auth y valida que sea propietario del establecimiento asignado. El rechazo libera transaccionalmente la capacidad reservada y devuelve el pedido al estado correspondiente.
+
+# Recepción por establecimiento
+
+`POST /api/orders/recibido` exige Bearer token y obtiene al usuario mediante Supabase Auth.
+
+El servidor valida que `pedidos.establecimiento_uuid` pertenezca a un registro de `establecimientos` cuyo `usuario_id` corresponda al usuario autenticado. Conocer el folio y `codigo_vendedor` no es suficiente para autorizar la recepción.
+
+Después de validar al actor, la API delega la transición crítica a `recibir_pedido_con_balance`.
+
+La RPC sólo puede ejecutarse mediante `service_role`; `anon` y `authenticated` no tienen permiso `EXECUTE`.
 
 # Stripe
 

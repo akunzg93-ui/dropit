@@ -3,7 +3,7 @@
 > Documento Oficial  
 > Versión: 1.2  
 > Estado: En construcción  
-> Última actualización: 17/09/2026
+> Última actualización: 18/09/2026
 
 ---
 
@@ -21,6 +21,10 @@ Las rutas permanecen bajo `app/api/orders/` por estabilidad. No se reorganizan s
   - Requiere Bearer token y valida propiedad del establecimiento antes de delegar a `rechazar_establecimiento_pedido`.
 - `preview-vendedor`
 - `recibido`
+  - Requiere Bearer token y valida que el usuario autenticado sea propietario del establecimiento asignado.
+  - Obtiene el valor financiero mediante `getOrderServiceValue` antes de modificar el pedido.
+  - Delega recepción + creación de `balance_movimientos` a `recibir_pedido_con_balance`.
+  - QR, Storage y correo ocurren después de la transacción crítica.
 - `preview`
 - `entregado`
 - `notificar-vendedor`
