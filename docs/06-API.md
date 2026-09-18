@@ -3,7 +3,7 @@
 > Documento Oficial  
 > Versión: 1.2  
 > Estado: Oficial  
-> Última actualización: 06/09/2026
+> Última actualización: 17/09/2026
 
 ---
 
@@ -81,6 +81,28 @@ La API correspondiente ejecuta `cancel_order_by_vendor` y sólo permite estados 
 La acción del establecimiento ejecuta `complete_order_return` después de validar el código de devolución.
 
 ---
+
+# Pagos de Coins
+
+`POST /api/orders/payments/create-intent` autentica al vendedor, calcula importes server-side, crea `pagos` en `pending` y genera el PaymentIntent con `pago_id` en metadata.
+
+`POST /api/orders/stripe/webhook` verifica la firma Stripe. Para `payment_intent.succeeded` delega a `acreditar_compra_stripe`, que acredita lotes y movimientos de forma transaccional e idempotente. En desarrollo local se requiere Stripe CLI o un endpoint públicamente accesible para recibir el webhook.
+
+# Protección
+
+`POST /api/orders/proteccion/create-intent` exige Bearer token y vincula el PaymentIntent al `vendedor_id` autenticado mediante metadata.
+
+`POST /api/orders/proteccion/refund` exige Bearer token, verifica propiedad del PaymentIntent y estado `succeeded`, y realiza el reembolso compensatorio con una idempotency key determinística por PaymentIntent.
+
+La protección usa compensación y no atomicidad distribuida: si el cobro fue exitoso pero falla la creación del pedido, se reembolsa; si falla `pedido_protecciones` después de crear el pedido, se cancela por la API oficial, se reintegra la Coin y se reembolsa el pago.
+
+# RPC críticas de pedidos
+
+- `crear_pedido_con_coin`: ejecutable por `authenticated` y `service_role`; no por `anon`.
+- `confirmar_establecimiento_pedido`: sólo `service_role`.
+- `rechazar_establecimiento_pedido`: sólo `service_role`.
+
+Los permisos anteriores fueron alineados en QA y Producción durante el Go Live Audit.
 
 # Tracking público
 

@@ -3,7 +3,7 @@
 > Documento Oficial  
 > Versión: 1.2  
 > Estado: En construcción  
-> Última actualización: 31/08/2026
+> Última actualización: 17/09/2026
 
 ---
 
@@ -17,7 +17,8 @@ Las rutas permanecen bajo `app/api/orders/` por estabilidad. No se reorganizan s
 
 - `aceptar-establecimiento`
   - Requiere Bearer token y valida que el usuario autenticado sea propietario del establecimiento asignado al pedido antes de pasar a `en_transito`.
-- `rechazar-establecimiento`
+- `rechazar-pedido`
+  - Requiere Bearer token y valida propiedad del establecimiento antes de delegar a `rechazar_establecimiento_pedido`.
 - `preview-vendedor`
 - `recibido`
 - `preview`
@@ -87,3 +88,12 @@ Lectura administrativa de solicitudes y detalle financiero. Requiere Bearer toke
 ## Atomicidad
 
 La creación y las transiciones críticas ya no usan secuencias de inserts/updates con limpieza compensatoria. Las RPC usan locks `FOR UPDATE` y semántica transaccional de PostgreSQL para impedir doble selección concurrente y estados parciales.
+
+
+# Pagos y Protección - actualización Go Live Audit
+
+- `POST /api/orders/payments/create-intent`: crea el registro `pagos` y PaymentIntent con metadata trazable.
+- `POST /api/orders/stripe/webhook`: verifica firma y acredita Coins mediante `acreditar_compra_stripe`; el procesamiento es idempotente ante reintentos del mismo pago.
+- `POST /api/orders/proteccion/create-intent`: requiere sesión y vincula el pago al vendedor autenticado.
+- `POST /api/orders/proteccion/refund`: requiere sesión, valida propiedad del PaymentIntent y usa idempotency key determinística.
+- La compensación de protección cancela el pedido mediante `/api/orders/cancelar` antes de reembolsar cuando falla el registro de `pedido_protecciones`, recuperando la Coin por el flujo oficial.

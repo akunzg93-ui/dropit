@@ -38,11 +38,19 @@ Pago exitoso
 
 ↓
 
-Acreditación de Coins
+`payment_intent.succeeded`
 
 ↓
 
-Creación de lotes
+`/api/orders/stripe/webhook`
+
+↓
+
+`acreditar_compra_stripe`
+
+↓
+
+Creación idempotente de lotes y movimientos
 
 ---
 
@@ -55,8 +63,8 @@ Creación de lotes
 
 # APIs
 
-- payments/create-intent
-- coins/credit
+- `payments/create-intent`
+- `stripe/webhook`
 
 ---
 
@@ -69,8 +77,10 @@ Creación de lotes
 
 # Principios
 
-Las Coins únicamente se acreditan después de confirmar el pago.
+Las Coins únicamente se acreditan después de que Stripe confirma el pago.
 
-El consumo siempre sigue la política FIFO.
+La acreditación se ejecuta server-side mediante webhook y RPC transaccional/idempotente; un reintento del mismo pago no debe duplicar lotes ni movimientos.
 
-No existe devolución automática de Coins consumidas.
+En desarrollo local, Stripe CLI debe reenviar los eventos a `localhost` para ejecutar el webhook.
+
+El consumo siempre sigue la política FIFO. Las cancelaciones autorizadas pueden reintegrar la Coin al lote original conforme a las reglas del pedido.

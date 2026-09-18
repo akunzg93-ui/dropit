@@ -6,7 +6,7 @@
 >
 > Estado: Oficial
 >
-> Última actualización: 31/08/2026
+> Última actualización: 17/09/2026
 
 ---
 
@@ -168,3 +168,22 @@ En futuras versiones podrán incorporarse mecanismos adicionales como:
 `POST /api/orders/aceptar-establecimiento` requiere una sesión autenticada mediante Bearer token. El servidor obtiene al usuario con Supabase Auth y valida que `pedidos.establecimiento_uuid` corresponda a un registro de `establecimientos` cuyo `usuario_id` sea el usuario autenticado.
 
 Conocer el `pedido_id` no autoriza la aceptación. Si el usuario no es propietario del establecimiento asignado, la API responde `403` y el pedido no cambia de estado. El uso de Service Role queda limitado a la operación privilegiada del servidor y no sustituye la autorización del actor.
+
+
+# RPC `SECURITY DEFINER` críticas
+
+Los permisos de ejecución se mantienen con mínimo privilegio:
+
+- `crear_pedido_con_coin`: `authenticated` y `service_role`; `anon` sin `EXECUTE`.
+- `confirmar_establecimiento_pedido`: sólo `service_role`.
+- `rechazar_establecimiento_pedido`: sólo `service_role`.
+
+La autorización del actor se valida en las APIs server-side antes de delegar a RPC privilegiadas.
+
+# Rechazo por establecimiento
+
+`POST /api/orders/rechazar-pedido` exige Bearer token, obtiene al usuario mediante Supabase Auth y valida que sea propietario del establecimiento asignado. El rechazo libera transaccionalmente la capacidad reservada y devuelve el pedido al estado correspondiente.
+
+# Stripe
+
+Los webhooks verifican `stripe-signature` con `STRIPE_WEBHOOK_SECRET`. La acreditación de Coins se ejecuta mediante una RPC idempotente vinculada a `pago_id`. Los reembolsos compensatorios de protección validan que `metadata.vendedor_id` corresponda al usuario autenticado y utilizan una idempotency key determinística por PaymentIntent.

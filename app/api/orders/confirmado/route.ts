@@ -52,25 +52,27 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3️⃣ Update pedido
-    const { error: updateError } = await supabase
-      .from("pedidos")
-      .update({
-        estado: "pendiente_aprobacion_establecimiento",
-        establecimiento_nombre: establecimiento.nombre,
-        establecimiento_uuid: establecimiento.uuid,
-        establecimiento_notificado_at: new Date().toISOString(),
-        establecimiento_notificado: true,
-      })
-      .eq("id", pedido_id);
+    // 3️⃣ Confirmar establecimiento + reservar capacidad
+const { error: confirmError } = await supabase.rpc(
+  "confirmar_establecimiento_pedido",
+  {
+    p_pedido_id: pedido_id,
+    p_establecimiento_id: establecimiento_id,
+  }
+);
 
-    if (updateError) {
-      console.error("❌ UPDATE ERROR:", updateError);
-      return NextResponse.json(
-        { error: "No se pudo actualizar el pedido" },
-        { status: 500 }
-      );
-    }
+if (confirmError) {
+  console.error("❌ CONFIRM ERROR:", confirmError);
+
+  return NextResponse.json(
+    {
+      error:
+        confirmError.message ||
+        "No se pudo confirmar el establecimiento",
+    },
+    { status: 400 }
+  );
+}
 
     // 4️⃣ 🔔 Notificar establecimiento
     try {

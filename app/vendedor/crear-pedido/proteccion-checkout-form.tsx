@@ -2,6 +2,7 @@
 
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function ProteccionCheckoutForm({
   valorDeclarado,
@@ -21,11 +22,21 @@ export default function ProteccionCheckoutForm({
     setError("");
 
     try {
-      const res = await fetch("/api/orders/proteccion/create-intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ valorDeclarado }),
-      });
+      const { data: sessionData } = await supabase.auth.getSession();
+const accessToken = sessionData.session?.access_token;
+
+if (!accessToken) {
+  throw new Error("Sesión requerida");
+}
+
+const res = await fetch("/api/orders/proteccion/create-intent", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${accessToken}`,
+  },
+  body: JSON.stringify({ valorDeclarado }),
+});
 
       const intent = await res.json();
 

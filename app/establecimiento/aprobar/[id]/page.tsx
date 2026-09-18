@@ -112,13 +112,59 @@ export default function AprobarPedido() {
   }
 }
   async function rechazar() {
-    await fetch("/api/orders/rechazar-pedido", {
-      method: "POST",
-      body: JSON.stringify({ pedido_id: id }),
-    });
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      alert("Tu sesión ha expirado. Inicia sesión nuevamente.");
+      router.push("/login");
+      return;
+    }
+
+    const response = await fetch(
+      "/api/orders/rechazar-pedido",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          pedido_id: id,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error(
+        "Error rechazando pedido:",
+        result
+      );
+
+      alert(
+        result.error ||
+          "No fue posible rechazar el pedido"
+      );
+
+      return;
+    }
 
     router.push("/establecimiento/estado");
+  } catch (error) {
+    console.error(
+      "Error rechazando pedido:",
+      error
+    );
+
+    alert(
+      "No fue posible rechazar el pedido"
+    );
   }
+}
 
   if (loading) {
     return (

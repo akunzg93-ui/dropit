@@ -15,6 +15,28 @@ function toNumber(value, fallback = 0) {
 
 export async function POST(req) {
   try {
+    const authorization = req.headers.get("authorization");
+    const accessToken = authorization?.replace("Bearer ", "");
+
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: "Sesión requerida" },
+        { status: 401 }
+      );
+    }
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(accessToken);
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "Sesión inválida" },
+        { status: 401 }
+      );
+    }
+
     const { valorDeclarado } = await req.json();
     const valor = toNumber(valorDeclarado);
 
@@ -68,11 +90,12 @@ export async function POST(req) {
       currency: "mxn",
       automatic_payment_methods: { enabled: true },
       metadata: {
-        producto: "proteccion_dropit",
-        valor_declarado: valor.toString(),
-        porcentaje: porcentaje.toString(),
-        monto_proteccion: montoProteccion.toString(),
-      },
+  producto: "proteccion_dropit",
+  vendedor_id: user.id,
+  valor_declarado: valor.toString(),
+  porcentaje: porcentaje.toString(),
+  monto_proteccion: montoProteccion.toString(),
+},
     });
 
     return NextResponse.json({

@@ -4,7 +4,7 @@
 
 ## P-001 Valor económico del servicio
 
-Al recibir el establecimiento el paquete, Billing identifica la Coin usada y calcula el importe efectivo. Crea `balance_movimientos` con comisión 20%, IVA 16% sobre comisión y estado `pending`.
+Billing crea `balance_movimientos` por pedido con importe nominal de $60 MXN para `small` o $90 MXN para `medium`, comisión Dropit de 10%, IVA 16% sobre la comisión y estado inicial `available`. Los movimientos históricos no se recalculan cuando cambia la comisión vigente.
 
 ## P-002 Solicitud de factura
 

@@ -215,7 +215,26 @@ Operación atómica para las transiciones administrativas `pending → approved`
 
 Ambas funciones son `SECURITY DEFINER`, tienen `search_path = public` y su ejecución está revocada para `PUBLIC`, `anon` y `authenticated`; sólo `service_role` tiene `EXECUTE`.
 
-> Estado al 06/09/2026: modelo, FKs y RPC transaccionales validados en QA. La migración equivalente a Producción debe inspeccionar previamente datos históricos/orfandades.
+Estado al 08/09/2026: modelo, FKs y RPC transaccionales validados en QA y Producción. En PROD se verificó el esquema existente, se agregó retiros.fecha_pago y la restricción UNIQUE (retiro_id, balance_movimiento_id) de retiro_aplicaciones. El flujo transaccional completo fue validado mediante una prueba controlada con ROLLBACK
+
+## Reserva de capacidad
+
+`pedido_establecimientos` representa únicamente establecimientos candidatos y no reserva capacidad al crear el pedido.
+
+La capacidad se reserva cuando el cliente selecciona un establecimiento concreto.
+
+La selección se realiza mediante `confirmar_establecimiento_pedido`, que de forma transaccional:
+
+- valida que el establecimiento sea candidato;
+- valida disponibilidad;
+- bloquea el establecimiento para evitar sobreasignación concurrente;
+- descuenta una unidad de capacidad;
+- asigna el establecimiento al pedido;
+- cambia el estado a `pendiente_aprobacion_establecimiento`.
+
+Si el establecimiento rechaza el pedido, `rechazar_establecimiento_pedido` libera la reserva y devuelve el pedido a `creado`.
+
+Las cancelaciones liberan únicamente la capacidad del establecimiento efectivamente reservado.
 
 # Integridad y seguridad
 

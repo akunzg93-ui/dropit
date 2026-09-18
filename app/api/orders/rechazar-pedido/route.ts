@@ -3,6 +3,35 @@ import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: Request) {
   try {
+    const authorization = req.headers.get("authorization");
+
+    if (!authorization?.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      );
+    }
+
+    const token = authorization.replace("Bearer ", "");
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // 1. Validar usuario autenticado
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      );
+    }
+
     const { pedido_id } = await req.json();
 
     if (!pedido_id) {
@@ -12,15 +41,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    // 1️⃣ Obtener pedido
+    // 2. Obtener pedido
     const { data: pedido, error: pedidoError } = await supabase
       .from("pedidos")
-      .select("*")
+      .select("id, estado, establecimiento_uuid")
       .eq("id", pedido_id)
       .single();
 
@@ -31,30 +55,58 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔴 NUEVO (FASE 7 - evitar doble ejecución)
+    // Idempotencia
     if (pedido.estado !== "pendiente_aprobacion_establecimiento") {
       return NextResponse.json({ ok: true });
     }
 
-    // 2️⃣ Regresar a creado
-    const { error: updateError } = await supabase
-      .from("pedidos")
-      .update({
-        estado: "creado",
-        establecimiento_nombre: null,
-        establecimiento_uuid: null,
-        establecimiento_acepto: false,
-      })
-      .eq("id", pedido_id);
-
-    if (updateError) {
+    if (!pedido.establecimiento_uuid) {
       return NextResponse.json(
-        { error: "Error actualizando pedido" },
-        { status: 500 }
+        { error: "Pedido sin establecimiento asignado" },
+        { status: 400 }
       );
     }
 
-    // 3️⃣ Notificar comprador
+    // 3. Verificar que el establecimiento pertenece al usuario
+    const {
+      data: establecimiento,
+      error: establecimientoError,
+    } = await supabase
+      .from("establecimientos")
+      .select("id")
+      .eq("uuid", pedido.establecimiento_uuid)
+      .eq("usuario_id", user.id)
+      .maybeSingle();
+
+    if (establecimientoError || !establecimiento) {
+      return NextResponse.json(
+        { error: "No tienes autorización para rechazar este pedido" },
+        { status: 403 }
+      );
+    }
+
+    // 4. Rechazar + liberar capacidad
+    const { error: rejectError } = await supabase.rpc(
+      "rechazar_establecimiento_pedido",
+      {
+        p_pedido_id: Number(pedido_id),
+      }
+    );
+
+    if (rejectError) {
+      console.error("Error rechazando pedido:", rejectError);
+
+      return NextResponse.json(
+        {
+          error:
+            rejectError.message ||
+            "Error rechazando pedido",
+        },
+        { status: 400 }
+      );
+    }
+
+    // 5. Notificar comprador
     try {
       await fetch(
         `${process.env.NEXT_PUBLIC_SITE_URL}/api/orders/notificar-comprador-rechazo`,
@@ -71,9 +123,9 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ok: true });
-
   } catch (err) {
     console.error("Error general:", err);
+
     return NextResponse.json(
       { error: "Error interno" },
       { status: 500 }

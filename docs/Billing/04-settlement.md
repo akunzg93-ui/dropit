@@ -42,4 +42,4 @@ Si una operación requiere CFDI del establecimiento, la validación fiscal sigue
 
 El flujo funcional y el endurecimiento transaccional fueron validados en QA. `crear_retiro_desde_movimientos` bloquea los movimientos seleccionados y crea cabecera, aplicaciones y detalles atómicamente. `actualizar_retiro_admin` bloquea el retiro y los movimientos aplicados para ejecutar aprobación, rechazo o pago sin estados parciales. Se validaron solicitud, prevención de doble solicitud activa, rechazo/liberación, aprobación, pago exacto y sincronización entre `retiros`, `retiro_aplicaciones` y `balance_movimientos`.
 
-Antes de Producción queda pendiente inspeccionar los datos históricos/orfandades del entorno y aplicar la migración equivalente de esquema, FKs, permisos y RPC.
+El flujo fue migrado y validado en Producción el 08/09/2026. Se inspeccionó el esquema existente, se aplicaron únicamente las diferencias necesarias para Retiros y se validó el flujo transaccional completo pending → approved → paid mediante una prueba controlada con ROLLBACK, sin alterar datos productivos.

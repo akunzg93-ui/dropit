@@ -277,85 +277,161 @@ export default function CrearPedido() {
       await debugCoinsDB("ANTES RPC", vendedorId);
 
       const folio = generarFolio();
+const idempotencyKey = crypto.randomUUID();
 
-      const { data: pedido, error: pedidoError } = await supabase
-        .from("pedidos")
-        .insert({
-          vendedor_id: vendedorId,
-          email_vendedor: vendedorEmail,
-          email_comprador: correoComprador,
-          comprador_id: null,
-          producto,
-          tipo_paquete: tamano,
-          estado: "creado",
-          folio,
-          declaracion_legal: declaracionLegal,
-        })
-        .select()
-        .single();
+const { data: pedido, error: pedidoError } = await supabase.rpc(
+  "crear_pedido_con_coin",
+  {
+    p_producto: producto,
+    p_tipo_paquete: tamano,
+    p_email_comprador: correoComprador,
+    p_folio: folio,
+    p_declaracion_legal: declaracionLegal,
+    p_establecimiento_ids: seleccionados.map((e) => e.id),
+    p_idempotency_key: idempotencyKey,
+  }
+);
 
-      if (pedidoError || !pedido?.id) {
-        setMensaje("Error al crear el pedido.");
-        return;
-      }
+if (pedidoError || !pedido?.id) {
+  console.error(
+  "Error creando pedido:",
+  JSON.stringify(pedidoError, null, 2)
+);
 
-      const { error: coinError } = await supabase.rpc("consume_coin_for_order", {
-  p_user_id: vendedorId,
-  p_tamano: tamano,
-  p_pedido_id: pedido.id,
-});
+  if (stripePaymentIntentId) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
 
-      await debugCoinsDB("DESPUÉS RPC", vendedorId);
+    if (!accessToken) {
+      setMensaje(
+        "❌ El pedido no se creó y no fue posible iniciar el reembolso automáticamente. Contacta a soporte."
+      );
+      return;
+    }
 
-      if (coinError) {
-        setMensaje(`❌ Error al consumir coin: ${coinError.message}`);
-        return;
-      }
+    const refundRes = await fetch("/api/orders/proteccion/refund", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        paymentIntentId: stripePaymentIntentId,
+      }),
+    });
 
-      const relaciones = seleccionados.map((e) => ({
-        pedido_id: pedido.id,
-        establecimiento_id: e.id,
-      }));
+    if (!refundRes.ok) {
+      console.error(
+        "El pedido falló y también falló el reembolso automático"
+      );
 
-      const { error: relError } = await supabase
-        .from("pedido_establecimientos")
-        .insert(relaciones);
+      setMensaje(
+        "❌ El pedido no se creó y hubo un problema con el reembolso automático. Contacta a soporte."
+      );
+      return;
+    }
 
-      if (relError) {
-        console.error("Error insertando relaciones:", relError);
-        setMensaje("❌ Error guardando establecimientos");
-        return;
-      }
+    setMensaje(
+      "❌ No se pudo crear el pedido. El pago de protección fue reembolsado automáticamente."
+    );
+    return;
+  }
 
-      await guardarEstablecimientosDefault(vendedorId);
+  setMensaje(
+    pedidoError?.message
+      ? `❌ ${pedidoError.message}`
+      : "❌ Error al crear el pedido."
+  );
+
+  return;
+}
+
+await debugCoinsDB("DESPUÉS RPC", vendedorId);
+
 
       if (protegerPedido) {
-        const { error: proteccionError } = await supabase
-          .from("pedido_protecciones")
-          .insert({
-            pedido_id: pedido.id,
-            vendedor_id: vendedorId,
-            valor_declarado: toNumber(valorDeclarado),
-            porcentaje: porcentajeProteccion,
-            monto_proteccion: montoProteccion,
-            protegido: true,
-            payment_status: "succeeded",
-            stripe_payment_intent_id: stripePaymentIntentId,
-          });
+  const { error: proteccionError } = await supabase
+    .from("pedido_protecciones")
+    .insert({
+      pedido_id: pedido.id,
+      vendedor_id: vendedorId,
+      valor_declarado: toNumber(valorDeclarado),
+      porcentaje: porcentajeProteccion,
+      monto_proteccion: montoProteccion,
+      protegido: true,
+      payment_status: "succeeded",
+      stripe_payment_intent_id: stripePaymentIntentId,
+    });
 
-        if (proteccionError) {
-          console.error(
-            "Error guardando protección:",
-            JSON.stringify(proteccionError, null, 2)
-          );
+  if (proteccionError) {
+    console.error(
+      "Error guardando protección:",
+      JSON.stringify(proteccionError, null, 2)
+    );
 
-          setMensaje(
-            `Error protección: ${proteccionError.message || "desconocido"}`
-          );
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
 
-          return;
-        }
-      }
+    if (!accessToken) {
+      setMensaje(
+        "❌ El pedido se creó, pero falló la protección y no fue posible compensarlo automáticamente. Contacta a soporte."
+      );
+      return;
+    }
+
+    const cancelRes = await fetch("/api/orders/cancelar", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        pedido_id: pedido.id,
+      }),
+    });
+
+    if (!cancelRes.ok) {
+      console.error(
+        "Falló guardar protección y también falló cancelar el pedido"
+      );
+
+      setMensaje(
+        "❌ Falló registrar la protección y no fue posible cancelar el pedido automáticamente. Contacta a soporte."
+      );
+      return;
+    }
+
+    const refundRes = await fetch("/api/orders/proteccion/refund", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        paymentIntentId: stripePaymentIntentId,
+      }),
+    });
+
+    if (!refundRes.ok) {
+      console.error(
+        "El pedido fue cancelado, pero falló el reembolso automático"
+      );
+
+      setMensaje(
+        "❌ El pedido fue cancelado y el Coin reintegrado, pero hubo un problema con el reembolso de la protección. Contacta a soporte."
+      );
+      return;
+    }
+
+    setMensaje(
+      "❌ No se pudo registrar la protección. El pedido fue cancelado, el Coin reintegrado y el pago reembolsado automáticamente."
+    );
+
+    return;
+  }
+}
+
+await guardarEstablecimientosDefault(vendedorId);
 
       setMensaje(`✅ Pedido creado correctamente. Folio: ${folio}`);
 

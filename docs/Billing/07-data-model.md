@@ -22,7 +22,7 @@ Campos relevantes: `estado`, `uuid_fiscal`, `subtotal`, `total`, `fecha_emision`
 
 Fuente financiera operativa vigente por pedido. Campos relevantes: `pedido_id`, `establecimiento_uuid`, `monto_bruto`, `comision_rate`, `iva_rate`, `comision_monto`, `iva_monto`, `neto_establecimiento`, `status`.
 
-La línea nace `pending` al inicio económico del servicio. La validación de factura no la libera automáticamente.
+Los movimientos nuevos creados por la función vigente nacen `available`. El constraint admite `available`, `pending`, `paid` y `reversed`; por ello pueden existir movimientos históricos en `pending`. La validación de factura no modifica por sí sola el estado financiero.
 
 ### `coin_lotes` / `coin_movimientos`
 

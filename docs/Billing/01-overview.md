@@ -9,15 +9,17 @@ Billing administra el flujo económico y fiscal asociado a los servicios de Drop
 
 ## Fuente económica
 
-El valor real del servicio se obtiene de la Coin efectivamente utilizada por el pedido. Cuando la Coin proviene de una compra, se usa el precio unitario efectivo después del descuento. Para Coins promocionales administrativas sin pago asociado se usa el precio nominal vigente por tipo. No se inventa un importe cuando no existe trazabilidad suficiente.
+El movimiento financiero del servicio se crea por pedido usando el importe nominal vigente del tamaño: $60 MXN para `small` y $90 MXN para `medium`.
 
-Al recibir el establecimiento el paquete (`pendiente_recoleccion`) se crea `balance_movimientos` con:
+La función vigente `fn_crear_balance_movimiento_por_pedido` crea `balance_movimientos` con:
 
-- `monto_bruto`: valor real del servicio;
-- comisión Dropit: 20%;
+- `monto_bruto`: $60 MXN (`small`) o $90 MXN (`medium`);
+- comisión Dropit: 10%;
 - IVA sobre la comisión: 16%;
 - `neto_establecimiento`;
-- `status = pending`.
+- `status = available`.
+
+Los movimientos históricos conservan las condiciones con las que fueron creados y no deben recalcularse por cambios posteriores de comisión.
 
 `balance_movimientos` es la fuente financiera operativa vigente. `settlements` no participa en el flujo actual.
 
@@ -43,6 +45,6 @@ Dropit no emite actualmente un CFDI de comisión por cada pedido. El modelo acor
 
 ## Liquidación
 
-La validación de un CFDI no libera automáticamente el dinero. El balance permanece `pending` hasta el proceso mensual de conciliación y pago.
+La validación de un CFDI no modifica por sí sola el estado financiero del movimiento. La elegibilidad para retiro y pago se rige por el flujo de settlement vigente y sus validaciones de cierre mensual.
 
 Si el vendedor solicitó factura, la línea requiere CFDI válido del establecimiento para poder liquidarse. Si no se entrega en el plazo definido, la línea queda bloqueada y deberá aplicar la política de compensación/reembolso que se formalice.

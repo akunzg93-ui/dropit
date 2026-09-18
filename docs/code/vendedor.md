@@ -115,12 +115,13 @@ Desde esta pantalla el vendedor:
 6. Seleccionar establecimientos.
 7. Aceptar declaración legal.
 8. (Opcional) Contratar protección.
-9. Crear pedido.
-10. Consumir Coin.
-11. Guardar establecimientos relacionados.
-12. Guardar establecimientos predeterminados.
-13. Enviar correo de confirmación.
-14. Mostrar tarjeta para compartir.
+9. Crear atómicamente pedido + consumo de Coin + establecimientos candidatos mediante `crear_pedido_con_coin`.
+10. Si existe protección pagada, registrar `pedido_protecciones`.
+11. Si falla la creación del pedido después del cobro de protección, solicitar reembolso compensatorio.
+12. Si falla el registro de protección, cancelar el pedido por el flujo oficial, reintegrar la Coin y solicitar el reembolso.
+13. Guardar establecimientos predeterminados.
+14. Enviar correo de confirmación.
+15. Mostrar tarjeta para compartir.
 
 ---
 
@@ -138,14 +139,17 @@ Desde esta pantalla el vendedor:
 
 ## RPC utilizadas
 
-- consume_coin_for_order
+- `crear_pedido_con_coin` (creación atómica, consumo FIFO e inserción de candidatos)
 
 ---
 
 ## APIs utilizadas
 
-- /api/orders/proteccion/config
-- /api/orders/email/pedido-creado
+- `/api/orders/proteccion/config`
+- `/api/orders/proteccion/create-intent`
+- `/api/orders/proteccion/refund`
+- `/api/orders/cancelar` (compensación cuando falla el registro de protección)
+- `/api/orders/email/pedido-creado`
 
 ---
 
@@ -171,7 +175,7 @@ Desde esta pantalla el vendedor:
 
 ## Observaciones
 
-Esta pantalla concentra la mayor parte de la lógica del módulo Vendedor y constituye el inicio del flujo operativo de Dropit.
+Esta pantalla concentra la mayor parte de la lógica del módulo Vendedor y constituye el inicio del flujo operativo de Dropit. La protección usa compensación ante fallos entre Stripe y base de datos; no existe una transacción distribuida Stripe/PostgreSQL. Los reembolsos usan una idempotency key determinística por PaymentIntent.
 
 ---
 

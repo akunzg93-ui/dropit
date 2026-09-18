@@ -33,85 +33,67 @@ export default function EstablecimientoEstadoPage() {
   });
 
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        const userId = session?.user?.id;
+  let activo = true;
 
-        if (!userId) return;
+  const cargarInicial = async (session) => {
+    const userId = session?.user?.id;
 
-        const resFacturas = await fetch(
-  "/api/orders/billing/establishment-invoices",
-  {
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-    },
-  }
-);
+    if (!userId) {
+      if (activo) setLoadingInicial(false);
+      return;
+    }
 
-const jsonFacturas =
-  await resFacturas.json();
+    const { data, error } = await supabase
+      .from("establecimientos")
+      .select("*")
+      .eq("usuario_id", userId);
 
-console.log(
-  "🧾 FACTURAS ESTABLECIMIENTO:",
-  jsonFacturas
-);
+    if (!activo) return;
 
-        const { data, error } = await supabase
-          .from("establecimientos")
-          .select("*")
-          .eq("usuario_id", userId);
+    if (error) {
+      console.error(error);
+      setLoadingInicial(false);
+      return;
+    }
 
-        if (error) {
-          console.error(error);
-          setLoadingInicial(false);
-          return;
-        }
+    const establecimientosData = data || [];
+    setEstablecimientos(establecimientosData);
 
-        const establecimientosData = data || [];
-        setEstablecimientos(establecimientosData);
+    if (establecimientosData.length > 0) {
+      setSelectedEstId((prev) => {
+        if (prev) return prev;
+        return establecimientosData[0].uuid;
+      });
+    }
 
-        if (establecimientosData.length > 0) {
-          const firstId = establecimientosData[0].uuid;
+    setLoadingInicial(false);
+  };
 
-          setSelectedEstId((prev) => {
-            if (prev) return prev;
-            return firstId;
-          });
+  const iniciar = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-          const { data: pedidosData } = await supabase
-            .from("pedidos")
-            .select(`
-              id,
-              folio,
-              estado,
-              email_vendedor,
-              vendedor_id,
-              establecimiento_uuid,
-              created_at
-            `)
-            .eq("establecimiento_uuid", firstId);
+    await cargarInicial(session);
+  };
 
-          const list = pedidosData || [];
-          setPedidos(list);
+  iniciar();
 
-          setStats({
-            total: list.length,
-            pendientes: list.filter(
-              (p) => p.estado === "pendiente_aprobacion_establecimiento"
-            ).length,
-            transito: list.filter((p) => p.estado === "en_transito").length,
-            entregados: list.filter((p) => p.estado === "entregado").length,
-          });
-        }
-
-        setLoadingInicial(false);
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    setTimeout(() => {
+      if (activo) {
+        cargarInicial(session);
       }
-    );
+    }, 0);
+  });
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+  return () => {
+    activo = false;
+    subscription.unsubscribe();
+  };
+}, []);
 
   useEffect(() => {
     if (!selectedEstId) return;

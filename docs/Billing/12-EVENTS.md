@@ -4,7 +4,7 @@
 
 ## OrderReceivedByEstablishment
 
-El establecimiento recibe físicamente el paquete. Se reconoce el inicio económico del servicio y se crea `balance_movimientos` con el valor real de la Coin utilizada y `status = pending`.
+El flujo logístico genera el movimiento financiero del pedido mediante la función vigente de balance. El movimiento usa el importe nominal del tamaño, comisión vigente e inicia con `status = available`.
 
 ## InvoiceRequested
 

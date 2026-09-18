@@ -8,6 +8,49 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 
 # [1.0.0] - En desarrollo
 
+## 2026-09-17
+
+### Go Live Audit - pagos, protección y seguridad
+
+- Se validó el flujo de compra de Coins: PaymentIntent exitoso → webhook Stripe → `acreditar_compra_stripe` → lotes y movimientos. La idempotencia evitó duplicación ante procesamiento repetido del mismo pago.
+- Para desarrollo local se documentó el uso de Stripe CLI para reenviar eventos a `/api/orders/stripe/webhook`; no se modificó el flujo productivo por esta limitación local.
+- `POST /api/orders/proteccion/create-intent` exige sesión y vincula el PaymentIntent al vendedor mediante metadata.
+- Se agregó reembolso compensatorio de protección. Si falla la creación del pedido después del cobro se reembolsa; si falla `pedido_protecciones`, se cancela el pedido por el flujo oficial, se reintegra la Coin y se reembolsa.
+- El reembolso de protección usa idempotency key determinística por PaymentIntent.
+- QA validó happy path de protección y compensación completa: pedido cancelado, Coin reintegrada y refund Stripe exitoso.
+- `POST /api/orders/rechazar-pedido` exige Bearer token y valida propiedad del establecimiento.
+- Se endurecieron permisos `EXECUTE` de `crear_pedido_con_coin`, `confirmar_establecimiento_pedido` y `rechazar_establecimiento_pedido` en QA y Producción bajo mínimo privilegio.
+- La comisión vigente para nuevos `balance_movimientos` es 10% + IVA 16% sobre comisión; los movimientos históricos conservan sus tasas originales.
+
+
+## 2026-09-10
+
+### Pedidos - creación atómica y reserva de capacidad
+
+- La creación del pedido, consumo de Coin y registro de establecimientos candidatos se encapsularon en `crear_pedido_con_coin`.
+
+- Se agregó `idempotency_key` para evitar pedidos duplicados ante reintentos de creación.
+
+- Los establecimientos candidatos ya no descuentan capacidad al crear el pedido.
+
+- La capacidad se reserva únicamente cuando el cliente selecciona un establecimiento mediante `confirmar_establecimiento_pedido`.
+
+- La selección valida que el establecimiento sea candidato, comprueba capacidad disponible y realiza la reserva y asignación de forma transaccional.
+
+- `rechazar_establecimiento_pedido` libera la capacidad reservada cuando el establecimiento rechaza y devuelve el pedido a `creado`.
+
+- La aceptación conserva la reserva existente y no realiza un segundo descuento.
+
+- `cancel_order_by_vendor` y `cancel_order_automatic` liberan únicamente la capacidad del establecimiento efectivamente reservado.
+
+- QA validó creación e idempotencia, selección y reserva para `small` y `medium`, rechazo, aceptación, entrega, cancelación manual y cancelación automática.
+
+- Producción fue inspeccionada y migrada de forma controlada; creación atómica, reserva de capacidad y liberaciones quedaron verificadas estructuralmente.
+
+## 2026-09-06
+
+# [1.0.0] - En desarrollo
+
 ## 2026-09-06
 
 ### Retiros - endurecimiento transaccional y Admin

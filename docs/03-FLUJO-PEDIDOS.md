@@ -95,6 +95,8 @@ custodia_vencida
 
 El vendedor autenticado registra el pedido, selecciona uno o más establecimientos candidatos y consume una Coin del tamaño correspondiente mediante FIFO.
 
+Los establecimientos seleccionados en esta etapa son únicamente candidatos. Su selección no reserva ni descuenta capacidad.
+
 Acciones principales:
 
 - Generar folio.
@@ -108,13 +110,22 @@ Acciones principales:
 
 El cliente valida el folio y selecciona uno de los establecimientos propuestos por el vendedor.
 
+La capacidad se reserva en este momento, no durante la creación del pedido.
+
+La selección y reserva se ejecutan de forma transaccional mediante `confirmar_establecimiento_pedido`.
+
 Resultado:
 
+- Se valida que el establecimiento seleccionado sea candidato del pedido.
+- Se valida que exista capacidad disponible para el tamaño correspondiente.
+- Se reserva una unidad de capacidad del establecimiento seleccionado.
 - Se asigna el establecimiento definitivo.
 - Se registra `establecimiento_notificado_at`.
 - El pedido pasa a `pendiente_aprobacion_establecimiento`.
 - Se notifica al establecimiento.
 - La pantalla redirige al tracking público.
+
+Si la capacidad ya no está disponible al momento de la selección, el establecimiento no puede ser confirmado.
 
 ## T-003 — Establecimiento acepta
 
@@ -131,6 +142,10 @@ Resultado:
 ## T-004 — Rechazo o expiración de aprobación
 
 Si el establecimiento rechaza o no responde dentro del plazo configurado, el pedido regresa a `creado` para permitir que el cliente seleccione otro punto disponible.
+
+Cuando el establecimiento rechaza el pedido, la capacidad reservada se libera y el establecimiento asignado se limpia antes de regresar el pedido a `creado`.
+
+La liberación por rechazo se realiza transaccionalmente mediante `rechazar_establecimiento_pedido`.
 
 ## T-005 — Establecimiento recibe
 

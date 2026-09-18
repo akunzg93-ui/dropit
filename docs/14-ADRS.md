@@ -401,7 +401,7 @@ Retiros por movimientos después del cierre mensual, con solicitud global multi-
 
 ## Estado
 
-Aceptada e implementada en QA; despliegue a Producción pendiente de migración controlada.
+Aceptada, implementada y validada en QA y Producción.
 
 ## Contexto
 
@@ -431,4 +431,91 @@ Esta ADR precisa y reemplaza únicamente la parte de ADR-011 que describía una 
 - Rechazar una solicitud no destruye historial.
 - La creación y actualización crítica se ejecutan mediante RPC transaccionales con `FOR UPDATE`, evitando doble selección concurrente y estados parciales.
 - QA validó solicitud, bloqueo de reutilización activa, rechazo/liberación, aprobación y pago exacto.
-- Antes de Producción debe inspeccionarse el histórico y aplicar de forma controlada el esquema, FKs, permisos y RPC.
+- La migración a Producción se realizó de forma controlada el 08/09/2026, inspeccionando previamente el esquema existente y aplicando únicamente las diferencias necesarias para el flujo de Retiros
+
+
+---
+
+# ADR-013
+
+## Nombre
+
+La capacidad se reserva cuando el cliente selecciona el establecimiento.
+
+## Estado
+
+Aceptada, implementada y validada en QA y Producción.
+
+## Contexto
+
+El modelo anterior descontaba capacidad en cada establecimiento candidato al momento de crear un pedido.
+
+Esto provocaba que una misma orden reservara capacidad simultáneamente en varios establecimientos aunque el cliente finalmente utilizara sólo uno.
+
+Además, un vendedor con múltiples pedidos podía seleccionar repetidamente los mismos establecimientos como candidatos y reducir artificialmente su disponibilidad sin que existieran reservas reales.
+
+## Decisión
+
+- Los establecimientos incluidos en `pedido_establecimientos` son únicamente candidatos y no consumen capacidad.
+
+- La capacidad se reserva cuando el cliente selecciona un establecimiento concreto.
+
+- La selección se ejecuta transaccionalmente mediante `confirmar_establecimiento_pedido`.
+
+- La operación valida que el establecimiento pertenezca a los candidatos del pedido, comprueba capacidad disponible, bloquea el establecimiento para evitar sobreasignación concurrente, descuenta una unidad y asigna el establecimiento al pedido.
+
+- Si el establecimiento rechaza, `rechazar_establecimiento_pedido` libera la capacidad reservada y devuelve el pedido a `creado`.
+
+- La aceptación del establecimiento no realiza un segundo descuento; conserva la reserva existente.
+
+- Las cancelaciones manuales y automáticas liberan únicamente la capacidad del establecimiento efectivamente reservado.
+
+- La entrega o devolución libera la reserva al finalizar el flujo correspondiente.
+
+## Consecuencias
+
+- La capacidad representa compromisos reales y no establecimientos potenciales.
+
+- Un vendedor no puede acaparar capacidad únicamente seleccionando establecimientos candidatos.
+
+- La capacidad disponible puede cambiar entre la creación del pedido y la selección del cliente.
+
+- Si al momento de la selección ya no existe capacidad, el establecimiento no puede ser confirmado.
+
+- La reserva y el cambio de estado se realizan en una misma operación transaccional, evitando asignaciones sin capacidad o descuentos parciales.
+
+- Las liberaciones afectan únicamente al establecimiento que tenía la reserva.
+
+- El modelo fue validado en QA para `small` y `medium`, incluyendo selección, rechazo, aceptación, entrega, cancelación manual y cancelación automática.
+---
+
+# ADR-014
+
+## Nombre
+
+Protección pagada con compensación explícita entre Stripe y Orders.
+
+## Estado
+
+Aceptada, implementada y validada en QA.
+
+## Contexto
+
+El cobro de protección ocurre en Stripe y la creación del pedido y su registro de protección ocurren en PostgreSQL. No existe una transacción distribuida que pueda confirmar o revertir ambas plataformas como una sola operación. Cobrar primero sin compensación podía dejar un pago exitoso sin pedido o sin `pedido_protecciones`.
+
+## Decisión
+
+- El PaymentIntent de protección se crea server-side para un vendedor autenticado y conserva `vendedor_id` en metadata.
+- Después de un pago exitoso se crea el pedido mediante `crear_pedido_con_coin` y posteriormente se registra `pedido_protecciones`.
+- Si falla la creación del pedido después del cobro, se solicita un refund compensatorio.
+- Si el pedido fue creado pero falla `pedido_protecciones`, el pedido se cancela mediante la API oficial, recuperando la Coin por las reglas normales, y después se solicita el refund.
+- El endpoint de refund valida sesión, propiedad del PaymentIntent y estado del pago.
+- Los refunds usan una idempotency key determinística por PaymentIntent para tolerar reintentos sin crear reembolsos independientes.
+- Correos, defaults y cierre exitoso de UI ocurren después de completar el estado crítico de pedido/protección.
+
+## Consecuencias
+
+- Se evita dejar intencionalmente un cobro sin compensación ante los fallos controlados del flujo.
+- La cancelación reutiliza la lógica oficial de Orders y no replica manualmente el reintegro de Coins.
+- QA validó tanto el happy path como el fallo forzado de `pedido_protecciones`, comprobando pedido cancelado, movimiento `reintegro_cancelacion` y refund exitoso en Stripe.
+- La solución no equivale a atomicidad distribuida: persiste una ventana ante crash o pérdida de conectividad entre operaciones externas. Una reconciliación/webhook adicional puede incorporarse si el volumen operativo lo requiere.
