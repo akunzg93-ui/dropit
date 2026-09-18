@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 type PedidoPreview = {
   id: string;
@@ -124,38 +125,60 @@ export default function RecibirPedidoPage() {
   };
 
   const confirmarRecepcion = async () => {
-    setLoading(true);
-    setMensaje("");
+  setLoading(true);
+  setMensaje("");
 
-    try {
-      const res = await fetch("/api/orders/recibido", {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      setMensaje(
+        "Tu sesión no es válida. Inicia sesión nuevamente."
+      );
+      return;
+    }
+
+    const res = await fetch(
+      "/api/orders/recibido",
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           folio,
           codigo_vendedor: codigo,
         }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMensaje(data.error || "Error al registrar recepción");
-        return;
       }
+    );
 
-      setShowSuccess(true);
-      setPedido(null);
-      setFolio("");
-      setCodigo("");
-    } catch (err) {
-      setMensaje("Error de red");
-    } finally {
-      setLoading(false);
+    const data = await res.json();
+
+    if (!res.ok) {
+      setMensaje(
+        data.error ||
+          "Error al registrar recepción"
+      );
+      return;
     }
-  };
+
+    setShowSuccess(true);
+    setPedido(null);
+    setFolio("");
+    setCodigo("");
+  } catch (err) {
+    console.error(
+      "❌ Error al registrar recepción:",
+      err
+    );
+    setMensaje("Error de red");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     return () => {

@@ -1,17 +1,13 @@
 // app/api/orders/recibido/route.ts
 
 console.log("🔥 API /orders/recibido CARGADA");
-import { getOrderServiceValue } from "@/lib/billing/getOrderServiceValue";
 
+import { getOrderServiceValue } from "@/lib/billing/getOrderServiceValue";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
-import { sendEmail } from "@/lib/email"; // ✅ usamos helper central
+import { sendEmail } from "@/lib/email";
 import { emailPedidoListoParaRecoger } from "@/lib/emailTemplates/pedidoListoParaRecoger";
-
-function generarCodigoEntrega() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
 
 export async function POST(req: Request) {
   console.log("➡️ POST /api/orders/recibido");
@@ -19,19 +15,52 @@ export async function POST(req: Request) {
   try {
     const { folio, codigo_vendedor } = await req.json();
 
-    console.log("🟢 RECIBIDO body:", { folio, codigo_vendedor });
+    console.log("🟢 RECIBIDO body:", {
+      folio,
+      codigo_vendedor,
+    });
 
     if (!folio || !codigo_vendedor) {
       return NextResponse.json(
-        { error: "Folio y código del vendedor requeridos" },
+        {
+          error:
+            "Folio y código del vendedor requeridos",
+        },
         { status: 400 }
       );
     }
+
+    const authorization =
+      req.headers.get("authorization");
+
+    if (!authorization?.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      );
+    }
+
+    const token = authorization.replace(
+      "Bearer ",
+      ""
+    );
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      );
+    }
 
     const { data: pedido, error } = await supabase
       .from("pedidos")
@@ -56,7 +85,11 @@ export async function POST(req: Request) {
       .eq("folio", folio)
       .single();
 
-    console.log("🟢 RECIBIDO pedido:", pedido, error);
+    console.log(
+      "🟢 RECIBIDO pedido:",
+      pedido,
+      error
+    );
 
     if (error || !pedido) {
       return NextResponse.json(
@@ -67,153 +100,204 @@ export async function POST(req: Request) {
 
     const pedidoAny = pedido as any;
 
-    if (pedidoAny.codigo_vendedor !== codigo_vendedor) {
+    if (!pedidoAny.establecimiento_uuid) {
       return NextResponse.json(
-        { error: "Código del vendedor incorrecto" },
+        {
+          error:
+            "Pedido sin establecimiento asignado",
+        },
+        { status: 400 }
+      );
+    }
+
+    const {
+      data: establecimientoAutorizado,
+      error: establecimientoAuthError,
+    } = await supabase
+      .from("establecimientos")
+      .select("uuid")
+      .eq(
+        "uuid",
+        pedidoAny.establecimiento_uuid
+      )
+      .eq("usuario_id", user.id)
+      .maybeSingle();
+
+    if (
+      establecimientoAuthError ||
+      !establecimientoAutorizado
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "No tienes autorización para recibir este pedido",
+        },
+        { status: 403 }
+      );
+    }
+
+    if (
+      pedidoAny.codigo_vendedor !==
+      codigo_vendedor
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Código del vendedor incorrecto",
+        },
         { status: 403 }
       );
     }
 
     if (pedidoAny.estado !== "en_transito") {
       return NextResponse.json(
-        { error: "El pedido no está en estado válido para recepción" },
+        {
+          error:
+            "El pedido no está en estado válido para recepción",
+        },
         { status: 409 }
       );
     }
 
-    let codigoEntrega = pedidoAny.codigo_entrega;
+    // =====================================================
+    // VALOR FINANCIERO DEL SERVICIO
+    // =====================================================
+
+    const serviceValue =
+      await getOrderServiceValue(pedidoAny.id);
+
+    console.log(
+      "💰 Valor financiero del servicio:",
+      {
+        pedido_id: pedidoAny.id,
+        coin_tipo: serviceValue.coinTipo,
+        origen: serviceValue.origen,
+        precio_unitario:
+          serviceValue.precioUnitario,
+        descuento:
+          serviceValue.descuentoPorcentaje,
+        monto_bruto:
+          serviceValue.importeServicio,
+      }
+    );
+
+    // =====================================================
+    // RECEPCIÓN + BALANCE ATÓMICOS
+    // =====================================================
+
+    const {
+      data: recepcion,
+      error: recepcionError,
+    } = await supabase.rpc(
+      "recibir_pedido_con_balance",
+      {
+        p_pedido_id: pedidoAny.id,
+        p_codigo_vendedor: codigo_vendedor,
+        p_monto_bruto:
+          serviceValue.importeServicio,
+      }
+    );
+
+    if (recepcionError) {
+      console.error(
+        "💥 ERROR RECEPCIÓN ATÓMICA:",
+        recepcionError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "No fue posible registrar la recepción del pedido",
+        },
+        { status: 500 }
+      );
+    }
+
+    const codigoEntrega =
+      recepcion?.codigo_entrega;
 
     if (!codigoEntrega) {
-      codigoEntrega = generarCodigoEntrega();
+      console.error(
+        "💥 RPC de recepción no devolvió código de entrega"
+      );
 
-      await supabase
-        .from("pedidos")
-        .update({ codigo_entrega: codigoEntrega })
-        .eq("id", pedidoAny.id);
+      return NextResponse.json(
+        {
+          error:
+            "La recepción fue registrada, pero no fue posible generar el código de entrega",
+        },
+        { status: 500 }
+      );
     }
 
-    await supabase
-      .from("pedidos")
-      .update({
-        estado: "pendiente_recoleccion",
-        recibido_en: new Date().toISOString(),
-      })
-      .eq("id", pedidoAny.id);
-      // 🔥 GENERAR BALANCE (VERSIÓN FINAL ESTABLE)
+    console.log(
+      "✅ RECEPCIÓN ATÓMICA OK:",
+      recepcion
+    );
 
-try {
-  console.log("🔥 INTENTO GENERAR BALANCE");
+    // =====================================================
+    // QR
+    // =====================================================
 
-  const establecimiento_id = pedidoAny.establecimiento_uuid;
+    const qrPayload =
+      `${pedidoAny.folio}|${codigoEntrega}`;
 
-console.log("🏪 establecimiento_id:", establecimiento_id);
+    const qrBuffer = await QRCode.toBuffer(
+      qrPayload,
+      {
+        margin: 1,
+        width: 260,
+      }
+    );
 
-  if (!establecimiento_id) {
-    console.error("❌ NO hay establecimiento_id");
-  } else {
-    const serviceValue =
-  await getOrderServiceValue(
-    pedidoAny.id
-  );
+    const fileName =
+      `qr-recoleccion-${pedidoAny.folio}.png`;
 
-const monto_bruto =
-  serviceValue.importeServicio;
+    let uploadError = null;
 
-const comision_rate = 0.10;
-const iva_rate = 0.16;
+    try {
+      const { error } = await supabase.storage
+        .from("qr-codes")
+        .upload(fileName, qrBuffer, {
+          contentType: "image/png",
+          upsert: true,
+        });
 
-console.log(
-  "💰 Valor financiero del servicio:",
-  {
-    pedido_id:
-      pedidoAny.id,
-
-    coin_tipo:
-      serviceValue.coinTipo,
-
-    origen:
-      serviceValue.origen,
-
-    precio_unitario:
-      serviceValue.precioUnitario,
-
-    descuento:
-      serviceValue.descuentoPorcentaje,
-
-    monto_bruto,
-  }
-);
-
-    const comision_monto = monto_bruto * comision_rate;
-    const iva_monto = comision_monto * iva_rate;
-    const neto_establecimiento =
-      monto_bruto - comision_monto - iva_monto;
-
-    const { error } = await supabase
-      .from("balance_movimientos")
-      .insert({
-        pedido_id: pedidoAny.id,
-        establecimiento_id,
-        moneda: "MXN",
-        monto_bruto,
-        comision_rate,
-        iva_rate,
-        comision_monto,
-        iva_monto,
-        neto_establecimiento,
-        status: "available",
-      });
-
-    if (error) {
-      console.error("💥 ERROR INSERT:", error);
-    } else {
-      console.log("✅ INSERT OK");
+      uploadError = error;
+    } catch (err) {
+      console.error(
+        "⚠️ Storage crash:",
+        err
+      );
     }
-  }
-} catch (err) {
-  console.error("💥 ERROR GENERAL:", err);
-}
-    // ✅ QR (folio|codigo_entrega) → PNG → Storage
-    const qrPayload = `${pedidoAny.folio}|${codigoEntrega}`;
 
-    const qrBuffer = await QRCode.toBuffer(qrPayload, {
-      margin: 1,
-      width: 260,
-    });
+    if (uploadError) {
+      console.error(
+        "⚠️ Storage upload error:",
+        uploadError
+      );
+    }
 
-    const fileName = `qr-recoleccion-${pedidoAny.folio}.png`;
-
-   let uploadError = null;
-
-try {
-  const { error } = await supabase.storage
-    .from("qr-codes")
-    .upload(fileName, qrBuffer, {
-      contentType: "image/png",
-      upsert: true,
-    });
-
-  uploadError = error;
-} catch (err) {
-  console.error("⚠️ Storage crash:", err);
-}
-
-if (uploadError) {
-  console.error("⚠️ Storage upload error:", uploadError);
-}
-
-    const { data: publicUrlData } = supabase.storage
-      .from("qr-codes")
-      .getPublicUrl(fileName);
+    const { data: publicUrlData } =
+      supabase.storage
+        .from("qr-codes")
+        .getPublicUrl(fileName);
 
     const qrUrl = publicUrlData.publicUrl;
 
-        const establecimiento =
+    // =====================================================
+    // ESTABLECIMIENTO
+    // =====================================================
+
+    const establecimiento =
       pedidoAny.pedido_establecimientos
-        ?.map((r: any) => r?.establecimientos)
+        ?.map(
+          (r: any) => r?.establecimientos
+        )
         .find(
           (e: any) =>
-            e?.uuid === pedidoAny.establecimiento_uuid
+            e?.uuid ===
+            pedidoAny.establecimiento_uuid
         );
 
     const establecimientoNombre =
@@ -222,31 +306,46 @@ if (uploadError) {
     const direccionEstablecimiento =
       establecimiento?.direccion ?? "—";
 
+    // =====================================================
+    // NOTIFICACIÓN AL CLIENTE
+    // =====================================================
+
     if (!pedidoAny.correo_comprador_enviado) {
       await sendEmail({
-  to: pedidoAny.email_comprador,
-  subject: "📦 Tu pedido ya está listo para recoger",
-  html: emailPedidoListoParaRecoger({
-    folio: pedidoAny.folio,
-    establecimiento: establecimientoNombre,
-    direccion: direccionEstablecimiento,
-    codigoEntrega,
-    qrUrl,
-  }),
-});
+        to: pedidoAny.email_comprador,
+        subject:
+          "📦 Tu pedido ya está listo para recoger",
+        html: emailPedidoListoParaRecoger({
+          folio: pedidoAny.folio,
+          establecimiento:
+            establecimientoNombre,
+          direccion:
+            direccionEstablecimiento,
+          codigoEntrega,
+          qrUrl,
+        }),
+      });
+
       await supabase
         .from("pedidos")
-        .update({ correo_comprador_enviado: true })
+        .update({
+          correo_comprador_enviado: true,
+        })
         .eq("id", pedidoAny.id);
     }
 
     return NextResponse.json({
       ok: true,
-      mensaje: "Pedido recibido y notificado al comprador",
+      mensaje:
+        "Pedido recibido y notificado al comprador",
       estado: "pendiente_recoleccion",
     });
   } catch (err) {
-    console.error("💥 ERROR RECIBIDO:", err);
+    console.error(
+      "💥 ERROR RECIBIDO:",
+      err
+    );
+
     return NextResponse.json(
       { error: "Error interno" },
       { status: 500 }

@@ -516,12 +516,167 @@ DROP TRIGGER IF EXISTS trg_pedido_entregado_balance
 ON public.pedidos;
 
 -- ============================================================================
--- 8. PERMISOS EXPLÍCITOS
+-- 8. RECEPCIÓN ATÓMICA DE PEDIDO + BALANCE
 -- ============================================================================
 
+CREATE OR REPLACE FUNCTION public.recibir_pedido_con_balance(
+  p_pedido_id bigint,
+  p_codigo_vendedor text,
+  p_monto_bruto numeric
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+DECLARE
+  v_pedido public.pedidos%rowtype;
+  v_codigo_entrega text;
+  v_comision_rate numeric := 0.10;
+  v_iva_rate numeric := 0.16;
+  v_comision_monto numeric;
+  v_iva_monto numeric;
+  v_neto_establecimiento numeric;
+BEGIN
+  IF p_pedido_id IS NULL THEN
+    RAISE EXCEPTION 'PEDIDO_ID_REQUIRED';
+  END IF;
+
+  IF p_codigo_vendedor IS NULL
+     OR btrim(p_codigo_vendedor) = '' THEN
+    RAISE EXCEPTION 'CODIGO_VENDEDOR_REQUIRED';
+  END IF;
+
+  IF p_monto_bruto IS NULL
+     OR p_monto_bruto <= 0 THEN
+    RAISE EXCEPTION 'MONTO_BRUTO_INVALID';
+  END IF;
+
+  SELECT *
+  INTO v_pedido
+  FROM public.pedidos
+  WHERE id = p_pedido_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'PEDIDO_NOT_FOUND';
+  END IF;
+
+  IF v_pedido.estado <> 'en_transito' THEN
+    RAISE EXCEPTION 'PEDIDO_ESTADO_INVALIDO';
+  END IF;
+
+  IF v_pedido.codigo_vendedor
+     IS DISTINCT FROM p_codigo_vendedor THEN
+    RAISE EXCEPTION 'CODIGO_VENDEDOR_INVALIDO';
+  END IF;
+
+  IF v_pedido.establecimiento_uuid IS NULL THEN
+    RAISE EXCEPTION 'PEDIDO_SIN_ESTABLECIMIENTO';
+  END IF;
+
+  v_codigo_entrega := coalesce(
+    v_pedido.codigo_entrega,
+    lpad(
+      floor(
+        random() * 900000 + 100000
+      )::integer::text,
+      6,
+      '0'
+    )
+  );
+
+  v_comision_monto :=
+    round(p_monto_bruto * v_comision_rate, 2);
+
+  v_iva_monto :=
+    round(v_comision_monto * v_iva_rate, 2);
+
+  v_neto_establecimiento :=
+    round(
+      p_monto_bruto
+      - v_comision_monto
+      - v_iva_monto,
+      2
+    );
+
+  INSERT INTO public.balance_movimientos (
+    pedido_id,
+    establecimiento_id,
+    moneda,
+    monto_bruto,
+    comision_rate,
+    iva_rate,
+    comision_monto,
+    iva_monto,
+    neto_establecimiento,
+    status
+  )
+  VALUES (
+    v_pedido.id,
+    v_pedido.establecimiento_uuid,
+    'MXN',
+    round(p_monto_bruto, 2),
+    v_comision_rate,
+    v_iva_rate,
+    v_comision_monto,
+    v_iva_monto,
+    v_neto_establecimiento,
+    'available'
+  );
+
+  UPDATE public.pedidos
+  SET
+    codigo_entrega = v_codigo_entrega,
+    estado = 'pendiente_recoleccion',
+    recibido_en = now()
+  WHERE id = v_pedido.id;
+
+  RETURN jsonb_build_object(
+    'ok', true,
+    'pedido_id', v_pedido.id,
+    'estado', 'pendiente_recoleccion',
+    'codigo_entrega', v_codigo_entrega,
+    'establecimiento_uuid',
+      v_pedido.establecimiento_uuid,
+    'monto_bruto',
+      round(p_monto_bruto, 2),
+    'comision_monto',
+      v_comision_monto,
+    'iva_monto',
+      v_iva_monto,
+    'neto_establecimiento',
+      v_neto_establecimiento
+  );
+END;
+$function$;
+
+REVOKE ALL
+ON FUNCTION public.recibir_pedido_con_balance(
+  bigint,
+  text,
+  numeric
+)
+FROM PUBLIC;
+
+REVOKE EXECUTE
+ON FUNCTION public.recibir_pedido_con_balance(
+  bigint,
+  text,
+  numeric
+)
+FROM anon, authenticated;
+
+GRANT EXECUTE
+ON FUNCTION public.recibir_pedido_con_balance(
+  bigint,
+  text,
+  numeric
+)
+TO service_role;
 
 -- ============================================================================
--- 8. PERMISOS EXPLÍCITOS
+-- 9. PERMISOS EXPLÍCITOS
 -- ============================================================================
 
 -- Ninguna de estas RPC debe quedar accesible por PUBLIC por defecto.
