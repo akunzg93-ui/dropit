@@ -17,6 +17,7 @@ import {
   Coins,
   Wallet,
   Users,
+  Landmark,
 } from "lucide-react";
 
 import { supabase } from "../../lib/supabaseClient";
@@ -28,6 +29,7 @@ export default function Navbar() {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const [userMenu, setUserMenu] = useState(false);
+  const [financeMenu, setFinanceMenu] = useState(false);
   const userMenuRef = useRef(null);
 
   const pathname = usePathname();
@@ -220,12 +222,44 @@ useEffect(() => {
                   className={active("/establecimiento")}
                 />
 
-                <NavItem
-                  href="/establecimiento/balance"
-                  icon={<Wallet size={16} />}
-                  label="Balance"
-                  className={active("/establecimiento/balance")}
-                />
+                <div className="relative">
+  <button
+    type="button"
+    onClick={() => setFinanceMenu(!financeMenu)}
+    className={`flex items-center gap-2 rounded-xl px-3 py-2 transition ${
+      pathname.startsWith("/establecimiento/balance") ||
+      pathname.startsWith("/establecimiento/datos-bancarios")
+        ? "bg-blue-50 text-[#2563eb] font-semibold"
+        : "text-slate-700 hover:bg-blue-50 hover:text-[#2563eb]"
+    }`}
+  >
+    <Wallet size={16} />
+    <span>Finanzas</span>
+    <span className="text-xs">▾</span>
+  </button>
+
+  {financeMenu && (
+    <div className="absolute left-0 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+      <Link
+        href="/establecimiento/balance"
+        onClick={() => setFinanceMenu(false)}
+        className="flex items-center gap-3 rounded-xl px-3 py-3 text-slate-700 hover:bg-blue-50 hover:text-[#2563eb]"
+      >
+        <Wallet size={16} />
+        Balance
+      </Link>
+
+      <Link
+        href="/establecimiento/datos-bancarios"
+        onClick={() => setFinanceMenu(false)}
+        className="flex items-center gap-3 rounded-xl px-3 py-3 text-slate-700 hover:bg-blue-50 hover:text-[#2563eb]"
+      >
+        <Landmark size={16} />
+        Datos bancarios
+      </Link>
+    </div>
+  )}
+</div>
               </>
             )}
 

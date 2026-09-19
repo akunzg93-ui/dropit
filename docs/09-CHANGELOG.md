@@ -8,6 +8,32 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 
 # [1.0.0] - En desarrollo
 
+## 2026-09-19
+
+### Autenticación - roles y aceptación legal
+
+- Se agregó `aceptaciones_legales` para conservar evidencia versionada de Términos y Aviso de Privacidad; versión vigente `2026-09`.
+- `handle_new_user_dynamic()` crea el perfil con un rol público permitido y nunca permite `admin` desde metadata del cliente.
+- Los registros por correo de establecimiento y emprendedor envían aceptación explícita y versiones legales después de validar el checkbox obligatorio.
+- Google OAuth conserva el contexto `vendor`/`establishment`, pero un usuario nuevo permanece inicialmente sin rol y sin aceptación legal.
+- Se agregó `/completar-registro` y la RPC `completar_registro_oauth`, que asigna rol y registra aceptación legal atómicamente para usuarios autenticados.
+- `/post-login` prioriza siempre `profiles.role`; un parámetro de URL no puede cambiar el rol de una cuenta existente.
+- Se eliminó `/seleccionar-rol` y la autoasignación libre de roles desde cliente.
+- QA validó correo y OAuth para vendedor y establecimiento, incluyendo el estado previo sin aceptación y el registro posterior `2026-09`.
+
+### Retiros - datos bancarios y pago trazable
+
+- Se agregó `titular_datos_bancarios` con una cuenta bancaria editable por titular/usuario, compartida entre sus establecimientos.
+- El registro/edición exige consentimiento y conserva `consentimiento_at` y `aviso_privacidad_version`; el servidor controla identidad, timestamp y versión.
+- Se agregó `GET/POST /api/orders/retiros/datos-bancarios` y la pantalla `/establecimiento/datos-bancarios`.
+- `crear_retiro_desde_movimientos` exige datos bancarios y guarda en `retiros` un snapshot de titular, banco y CLABE para que cambios futuros no alteren solicitudes existentes.
+- Balance detecta preventivamente la ausencia de cuenta, muestra CTA de registro y mantiene el bloqueo server-side `DATOS_BANCARIOS_REQUIRED`; el error de solicitud desplaza suavemente la vista hacia el mensaje.
+- En desktop, Balance y Datos bancarios se agrupan bajo el menú `Finanzas`.
+- Admin muestra el snapshot bancario del retiro para ejecutar la transferencia.
+- `actualizar_retiro_admin` exige referencia no vacía en `approved → paid`; la API traduce `REFERENCIA_PAGO_REQUIRED`.
+- QA validó registro y edición de cuenta, renovación de consentimiento, bloqueo sin cuenta, snapshot, solicitud de $92.16 con dos movimientos de $46.08, `pending → approved → paid`, referencia de pago y sincronización de ambos `balance_movimientos`.
+- La extensión bancaria permanece pendiente de migración y validación en Producción.
+
 ## 2026-09-18
 
 ### Go Live Audit - recepción atómica y autorización

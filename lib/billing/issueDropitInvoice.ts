@@ -108,6 +108,104 @@ async function marcarInvoiceError(
   }
 }
 
+async function generarFacturaPdf(params: {
+  uuid: string;
+
+  serie: string;
+  folio: string;
+  fecha: string;
+
+  fechaTimbrado?: string;
+  noCertificadoCfdi?: string;
+  noCertificadoSat?: string;
+  selloCfdi?: string;
+  selloSat?: string;
+  rfcProvCertif?: string;
+
+  formaPago: string;
+  metodoPago: string;
+
+  emisor: {
+    rfc: string;
+    nombre: string;
+    regimenFiscal: string;
+    codigoPostal: string;
+  };
+
+  receptor: {
+    rfc: string;
+    nombre: string;
+    regimenFiscal: string;
+    codigoPostal: string;
+    usoCFDI: string;
+  };
+
+  conceptos: Array<{
+    descripcion: string;
+    cantidad: number;
+    valorUnitario: number;
+    importe: number;
+  }>;
+
+  subtotal: number;
+  impuestos: number;
+  total: number;
+}): Promise<Buffer> {
+  const pdfServiceUrl =
+    process.env.PDF_SERVICE_URL;
+
+  if (!pdfServiceUrl) {
+    throw new Error(
+      "PDF_SERVICE_URL_MISSING"
+    );
+  }
+
+  const response = await fetch(
+    `${pdfServiceUrl}/generar-factura`,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+
+      body: JSON.stringify(
+        params
+      ),
+
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    let errorData: unknown;
+
+    try {
+      errorData =
+        await response.json();
+    } catch {
+      errorData = null;
+    }
+
+    console.error(
+      "Error PDF Service:",
+      errorData
+    );
+
+    throw new Error(
+      "DROPIT_PDF_GENERATION_ERROR"
+    );
+  }
+
+  const arrayBuffer =
+    await response.arrayBuffer();
+
+  return Buffer.from(
+    arrayBuffer
+  );
+}
+
 export async function issueDropitInvoice({
   pedidoId,
   vendedorId,
@@ -612,6 +710,150 @@ export async function issueDropitInvoice({
     }
 
     // ===================================================
+// 13. Generar PDF Dropit
+//
+// El PDF es una representación visual.
+// Si falla, NO invalida el CFDI ya timbrado.
+// ===================================================
+
+let pdfPath: string | null =
+  null;
+
+try {
+  const pdfBuffer =
+    await generarFacturaPdf({
+      uuid:
+        issued.uuid.toUpperCase(),
+
+      serie:
+        cfdi.serie,
+
+      folio:
+        cfdi.folio,
+
+      fecha:
+        parsed.data.fecha,
+
+      fechaTimbrado:
+        parsed.data.fechaTimbrado,
+
+      noCertificadoCfdi:
+        parsed.data.noCertificadoCfdi,
+
+      noCertificadoSat:
+        parsed.data.noCertificadoSat,
+
+      selloCfdi:
+        parsed.data.selloCfdi,
+
+      selloSat:
+        parsed.data.selloSat,
+
+      rfcProvCertif:
+        parsed.data.rfcProvCertif,
+
+      formaPago:
+        payment.formaPago,
+
+      metodoPago:
+        payment.metodoPago,
+
+      emisor: {
+        rfc:
+          cfdi.emisor.rfc,
+
+        nombre:
+          cfdi.emisor.nombre,
+
+        regimenFiscal:
+          cfdi.emisor.regimenFiscal,
+
+        codigoPostal:
+          cfdi.emisor.codigoPostal,
+      },
+
+      receptor: {
+        rfc:
+          cfdi.receptor.rfc,
+
+        nombre:
+          cfdi.receptor.nombre,
+
+        regimenFiscal:
+          cfdi.receptor.regimenFiscal,
+
+        codigoPostal:
+          cfdi.receptor.codigoPostal,
+
+        usoCFDI:
+          cfdi.receptor.usoCFDI,
+      },
+
+      conceptos:
+        cfdi.conceptos.map(
+          (concepto) => ({
+            descripcion:
+              concepto.descripcion,
+
+            cantidad:
+              concepto.cantidad,
+
+            valorUnitario:
+              concepto.valorUnitario,
+
+            importe:
+              concepto.importe,
+          })
+        ),
+
+      subtotal:
+        cfdi.subtotal,
+
+      impuestos:
+        cfdi.impuestos
+          .totalTrasladados,
+
+      total:
+        cfdi.total,
+    });
+
+  pdfPath =
+    `${basePath}/factura.pdf`;
+
+  const {
+    error: pdfUploadError,
+  } = await supabase.storage
+    .from("billing-documents")
+    .upload(
+      pdfPath,
+      pdfBuffer,
+      {
+        contentType:
+          "application/pdf",
+
+        upsert:
+          true,
+      }
+    );
+
+  if (pdfUploadError) {
+    console.error(
+      "Error guardando PDF Dropit:",
+      pdfUploadError
+    );
+
+    pdfPath = null;
+  }
+} catch (pdfError) {
+  console.error(
+    "Error generando PDF Dropit:",
+    pdfError
+  );
+
+  pdfPath = null;
+}
+
+    // ===================================================
     // 13. Marcar invoice emitida
     // ===================================================
 
@@ -620,21 +862,18 @@ export async function issueDropitInvoice({
     } = await supabase
       .from("invoices")
       .update({
-        estado:
-          "emitida",
+  estado:
+    "emitida",
 
-        xml_path:
-          xmlPath,
+  xml_path:
+    xmlPath,
 
-        /*
-          Por ahora no generamos PDF.
-        */
-        pdf_path:
-          null,
+  pdf_path:
+    pdfPath,
 
-        error_mensaje:
-          null,
-      })
+  error_mensaje:
+    null,
+})
       .eq("id", invoice.id);
 
     if (finalUpdateError) {

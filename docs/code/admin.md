@@ -175,3 +175,7 @@ Permite revisar solicitudes globales, consultar los servicios y establecimientos
 La lectura del detalle financiero se realiza mediante `GET /api/orders/retiros/admin`, con autenticación y validación server-side de `profiles.role = admin`. El frontend no obtiene acceso financiero amplio a `balance_movimientos` mediante RLS.
 
 Las mutaciones usan `POST /api/orders/retiros/update`, que delega las transiciones financieras a una RPC transaccional.
+
+El detalle muestra el snapshot bancario guardado al solicitar el retiro: titular, banco y CLABE completa para realizar la transferencia. Estos datos pertenecen al retiro y no cambian si posteriormente el titular edita su cuenta.
+
+Para pasar de `approved` a `paid` el administrador debe registrar una referencia de pago. La validación existe tanto en el flujo de Admin como en la RPC; una referencia vacía produce `REFERENCIA_PAGO_REQUIRED`.

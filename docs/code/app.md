@@ -2,11 +2,11 @@
 
 > Documento Oficial
 >
-> Versión: 1.0
+> Versión: 1.1
 >
 > Estado: En construcción
 >
-> Última actualización: 11/07/2026
+> Última actualización: 18/09/2026
 
 ---
 
@@ -26,6 +26,7 @@ Cada módulo representa una responsabilidad específica del negocio.
 | api | API Routes del sistema |
 | auth | Flujo de autenticación |
 | comprador | Flujo del cliente |
+| completar-registro | Finalización segura del alta OAuth y aceptación legal |
 | components | Componentes propios de `app` |
 | establecimiento | Operación del establecimiento |
 | evaluar | Evaluaciones posteriores a la entrega |
@@ -33,7 +34,6 @@ Cada módulo representa una responsabilidad específica del negocio.
 | post-login | Redirección después del login |
 | privacidad | Aviso de privacidad |
 | reset-password | Recuperación de contraseña |
-| seleccionar-rol | Selección inicial de rol |
 | terminos | Términos y condiciones |
 | track | Seguimiento público del pedido |
 | update-password | Cambio de contraseña |

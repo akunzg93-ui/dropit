@@ -65,11 +65,14 @@ export default function RegisterEstablecimiento() {
       email,
       password,
       options: {
-        data: {
-          role: "establishment",
-          nombre_responsable: nombre,
-        },
-      },
+  data: {
+    role: "establishment",
+    nombre_responsable: nombre,
+    acepta_terminos: true,
+    terminos_version: "2026-09",
+    privacidad_version: "2026-09",
+  },
+},
     });
 
     console.log("SIGNUP DATA:", data);

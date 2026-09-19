@@ -6,7 +6,7 @@
 >
 > Estado: Oficial
 >
-> Última actualización: 17/09/2026
+> Última actualización: 18/09/2026
 
 ---
 
@@ -198,3 +198,16 @@ La RPC sólo puede ejecutarse mediante `service_role`; `anon` y `authenticated` 
 # Stripe
 
 Los webhooks verifican `stripe-signature` con `STRIPE_WEBHOOK_SECRET`. La acreditación de Coins se ejecuta mediante una RPC idempotente vinculada a `pago_id`. Los reembolsos compensatorios de protección validan que `metadata.vendedor_id` corresponda al usuario autenticado y utilizan una idempotency key determinística por PaymentIntent.
+
+
+---
+
+# Roles y finalización de registro OAuth
+
+- El rol no se selecciona libremente después del login; proviene del flujo de alta.
+- `handle_new_user_dynamic()` sólo acepta desde metadata los roles públicos `vendor`, `establishment` y `buyer`; `admin` no puede autoprovisionarse desde el cliente.
+- Google OAuth no implica aceptación legal. Un usuario OAuth nuevo permanece con `profiles.role = NULL` hasta completar el flujo explícito.
+- `completar_registro_oauth` obtiene el usuario desde `auth.uid()`, sólo admite `vendor` o `establishment`, rechaza cuentas con rol ya asignado y registra rol + aceptación legal en una sola transacción.
+- La RPC es `SECURITY DEFINER`, con `search_path = public`; `PUBLIC` y `anon` no tienen `EXECUTE`, y `authenticated` sí.
+- Manipular `?role=` no cambia el rol de una cuenta existente: `/post-login` prioriza siempre `profiles.role`.
+- La ruta histórica `/seleccionar-rol` fue eliminada para evitar autoasignación de roles desde el cliente.

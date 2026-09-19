@@ -3,7 +3,7 @@
 > Documento Oficial  
 > Versión: 1.1  
 > Estado: Oficial  
-> Última actualización: 04/09/2026
+> Última actualización: 18/09/2026
 
 ---
 
@@ -35,6 +35,30 @@ Este documento describe el modelo de datos oficial de Dropit y las estructuras c
 | pedido_eventos | Historial oficial del tracking |
 | coin_lotes | Saldo por lotes |
 | coin_movimientos | Compra, consumo y reintegros |
+| aceptaciones_legales | Evidencia versionada de aceptación de Términos y Aviso de Privacidad |
+
+---
+
+# Identidad, roles y aceptación legal
+
+`profiles.role` es el rol operativo de la cuenta. Los registros públicos sólo pueden originar `vendor`, `establishment` o `buyer`; `admin` no puede asignarse desde metadata del cliente y se crea de forma controlada.
+
+`aceptaciones_legales` conserva una fila por acto de aceptación y versión documental:
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| id | uuid | Identificador de la aceptación |
+| user_id | uuid | Usuario de Supabase Auth |
+| terminos_version | text | Versión de Términos aceptada |
+| privacidad_version | text | Versión del Aviso de Privacidad aceptada |
+| aceptado_at | timestamptz | Momento de aceptación explícita |
+| created_at | timestamptz | Creación del registro |
+
+Existe unicidad por `(user_id, terminos_version, privacidad_version)`. La versión vigente implementada en QA es `2026-09`.
+
+En registro por correo, `handle_new_user_dynamic()` crea `profiles`, acepta únicamente roles públicos permitidos desde `raw_user_meta_data` y registra la aceptación sólo cuando `acepta_terminos = true`. La creación del usuario por sí sola no implica aceptación.
+
+En OAuth, el usuario puede existir inicialmente con `profiles.role = NULL`. La RPC `completar_registro_oauth(text, text, text)` exige sesión autenticada, acepta únicamente `vendor` o `establishment`, impide modificar un rol ya asignado y registra rol + aceptación legal en una sola transacción. `PUBLIC` y `anon` no tienen `EXECUTE`; sólo `authenticated`.
 
 ---
 
@@ -187,12 +211,16 @@ Tablas del retiro:
 | retiros | Cabecera global de una solicitud de retiro |
 | retiro_aplicaciones | Movimientos exactos seleccionados y snapshot de `monto_aplicado` |
 | retiro_detalles | Subtotal de la solicitud por establecimiento |
+| titular_datos_bancarios | Cuenta bancaria única del titular/usuario para futuros retiros |
 
 Reglas de integridad:
 
 - Un retiro nuevo puede agrupar movimientos de varios establecimientos pertenecientes al mismo usuario.
 - `retiros.establecimiento_id` queda nullable para compatibilidad con retiros históricos; los retiros multi-establecimiento usan `NULL`.
 - `retiros.user_id` identifica al propietario de la solicitud global.
+- `titular_datos_bancarios.user_id` identifica al titular y mantiene una sola cuenta bancaria editable por usuario. Conserva titular, CLABE, banco, `consentimiento_at` y `aviso_privacidad_version`.
+- La cuenta bancaria no pertenece a un establecimiento individual: se comparte entre los establecimientos del mismo titular.
+- Al crear un retiro se exige una cuenta bancaria registrada y se copian a `retiros` los campos `titular_cuenta_destino`, `clabe_destino` y `banco_destino`. Ese snapshot no cambia si el titular edita su cuenta después.
 - `retiro_aplicaciones.retiro_id` referencia `retiros.id`.
 - `retiro_aplicaciones.balance_movimiento_id` referencia `balance_movimientos.id`.
 - `monto_aplicado` es un snapshot inmutable del neto seleccionado al crear la solicitud.
@@ -207,15 +235,15 @@ La elegibilidad temporal se determina por mes cerrado usando `America/Mexico_Cit
 
 ### `crear_retiro_desde_movimientos(uuid, bigint[])`
 
-Operación atómica para crear una solicitud. Bloquea con `FOR UPDATE` los `balance_movimientos` seleccionados, valida propiedad, mes cerrado en `America/Mexico_City`, estado y ausencia de otro retiro activo; después crea `retiros`, `retiro_aplicaciones` y `retiro_detalles` dentro de la misma transacción.
+Operación atómica para crear una solicitud. Bloquea con `FOR UPDATE` los `balance_movimientos` seleccionados, valida propiedad, mes cerrado en `America/Mexico_City`, estado, ausencia de otro retiro activo y existencia de datos bancarios del titular; después crea `retiros` con snapshot de la cuenta destino, `retiro_aplicaciones` y `retiro_detalles` dentro de la misma transacción. Si faltan datos bancarios devuelve `DATOS_BANCARIOS_REQUIRED`.
 
 ### `actualizar_retiro_admin(uuid, uuid, text, text)`
 
-Operación atómica para las transiciones administrativas `pending → approved`, `pending → reversed` y `approved → paid`. Bloquea el retiro y, al pagar, los movimientos exactos de `retiro_aplicaciones`; valida integridad monetaria y actualiza ledger y cabecera en una sola transacción.
+Operación atómica para las transiciones administrativas `pending → approved`, `pending → reversed` y `approved → paid`. Bloquea el retiro y, al pagar, los movimientos exactos de `retiro_aplicaciones`; valida integridad monetaria y exige `referencia_pago` no vacía antes de registrar el pago. Actualiza ledger y cabecera en una sola transacción.
 
 Ambas funciones son `SECURITY DEFINER`, tienen `search_path = public` y su ejecución está revocada para `PUBLIC`, `anon` y `authenticated`; sólo `service_role` tiene `EXECUTE`.
 
-Estado al 08/09/2026: modelo, FKs y RPC transaccionales validados en QA y Producción. En PROD se verificó el esquema existente, se agregó retiros.fecha_pago y la restricción UNIQUE (retiro_id, balance_movimiento_id) de retiro_aplicaciones. El flujo transaccional completo fue validado mediante una prueba controlada con ROLLBACK
+Estado al 08/09/2026: modelo base, FKs y RPC transaccionales validados en QA y Producción. En PROD se verificó el esquema existente, se agregó `retiros.fecha_pago` y la restricción UNIQUE (`retiro_id`, `balance_movimiento_id`) de `retiro_aplicaciones`. El 18/09/2026 se extendió y validó en QA el flujo con datos bancarios por titular, snapshot de cuenta destino y referencia obligatoria de pago. Esta extensión bancaria permanece pendiente de migración/validación en Producción.
 
 ## Reserva de capacidad
 

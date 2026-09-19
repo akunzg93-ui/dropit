@@ -153,14 +153,22 @@ Responsabilidades:
 
 # Retiros de establecimientos
 
+## `GET /api/orders/retiros/datos-bancarios`
+
+Requiere Bearer token. Devuelve la cuenta bancaria del usuario autenticado como `datos_bancarios` o `null` si todavía no existe.
+
+## `POST /api/orders/retiros/datos-bancarios`
+
+Requiere Bearer token. Registra o actualiza la cuenta bancaria única del titular. Valida nombre del titular, CLABE de 18 dígitos y consentimiento expreso. El servidor asigna `consentimiento_at`, `aviso_privacidad_version` y `updated_at`; el cliente no controla esos campos.
+
 ## `POST /api/orders/retiros/solicitar`
 
-Requiere Bearer token. Recibe `{ balance_movimiento_ids: number[] }`, autentica al usuario y delega la operación a `crear_retiro_desde_movimientos`. La RPC valida propiedad, cierre mensual en `America/Mexico_City`, elegibilidad y ausencia de otro retiro activo; bloquea los movimientos y crea cabecera, aplicaciones y subtotales atómicamente.
+Requiere Bearer token. Recibe `{ balance_movimiento_ids: number[] }`, autentica al usuario y delega la operación a `crear_retiro_desde_movimientos`. La RPC valida propiedad, cierre mensual en `America/Mexico_City`, elegibilidad, ausencia de otro retiro activo y existencia de datos bancarios; bloquea los movimientos y crea cabecera, aplicaciones y subtotales atómicamente. La cabecera conserva un snapshot de titular, banco y CLABE. Si falta cuenta bancaria la API responde `DATOS_BANCARIOS_REQUIRED`.
 
 ## `POST /api/orders/retiros/update`
 
-Requiere Bearer token y rol `admin`. Delega a `actualizar_retiro_admin`. Sólo permite `pending → approved`, `pending → reversed` y `approved → paid`. El pago actualiza únicamente los movimientos exactos de `retiro_aplicaciones` y la cabecera dentro de la misma transacción.
+Requiere Bearer token y rol `admin`. Delega a `actualizar_retiro_admin`. Sólo permite `pending → approved`, `pending → reversed` y `approved → paid`. El pago actualiza únicamente los movimientos exactos de `retiro_aplicaciones` y la cabecera dentro de la misma transacción. Para `approved → paid`, `referencia_pago` es obligatoria; la RPC rechaza valores vacíos con `REFERENCIA_PAGO_REQUIRED`.
 
 ## `GET /api/orders/retiros/admin`
 
-Requiere Bearer token y rol `admin`. Expone al módulo Admin el detalle de retiros mediante una consulta server-side con Service Role; no se amplía RLS de `balance_movimientos` para lectura financiera desde el navegador.
+Requiere Bearer token y rol `admin`. Expone al módulo Admin el detalle de retiros mediante una consulta server-side con Service Role, incluyendo el snapshot de cuenta destino (`titular_cuenta_destino`, `banco_destino`, `clabe_destino`); no se amplía RLS de `balance_movimientos` para lectura financiera desde el navegador.

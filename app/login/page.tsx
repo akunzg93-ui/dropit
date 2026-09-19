@@ -24,14 +24,13 @@ export default function LoginEstablecimiento() {
   }, []);
 
   async function loginGoogle() {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: { role: "establishment" },
-      },
-    });
-  }
+  await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback?role=establishment`,
+    },
+  });
+}
 
   async function handleLogin(email: string, password: string) {
     setMensaje("");

@@ -75,19 +75,27 @@ La validación de factura no cambia el estado de `balance_movimientos`.
 
 # Retiros
 
-> Actualización: 06/09/2026
+> Actualización: 19/09/2026
+
+## `GET /api/orders/retiros/datos-bancarios`
+
+Devuelve `datos_bancarios` para el usuario autenticado o `null` si no existe. Requiere Bearer token.
+
+## `POST /api/orders/retiros/datos-bancarios`
+
+Registra o actualiza la cuenta bancaria única del titular. Valida titular, CLABE de 18 dígitos y consentimiento. `user_id`, `consentimiento_at` y versión del aviso se resuelven del lado servidor.
 
 ## `POST /api/orders/retiros/solicitar`
 
-Entrada: `{ balance_movimiento_ids: number[] }`. Requiere Bearer token. La API autentica al usuario y delega la operación financiera a `crear_retiro_desde_movimientos`. El RPC bloquea los movimientos seleccionados, valida propiedad, mes cerrado en `America/Mexico_City`, estados y ausencia de otra solicitud activa; calcula el total y crea `retiros`, `retiro_aplicaciones` y `retiro_detalles` atómicamente.
+Entrada: `{ balance_movimiento_ids: number[] }`. Requiere Bearer token. La API autentica al usuario y delega la operación financiera a `crear_retiro_desde_movimientos`. El RPC bloquea los movimientos seleccionados, valida propiedad, mes cerrado en `America/Mexico_City`, estados, ausencia de otra solicitud activa y existencia de cuenta bancaria; calcula el total y crea `retiros`, `retiro_aplicaciones` y `retiro_detalles` atómicamente. `retiros` conserva snapshot de titular, banco y CLABE. Sin cuenta devuelve `DATOS_BANCARIOS_REQUIRED`.
 
 ## `POST /api/orders/retiros/update`
 
-Requiere Bearer token. La API autentica al usuario y delega a `actualizar_retiro_admin`, que exige `profiles.role = admin`. Transiciones válidas: `pending → approved`, `pending → reversed`, `approved → paid`. En pago se bloquean y actualizan exactamente los movimientos de `retiro_aplicaciones` junto con la cabecera del retiro en una sola transacción.
+Requiere Bearer token. La API autentica al usuario y delega a `actualizar_retiro_admin`, que exige `profiles.role = admin`. Transiciones válidas: `pending → approved`, `pending → reversed`, `approved → paid`. En pago se bloquean y actualizan exactamente los movimientos de `retiro_aplicaciones` junto con la cabecera del retiro en una sola transacción. `approved → paid` exige una referencia no vacía; la RPC devuelve `REFERENCIA_PAGO_REQUIRED` si falta.
 
 ## `GET /api/orders/retiros/admin`
 
-Lectura administrativa de solicitudes y detalle financiero. Requiere Bearer token y `profiles.role = admin`. La consulta se ejecuta server-side con Service Role después de validar al administrador, evitando abrir al navegador una política RLS amplia sobre `balance_movimientos`.
+Lectura administrativa de solicitudes y detalle financiero. Requiere Bearer token y `profiles.role = admin`. Incluye el snapshot bancario del retiro para ejecutar la transferencia. La consulta se ejecuta server-side con Service Role después de validar al administrador, evitando abrir al navegador una política RLS amplia sobre `balance_movimientos`.
 
 ## Atomicidad
 

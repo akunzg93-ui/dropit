@@ -22,15 +22,14 @@ export default function Login() {
     checkSession();
   }, [router]);
 
-  async function loginGoogle() {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: { role: "vendor" },
-      },
-    });
-  }
+ async function loginGoogle() {
+  await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback?role=vendor`,
+    },
+  });
+}
 
   async function handleLogin(email, password) {
     setMensaje("");

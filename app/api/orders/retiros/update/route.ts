@@ -131,6 +131,13 @@ export async function POST(req: Request) {
         );
       }
 
+if (message.includes("REFERENCIA_PAGO_REQUIRED")) {
+  return NextResponse.json(
+    { error: "La referencia de pago es obligatoria" },
+    { status: 400 }
+  );
+}
+
       return NextResponse.json(
         { error: "No fue posible actualizar el retiro" },
         { status: 500 }

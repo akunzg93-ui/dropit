@@ -117,6 +117,17 @@ export async function POST(req: Request) {
         );
       }
 
+      if (message.includes("DATOS_BANCARIOS_REQUIRED")) {
+  return NextResponse.json(
+    {
+      error:
+        "Registra tus datos bancarios antes de solicitar un retiro",
+      code: "DATOS_BANCARIOS_REQUIRED",
+    },
+    { status: 400 }
+  );
+}
+
       return NextResponse.json(
         { error: "No fue posible solicitar el retiro" },
         { status: 500 }

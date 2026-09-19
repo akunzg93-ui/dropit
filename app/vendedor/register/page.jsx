@@ -70,12 +70,15 @@ export default function RegisterVendedor() {
       email: email.trim(),
       password,
       options: {
-        data: {
-          role: "vendor",
-          nombre_responsable: nombre.trim(),
-          social_url: socialUrl.trim() || null,
-        },
-      },
+  data: {
+    role: "vendor",
+    nombre_responsable: nombre.trim(),
+    social_url: socialUrl.trim() || null,
+    acepta_terminos: true,
+    terminos_version: "2026-09",
+    privacidad_version: "2026-09",
+  },
+},
     });
 
     if (error) {

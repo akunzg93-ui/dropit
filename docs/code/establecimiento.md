@@ -1,9 +1,9 @@
 # Módulo Establecimiento
 
 > Documento Oficial  
-> Versión: 1.1  
+> Versión: 1.2  
 > Estado: En construcción  
-> Última actualización: 18/07/2026
+> Última actualización: 19/09/2026
 
 # Objetivo
 
@@ -17,7 +17,8 @@ El establecimiento representa el nodo físico de la red Dropit. Aprueba solicitu
 | `/establecimiento/recibir-pedido` | Recibir del vendedor |
 | `/establecimiento/entregar` | Entregar al cliente o devolver al vendedor |
 | `/establecimiento/estado` | Consultar pedidos por estado |
-| `/establecimiento/balance` | Consultar saldo |
+| `/establecimiento/balance` | Consultar saldo y solicitar retiros |
+| `/establecimiento/datos-bancarios` | Registrar o editar la cuenta destino de retiros |
 
 # Aprobación
 
@@ -80,10 +81,16 @@ La factura emitida no libera automáticamente `balance_movimientos`; el pago se 
 
 # Balance y retiros
 
-> Actualización: 04/09/2026
+> Actualización: 19/09/2026
 
 `/establecimiento/balance` opera a nivel de cuenta y carga todos los establecimientos asociados al usuario autenticado. El filtro por establecimiento es sólo una ayuda visual.
 
 La pantalla muestra generado histórico, disponible para retiro, en proceso, pagado y generación del mes corriente. Los movimientos elegibles de meses cerrados se agrupan por establecimiento y pueden seleccionarse individualmente o en conjunto.
 
-La solicitud envía únicamente `balance_movimiento_ids` a `POST /api/orders/retiros/solicitar`; el frontend no decide el monto. El servidor vuelve a validar propiedad, elegibilidad y total. Una solicitud puede contener movimientos de varios establecimientos.
+La solicitud envía únicamente `balance_movimiento_ids` a `POST /api/orders/retiros/solicitar`; el frontend no decide el monto. El servidor vuelve a validar propiedad, elegibilidad, total y existencia de cuenta bancaria. Una solicitud puede contener movimientos de varios establecimientos.
+
+La cuenta bancaria se administra en `/establecimiento/datos-bancarios` y pertenece al titular de la cuenta, no a cada establecimiento. La pantalla permite registrar una cuenta o consultar un resumen enmascarado y entrar en modo edición. Cada registro/edición exige nuevamente consentimiento para el tratamiento de datos financieros.
+
+Balance consulta preventivamente si existen datos bancarios. Si faltan, muestra un aviso con acceso al registro; si aun así se intenta solicitar, el backend responde `DATOS_BANCARIOS_REQUIRED` y la UI muestra el error con CTA y desplazamiento suave hacia el mensaje.
+
+En navegación desktop, Balance y Datos bancarios se agrupan bajo `Finanzas` para mantener acceso visible sin saturar el navbar.

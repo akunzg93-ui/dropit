@@ -50,33 +50,36 @@ export async function GET(req: Request) {
     let query = supabase
       .from("retiros")
       .select(`
-        id,
-        monto,
-        status,
-        created_at,
-        referencia_pago,
-        establecimiento_id,
-        establecimientos (
-          nombre
-        ),
-        retiro_aplicaciones (
-          id,
-          monto_aplicado,
-          balance_movimiento_id,
-          balance_movimientos (
-            id,
-            pedido_id,
-            establecimiento_id,
-            created_at,
-            pedidos (
-              folio
-            ),
-            establecimientos (
-              nombre
-            )
-          )
-        )
-      `)
+  id,
+  monto,
+  status,
+  created_at,
+  referencia_pago,
+  establecimiento_id,
+  titular_cuenta_destino,
+  banco_destino,
+  clabe_destino,
+  establecimientos (
+    nombre
+  ),
+  retiro_aplicaciones (
+    id,
+    monto_aplicado,
+    balance_movimiento_id,
+    balance_movimientos (
+      id,
+      pedido_id,
+      establecimiento_id,
+      created_at,
+      pedidos (
+        folio
+      ),
+      establecimientos (
+        nombre
+      )
+    )
+  )
+`)
       .order("created_at", { ascending: false });
 
     if (status && status !== "all") {

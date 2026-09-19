@@ -5,10 +5,18 @@ import { cookies } from "next/headers";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
+  const role = url.searchParams.get("role");
 
   const cookieStore = await cookies();
 
-  const response = NextResponse.redirect(`${url.origin}/post-login`);
+  const rolePermitido =
+  role === "vendor" || role === "establishment" ? role : null;
+
+const postLoginUrl = rolePermitido
+  ? `${url.origin}/post-login?role=${rolePermitido}`
+  : `${url.origin}/post-login`;
+
+const response = NextResponse.redirect(postLoginUrl);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

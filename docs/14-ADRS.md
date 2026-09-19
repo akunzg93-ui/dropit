@@ -560,3 +560,43 @@ Además, conocer folio y `codigo_vendedor` no debía ser suficiente para ejecuta
 - Las operaciones externas no prolongan ni condicionan la transacción de PostgreSQL.
 - QA validó rollback ante fallo financiero y el flujo end-to-end.
 - Producción validó un pedido real de prueba con bruto de $90.00, comisión de $9.00, IVA de $1.44 y neto de $79.56.
+
+
+---
+
+# ADR-016
+
+## Nombre
+
+El rol se origina en el flujo de alta y OAuth requiere aceptación legal explícita.
+
+## Estado
+
+Aceptada, implementada y validada en QA.
+
+## Contexto
+
+El flujo histórico creaba `profiles` sin rol y enviaba al usuario a `/seleccionar-rol`, donde una cuenta autenticada podía elegir libremente vendedor, establecimiento o comprador. Esto contradecía los registros específicos de vendedor/establecimiento y permitía cambiar la intención de alta después de autenticarse.
+
+Google OAuth añadía otro problema: crear/autenticar la cuenta no exigía una acción explícita de aceptación de Términos y Aviso de Privacidad.
+
+## Decisión
+
+- El rol operativo proviene del flujo de alta iniciado y no de una selección posterior al login.
+- Los registros por correo envían el rol de origen; el trigger sólo admite roles públicos permitidos y excluye `admin`.
+- La aceptación legal se persiste en `aceptaciones_legales` con versiones documentales y timestamp.
+- Autenticarse mediante Google no constituye aceptación legal.
+- El contexto OAuth `vendor` o `establishment` se conserva hasta `/post-login`, pero nunca sustituye un `profiles.role` ya asignado.
+- Un OAuth nuevo sin rol debe pasar por `/completar-registro`, aceptar explícitamente los documentos y ejecutar `completar_registro_oauth`.
+- La RPC asigna rol y aceptación legal dentro de una misma transacción y no permite cambiar un rol existente.
+- `/seleccionar-rol` se elimina.
+- `admin` continúa siendo una asignación controlada y no puede originarse desde registro público.
+
+## Consecuencias
+
+- Registro por correo y OAuth comparten una regla consistente: la cuenta queda asociada al tipo de alta que inició.
+- Existe evidencia versionada de aceptación legal independiente de la mera creación/autenticación del usuario.
+- Un parámetro `role` manipulado no puede convertir una cuenta existente a otro rol.
+- OAuth puede tener temporalmente `profiles.role = NULL`; ese estado representa un registro incompleto y no una cuenta operativa.
+- La eliminación de `/seleccionar-rol` reduce una vía de autoasignación de privilegios desde cliente.
+- QA validó los flujos de vendedor y establecimiento tanto por correo como por Google OAuth.

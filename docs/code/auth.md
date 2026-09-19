@@ -2,19 +2,42 @@
 
 > Documento Oficial
 >
-> Versión: 1.1
+> Versión: 1.2
 >
 > Estado: En construcción
 >
-> Última actualización: 31/08/2026
+> Última actualización: 18/09/2026
 
 ---
 
 # Objetivo
 
-Centralizar la autenticación de usuarios mediante Supabase Auth.
+Centralizar autenticación, sesión, asignación segura del rol de alta y finalización del registro OAuth mediante Supabase Auth.
 
-El módulo administra el inicio de sesión, recuperación de contraseña y establecimiento de la sesión.
+El usuario no selecciona libremente su rol después de autenticarse. El rol proviene del flujo de alta iniciado.
+
+---
+
+# Registro por correo
+
+Los registros específicos de vendedor y establecimiento envían metadata explícita con el rol de origen y, después de validar el checkbox obligatorio, las versiones legales aceptadas.
+
+`handle_new_user_dynamic()` crea `profiles` y sólo copia roles públicos permitidos (`vendor`, `establishment`, `buyer`). `admin` nunca puede asignarse desde metadata del cliente. Si `acepta_terminos = true`, el trigger registra en `aceptaciones_legales` las versiones de Términos y Privacidad.
+
+Versión vigente en QA: `2026-09`.
+
+---
+
+# Google OAuth
+
+Los accesos de `/login` y `/vendedor/login` conservan el contexto de alta en el `redirectTo`:
+
+- establecimiento → `/auth/callback?role=establishment`
+- emprendedor → `/auth/callback?role=vendor`
+
+El parámetro sólo se admite para esos dos valores y no sustituye un rol ya existente.
+
+Un usuario OAuth nuevo se crea inicialmente sin rol y sin aceptación legal. Autenticarse con Google no equivale a aceptar Términos o Aviso de Privacidad.
 
 ---
 
@@ -22,124 +45,71 @@ El módulo administra el inicio de sesión, recuperación de contraseña y estab
 
 ## Responsabilidad
 
-Procesar el callback enviado por Supabase después de un inicio de sesión o autenticación.
+1. Recibe `code` y, cuando aplica, el contexto `role`.
+2. Intercambia el código por sesión (`exchangeCodeForSession`).
+3. Persiste cookies.
+4. Valida el contexto a `vendor` o `establishment`.
+5. Redirige a `/post-login?role=...` o `/post-login`.
+6. En error redirige a `/login?error=auth_callback`.
 
-## Flujo
-
-1. Recibe el parámetro `code`.
-2. Intercambia el código por una sesión (`exchangeCodeForSession`).
-3. Guarda las cookies de autenticación.
-4. Redirige al usuario a `/post-login`.
-5. Si ocurre un error, redirige a `/login?error=auth_callback`.
-
-## Integraciones
-
-- Supabase Auth
-- Cookies de Next.js
-
-## Resultado
-
-El usuario queda autenticado y la sesión queda disponible para el resto de la aplicación.
+No asigna roles ni registra aceptación legal.
 
 ---
 
-## Observaciones
+# Ruta: /completar-registro
 
-Esta ruta es crítica para el funcionamiento del login.
+Pantalla exclusiva para finalizar un alta OAuth nueva con `profiles.role = NULL`.
 
-No debe modificarse sin validar previamente:
+- Sólo admite `role=vendor` o `role=establishment`.
+- Exige checkbox explícito de Términos y Aviso de Privacidad.
+- Llama a `completar_registro_oauth` con versiones `2026-09`.
+- La RPC asigna rol y registra aceptación legal atómicamente.
+- Si la cuenta ya tiene rol, la pantalla no permite cambiarlo y regresa a `/post-login`.
 
-- inicio de sesión;
-- cambio de contraseña;
-- persistencia de cookies;
-- redirecciones posteriores al login.
+---
+
+# Ruta: /post-login
+
+Actúa como router según el rol ya existente.
+
+- `vendor` → `/vendedor/dashboard`.
+- `buyer` → `/comprador`.
+- `admin` → `/admin`.
+- `establishment` → resuelve su estado de onboarding.
+- perfil sin rol + contexto OAuth válido → `/completar-registro?role=...`.
+- perfil sin rol sin origen válido o rol desconocido → cierra sesión y regresa a `/login`.
+
+Para establecimiento:
+
+- sin ubicaciones → `/establecimiento`;
+- con al menos una ubicación activa y `fiscal_profile_id` → `/establecimiento/estado`;
+- con ubicaciones pero ninguna configurada → onboarding fiscal del establecimiento más reciente.
+
+La antigua ruta `/seleccionar-rol` fue eliminada: ningún usuario autenticado puede autoasignarse libremente `vendor`, `establishment` o `buyer`.
 
 ---
 
 # Ruta: /auth/confirm
 
-## Responsabilidad
-
-Procesar los enlaces enviados por Supabase para:
-
-- Recuperación de contraseña.
-- Verificación de identidad.
-
-## Flujo
-
-1. Recibe `token_hash` y `type`.
-2. Verifica el token mediante `verifyOtp()`.
-3. Crea la sesión correspondiente.
-4. Redirige según el tipo de operación.
-
-## Redirecciones
-
-| Tipo | Destino |
-|------|---------|
-| recovery | `/update-password` |
-| otros | `/post-login` |
-
-## Integraciones
-
-- Supabase Auth
-- Cookies de Next.js
-
-## Resultado
-
-El usuario obtiene una sesión válida para continuar con el flujo correspondiente.
-
----
-
----
-
-# Redirección posterior al login de establecimiento
-
-`/post-login` valida los establecimientos asociados al usuario autenticado.
-
-- Si no existe ningún establecimiento, redirige a `/establecimiento`.
-- Si existe al menos un establecimiento activo con `fiscal_profile_id`, redirige a `/establecimiento/estado`.
-- Si existen establecimientos pero ninguno completó el onboarding fiscal, redirige al onboarding fiscal del establecimiento más reciente.
-
-Un establecimiento nuevo e incompleto no debe forzar nuevamente el onboarding al iniciar sesión si la cuenta ya posee otro establecimiento activo con perfil fiscal vinculado.
-
----
-
-# Principios del módulo
-
-La autenticación de Dropit se basa completamente en Supabase Auth.
-
-Las rutas de autenticación únicamente:
-
-- Validan tokens.
-- Crean sesiones.
-- Persisten cookies.
-- Redirigen al usuario.
-
-No contienen reglas de negocio.
+Procesa enlaces de recuperación y verificación mediante `verifyOtp()`. `recovery` redirige a `/update-password`; otros casos continúan hacia `/post-login`.
 
 ---
 
 # Rutas principales
 
 | Ruta | Función |
-|------|----------|
-| `/login` | Inicio de sesión |
+|---|---|
+| `/login` | Login de establecimiento / entrada Google de establecimiento |
+| `/vendedor/login` | Login de emprendedor / entrada Google de emprendedor |
+| `/completar-registro` | Aceptación legal y asignación atómica de rol para OAuth nuevo |
+| `/post-login` | Router por rol y estado de onboarding |
+| `/auth/callback` | Callback OAuth |
+| `/auth/confirm` | Confirmación y recuperación |
 | `/reset-password` | Solicitar recuperación |
 | `/update-password` | Definir nueva contraseña |
-| `/post-login` | Redirección posterior al login |
-| `/auth/callback` | Callback de autenticación |
-| `/auth/confirm` | Confirmación y recuperación |
 
 ---
 
-# Riesgos
+# Validación QA
 
-Las rutas de autenticación son críticas para el sistema.
-
-Cualquier modificación deberá validar:
-
-- Inicio de sesión.
-- Recuperación de contraseña.
-- Persistencia de sesión.
-- Cookies.
-- Redirecciones.
+Se validaron altas por correo y Google OAuth para vendedor y establecimiento. En OAuth se comprobó el estado intermedio `role = NULL` sin aceptación legal y, tras el checkbox, la creación de `role` y aceptación `2026-09` antes de continuar al destino correspondiente.

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
   Clock3,
@@ -82,6 +83,7 @@ function esMesActualMexico(value: string) {
 }
 
 export default function BalanceEstablecimiento() {
+  const router = useRouter();
   const [establecimientos, setEstablecimientos] = useState<
     Establecimiento[]
   >([]);
@@ -95,10 +97,15 @@ export default function BalanceEstablecimiento() {
 
   const [loading, setLoading] = useState(true);
   const [loadingRetiro, setLoadingRetiro] = useState(false);
+  const [datosBancariosRequired, setDatosBancariosRequired] =
+  useState(false);
+  const [tieneDatosBancarios, setTieneDatosBancarios] =
+  useState<boolean | null>(null);
   const [mensaje, setMensaje] = useState("");
   const [modalExitoOpen, setModalExitoOpen] = useState(false);
 const [montoRetiroSolicitado, setMontoRetiroSolicitado] =
   useState(0);
+  const mensajeRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     cargarBalance();
@@ -116,6 +123,29 @@ const [montoRetiroSolicitado, setMontoRetiroSolicitado] =
       setLoading(false);
       return;
     }
+
+    const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+if (session?.access_token) {
+  try {
+    const res = await fetch("/api/orders/retiros/datos-bancarios", {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
+    const json = await res.json();
+
+setTieneDatosBancarios(
+  res.ok && Boolean(json?.datos_bancarios)
+);
+  } catch (error) {
+    console.error("Error al consultar datos bancarios:", error);
+    setTieneDatosBancarios(null);
+  }
+}
 
     // ─────────────────────────────────────
     // ESTABLECIMIENTOS DEL USUARIO
@@ -401,6 +431,7 @@ const [montoRetiroSolicitado, setMontoRetiroSolicitado] =
     if (loadingRetiro || seleccionados.length === 0) return;
 
     setMensaje("");
+    setDatosBancariosRequired(false);
     setLoadingRetiro(true);
 
     try {
@@ -427,9 +458,27 @@ const [montoRetiroSolicitado, setMontoRetiroSolicitado] =
       const json = await res.json();
 
       if (!res.ok) {
-        setMensaje(json.error || "No fue posible solicitar el retiro");
-        return;
-      }
+  if (json.code === "DATOS_BANCARIOS_REQUIRED") {
+  setMensaje(
+    "Registra tu cuenta bancaria antes de solicitar un retiro."
+  );
+  setDatosBancariosRequired(true);
+
+  setTimeout(() => {
+    mensajeRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, 100);
+
+  return;
+}
+
+  setMensaje(
+    json.error || "No fue posible solicitar el retiro"
+  );
+  return;
+}
 
      setMontoRetiroSolicitado(Number(json.monto || 0));
 setSeleccionados([]);
@@ -564,6 +613,33 @@ setModalExitoOpen(true);
             </div>
           </div>
         </section>
+
+        {tieneDatosBancarios === false && (
+  <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 md:p-8">
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+      <div>
+        <p className="font-bold text-slate-800">
+          Registra tu cuenta bancaria
+        </p>
+
+        <p className="mt-1 text-sm text-slate-600">
+          Necesitas una cuenta bancaria registrada para solicitar
+          retiros de tu balance.
+        </p>
+      </div>
+
+      <Button
+        type="button"
+        onClick={() =>
+          router.push("/establecimiento/datos-bancarios")
+        }
+        className="h-11 rounded-xl bg-[#1e3a8a] px-5 font-semibold text-white hover:bg-[#172554]"
+      >
+        Registrar cuenta bancaria
+      </Button>
+    </div>
+  </section>
+)}
 
         {/* DISPONIBLES */}
 
@@ -737,8 +813,25 @@ setModalExitoOpen(true);
         </section>
 
         {mensaje && (
-  <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-600">
-    {mensaje}
+  <div
+    ref={mensajeRef}
+    className="rounded-2xl border border-red-200 bg-red-50 p-4"
+  >
+    <p className="text-sm font-medium text-red-700">
+      {mensaje}
+    </p>
+
+    {datosBancariosRequired && (
+      <Button
+        type="button"
+        onClick={() =>
+          router.push("/establecimiento/datos-bancarios")
+        }
+        className="mt-4 h-11 rounded-xl bg-[#1e3a8a] px-5 font-semibold text-white hover:bg-[#172554]"
+      >
+        Registrar cuenta bancaria
+      </Button>
+    )}
   </div>
 )}
 

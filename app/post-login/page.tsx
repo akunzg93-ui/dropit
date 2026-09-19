@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function PostLogin() {
+function PostLoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const requestedRole = searchParams.get("role");
 
   useEffect(() => {
     async function checkRole() {
@@ -46,11 +49,24 @@ export default function PostLogin() {
         await new Promise((resolve) => setTimeout(resolve, 400));
       }
 
-      // sin rol todavía
-      if (!profile?.role) {
-        router.replace("/seleccionar-rol");
-        return;
-      }
+    // Usuario nuevo proveniente de un flujo OAuth conocido.
+if (!profile?.role) {
+  if (
+    requestedRole === "vendor" ||
+    requestedRole === "establishment"
+  ) {
+    router.replace(
+      `/completar-registro?role=${requestedRole}`
+    );
+    return;
+  }
+
+  // Perfil sin rol y sin un origen de registro válido.
+  // No permitimos seleccionar el rol libremente.
+  await supabase.auth.signOut();
+  router.replace("/login");
+  return;
+}
 
       if (profile.role === "vendor") {
         router.replace("/vendedor/dashboard");
@@ -129,17 +145,32 @@ export default function PostLogin() {
         return;
       }
 
-      // fallback seguro
-      router.replace("/seleccionar-rol");
+      // Rol desconocido o no soportado.
+await supabase.auth.signOut();
+router.replace("/login");
     }
 
     checkRole();
 
-  }, [router]);
+ }, [router, requestedRole]);
 
   return (
     <div className="flex items-center justify-center h-screen">
       Configurando tu cuenta...
     </div>
+  );
+}
+
+export default function PostLogin() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen">
+          Configurando tu cuenta...
+        </div>
+      }
+    >
+      <PostLoginContent />
+    </Suspense>
   );
 }

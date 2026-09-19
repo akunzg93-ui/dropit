@@ -41,6 +41,11 @@ type Retiro = {
   created_at: string;
   referencia_pago?: string | null;
   establecimiento_id?: string | null;
+
+  titular_cuenta_destino?: string | null;
+  banco_destino?: string | null;
+  clabe_destino?: string | null;
+
   establecimientos?: {
     nombre: string;
   } | null;
@@ -574,6 +579,46 @@ function DetalleRetiro({
             />
           </div>
 
+          {retiro.clabe_destino && (
+  <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 sm:p-5">
+    <div className="flex items-start gap-3">
+      <Wallet className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold text-slate-900">
+          Datos para transferencia
+        </p>
+
+        <p className="mt-1 text-sm text-slate-500">
+          Cuenta registrada al momento de solicitar el retiro.
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <DatoTransferencia
+            label="Titular"
+            value={
+              retiro.titular_cuenta_destino || "No disponible"
+            }
+          />
+
+          <DatoTransferencia
+            label="Banco"
+            value={retiro.banco_destino || "No especificado"}
+          />
+
+          <div className="sm:col-span-2">
+            <DatoTransferencia
+              label="CLABE"
+              value={retiro.clabe_destino}
+              mono
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
           {legacy && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
               <p className="text-sm font-semibold text-amber-900">
@@ -792,6 +837,32 @@ function ResumenCard({
 
       <p className="text-xs text-slate-400">{label}</p>
       <p className="mt-1 font-semibold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function DatoTransferencia({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-blue-100 bg-white px-3 py-2.5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+
+      <p
+        className={`mt-1 break-all font-semibold text-slate-900 ${
+          mono ? "font-mono tracking-wide" : ""
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
