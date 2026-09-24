@@ -3,7 +3,7 @@
 > Documento Oficial  
 > Versión: 1.2  
 > Estado: Oficial  
-> Última actualización: 18/09/2026
+> Última actualización: 23/09/2026
 
 ---
 
@@ -23,8 +23,11 @@
 |---|---|
 | `POST /api/orders/aceptar-establecimiento` | Aceptar el punto y pasar a `en_transito` |
 | `POST /api/orders/rechazar-establecimiento` | Rechazar la solicitud |
+| `POST /api/orders/preview-vendedor` | Validar folio y código del vendedor antes de recibir |
 | `POST /api/orders/recibido` | Confirmar recepción física |
+| `POST /api/orders/preview` | Validar folio y código de entrega antes de entregar al cliente |
 | `POST /api/orders/entregado` | Confirmar entrega al cliente |
+| `POST /api/orders/establishments/complete-onboarding` | Asociar perfil fiscal y activar el establecimiento al completar onboarding |
 | `POST /api/orders/notificar-vendedor` | Enviar código e instrucciones al vendedor |
 
 Las rutas históricas estables no se mueven sólo por organización.
@@ -40,6 +43,16 @@ El servidor autentica al usuario con Supabase Auth y valida que sea propietario 
 Antes de modificar el pedido obtiene el valor real del servicio mediante `getOrderServiceValue`. Después delega la operación crítica a `recibir_pedido_con_balance`, que crea el balance y registra la recepción atómicamente.
 
 QR, Storage y correo se ejecutan después de la transacción crítica y no forman parte de la atomicidad financiera.
+
+## Previews operativos
+
+`POST /api/orders/preview-vendedor` valida folio, `codigo_vendedor`, estado `en_transito` y establecimiento asignado. Resuelve el nombre del establecimiento por `establecimiento_uuid` y devuelve los datos necesarios para que la UI solicite la confirmación física.
+
+`POST /api/orders/preview` valida folio, `codigo_entrega`, estado `pendiente_recoleccion` y establecimiento asignado. Resuelve el nombre del establecimiento por `establecimiento_uuid` y devuelve el resumen previo a la entrega. El preview no cambia el estado del pedido.
+
+## Cierre de onboarding de establecimiento
+
+`POST /api/orders/establishments/complete-onboarding` valida propiedad, datos operativos y perfil fiscal del mismo usuario. Al completar correctamente el onboarding asocia `fiscal_profile_id` y establece `activo = true`.
 
 # Cancelaciones
 

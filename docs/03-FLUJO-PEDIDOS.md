@@ -154,6 +154,8 @@ Reglas:
 - El pedido debe estar en `en_transito`.
 - El folio y `codigo_vendedor` deben ser válidos.
 - El establecimiento autenticado debe ser propietario del establecimiento asignado al pedido.
+- La pantalla de recepción permite captura manual o lectura de QR con formato `FOLIO|CODIGO_VENDEDOR`.
+- Una lectura QR válida ejecuta automáticamente el preview; la recepción física sigue requiriendo confirmación explícita del establecimiento.
 - El valor financiero del servicio debe poder determinarse mediante la trazabilidad de la Coin consumida.
 
 La transición crítica se ejecuta mediante `recibir_pedido_con_balance`.
@@ -183,6 +185,8 @@ Reglas:
 
 - El pedido debe estar en `pendiente_recoleccion`.
 - El código de entrega debe ser válido.
+- La pantalla de entrega permite captura manual o lectura de QR con formato `FOLIO|CODIGO_ENTREGA`.
+- Una lectura QR válida ejecuta automáticamente el preview; el cambio a `entregado` sigue requiriendo confirmación explícita del establecimiento.
 
 Resultado:
 

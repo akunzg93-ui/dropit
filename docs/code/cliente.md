@@ -3,7 +3,7 @@
 > Documento Oficial  
 > Versión: 1.1  
 > Estado: En construcción  
-> Última actualización: 18/07/2026
+> Última actualización: 23/09/2026
 
 # Objetivo
 
@@ -22,7 +22,7 @@ Los nombres técnicos históricos bajo `/comprador` se mantienen por estabilidad
 # Flujo
 
 1. Validar folio.
-2. Elegir entre establecimientos propuestos por el vendedor.
+2. Elegir entre establecimientos propuestos por el vendedor que continúen activos al momento de la selección. Los candidatos inactivos se filtran en UI y la confirmación server-side vuelve a validar disponibilidad.
 3. Confirmar el punto.
 4. Esperar aceptación del establecimiento.
 5. Consultar avance y plazos.

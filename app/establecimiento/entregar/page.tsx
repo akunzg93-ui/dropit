@@ -35,6 +35,9 @@ export default function EntregarPedidoPage() {
   const pedidoEntregadoRef = useRef<PedidoPreview | null>(null);
   const qrInstance = useRef<Html5Qrcode | null>(null);
 
+  const procesandoQr = useRef(false);
+const [qrExitoso, setQrExitoso] = useState(false);
+
   const esDevolucion = modo === "devolucion";
 
   const limpiarFormulario = () => {
@@ -54,65 +57,97 @@ export default function EntregarPedidoPage() {
   };
 
   const iniciarScanner = async () => {
-    setMensaje("");
+  setMensaje("");
+  procesandoQr.current = false;
 
-    if (!qrInstance.current) {
-      qrInstance.current = new Html5Qrcode("qr-reader");
+  if (!qrInstance.current) {
+    qrInstance.current = new Html5Qrcode("qr-reader");
+  }
+
+  try {
+    const cameras = await Html5Qrcode.getCameras();
+
+    if (!cameras || cameras.length === 0) {
+      setMensaje("No se encontraron cámaras");
+      return;
     }
 
-    try {
-      const cameras = await Html5Qrcode.getCameras();
+    const scanner = qrInstance.current;
 
-      if (!cameras || cameras.length === 0) {
-        setMensaje("No se encontraron cámaras");
-        return;
-      }
-
-      const scanner = qrInstance.current;
-
-      if (!scanner) {
-        setMensaje("Scanner no inicializado");
-        return;
-      }
-
-      const cameraId =
-        cameras.find((camera) =>
-          camera.label.toLowerCase().includes("back")
-        )?.id || cameras[0].id;
-
-      await scanner.start(
-        cameraId,
-        {
-          fps: 10,
-          qrbox: 260,
-        },
-        (decodedText: string) => {
-          if (!decodedText.includes("|")) {
-            setMensaje("QR inválido");
-            return;
-          }
-
-          const [folioQr, codigoQr] = decodedText.split("|");
-
-          if (!folioQr || !codigoQr) {
-            setMensaje("QR inválido");
-            return;
-          }
-
-          setFolio(folioQr.trim().toUpperCase());
-          setCodigo(codigoQr.trim());
-
-          void detenerScanner();
-        },
-        () => {}
-      );
-
-      setScannerActivo(true);
-    } catch (error) {
-      console.error("Error accediendo a la cámara:", error);
-      setMensaje("No se pudo acceder a la cámara");
+    if (!scanner) {
+      setMensaje("Scanner no inicializado");
+      return;
     }
-  };
+
+    const cameraId =
+      cameras.find((camera) =>
+        camera.label.toLowerCase().includes("back")
+      )?.id || cameras[0].id;
+
+    await scanner.start(
+      cameraId,
+      {
+        fps: 10,
+        qrbox: 260,
+      },
+      async (decodedText: string) => {
+        if (procesandoQr.current) return;
+
+        if (!decodedText.includes("|")) {
+          setMensaje("QR inválido");
+          return;
+        }
+
+        const [folioQr, codigoQr] = decodedText.split("|");
+
+        if (!folioQr || !codigoQr) {
+          setMensaje("QR inválido");
+          return;
+        }
+
+        procesandoQr.current = true;
+
+        const folioLimpio = folioQr.trim().toUpperCase();
+        const codigoLimpio = codigoQr.trim();
+
+        setFolio(folioLimpio);
+        setCodigo(codigoLimpio);
+
+        await detenerScanner();
+
+        // Entrega al cliente:
+        // mostrar éxito y validar automáticamente
+        if (!esDevolucion) {
+          setQrExitoso(true);
+
+          await new Promise((resolve) =>
+            setTimeout(resolve, 900)
+          );
+
+          setQrExitoso(false);
+
+          await validarPedido(
+            folioLimpio,
+            codigoLimpio
+          );
+
+          return;
+        }
+
+        // Devoluciones conservan por ahora
+        // el comportamiento actual
+        procesandoQr.current = false;
+      },
+      () => {}
+    );
+
+    setScannerActivo(true);
+  } catch (error) {
+    console.error("Error accediendo a la cámara:", error);
+    setMensaje("No se pudo acceder a la cámara");
+    procesandoQr.current = false;
+  }
+};
 
   const detenerScanner = async () => {
     try {
@@ -132,67 +167,74 @@ export default function EntregarPedidoPage() {
     }
   };
 
-  const consultarPedido = async () => {
-    const folioLimpio = folio.trim().toUpperCase();
-    const codigoLimpio = codigo.trim();
+ const validarPedido = async (
+  folioPedido: string,
+  codigoPedido: string
+) => {
+  const folioLimpio = folioPedido.trim().toUpperCase();
+  const codigoLimpio = codigoPedido.trim();
 
-    if (!folioLimpio || !codigoLimpio) {
+  if (!folioLimpio || !codigoLimpio) {
+    setMensaje(
+      esDevolucion
+        ? "Ingresa el folio y código de devolución"
+        : "Ingresa el folio y código de entrega"
+    );
+    return;
+  }
+
+  setLoading(true);
+  setMensaje("");
+
+  try {
+    const endpoint = esDevolucion
+      ? "/api/orders/devoluciones/preview"
+      : "/api/orders/preview";
+
+    const body = esDevolucion
+      ? {
+          folio: folioLimpio,
+          codigo_devolucion: codigoLimpio,
+        }
+      : {
+          folio: folioLimpio,
+          codigo_entrega: codigoLimpio,
+        };
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
       setMensaje(
-        esDevolucion
-          ? "Ingresa el folio y código de devolución"
-          : "Ingresa el folio y código de entrega"
+        data.error ||
+          (esDevolucion
+            ? "No se pudo validar la devolución"
+            : "No se pudo validar el pedido")
       );
       return;
     }
 
-    setLoading(true);
-    setMensaje("");
+    setPedido(data.pedido);
+    setFolio(folioLimpio);
+    setCodigo(codigoLimpio);
+  } catch (error) {
+    console.error("Error consultando pedido:", error);
+    setMensaje("Error de red");
+  } finally {
+    setLoading(false);
+  }
+};
 
-    try {
-      const endpoint = esDevolucion
-        ? "/api/orders/devoluciones/preview"
-        : "/api/orders/preview";
-
-      const body = esDevolucion
-        ? {
-            folio: folioLimpio,
-            codigo_devolucion: codigoLimpio,
-          }
-        : {
-            folio: folioLimpio,
-            codigo_entrega: codigoLimpio,
-          };
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMensaje(
-          data.error ||
-            (esDevolucion
-              ? "No se pudo validar la devolución"
-              : "No se pudo validar el pedido")
-        );
-        return;
-      }
-
-      setPedido(data.pedido);
-      setFolio(folioLimpio);
-      setCodigo(codigoLimpio);
-    } catch (error) {
-      console.error("Error consultando pedido:", error);
-      setMensaje("Error de red");
-    } finally {
-      setLoading(false);
-    }
-  };
+const consultarPedido = async () => {
+  await validarPedido(folio, codigo);
+};
 
   const confirmarEntrega = async () => {
     if (!pedido) return;
@@ -318,6 +360,25 @@ export default function EntregarPedidoPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 px-5 py-12">
+
+{qrExitoso && (
+  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
+    <div className="w-full max-w-sm rounded-3xl border border-emerald-200 bg-white p-8 text-center shadow-2xl">
+      <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-emerald-50 text-5xl">
+        ✓
+      </div>
+
+      <h2 className="mt-5 text-2xl font-bold text-emerald-700">
+        QR leído correctamente
+      </h2>
+
+      <p className="mt-2 text-sm text-slate-500">
+        Validando pedido...
+      </p>
+    </div>
+  </div>
+)}
+      
       {showDelivered && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
           <div className="w-full max-w-md space-y-5 rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-2xl">

@@ -86,6 +86,7 @@ export default function EstablecimientoPage() {
 
   const [selectedPoint, setSelectedPoint] = useState(null);
   const formRef = useRef(null);
+  const omitirSiguienteAutocomplete = useRef(false);
 
   const [busqueda, setBusqueda] = useState("");
   const [sugerencias, setSugerencias] = useState([]);
@@ -156,25 +157,82 @@ export default function EstablecimientoPage() {
     };
   }, []);
 
-  const manejarCambioBusqueda = async (valor) => {
-    setBusqueda(valor);
+  const manejarCambioBusqueda = (valor) => {
+  setBusqueda(valor);
+};
+
+useEffect(() => {
+  if (omitirSiguienteAutocomplete.current) {
+    omitirSiguienteAutocomplete.current = false;
     setSugerencias([]);
-
-    if (!valor || valor.length < 3) return;
-
-    setCargandoSugerencias(true);
-    const resultados = await autocompletarDireccion(valor);
-    setSugerencias(resultados);
     setCargandoSugerencias(false);
+    return;
+  }
+
+  const texto = busqueda.trim();
+
+  if (texto.length < 3) {
+    setSugerencias([]);
+    setCargandoSugerencias(false);
+    return;
+  }
+
+  let activo = true;
+
+  const timeout = window.setTimeout(async () => {
+    setCargandoSugerencias(true);
+
+    try {
+      const resultados = await autocompletarDireccion(
+        texto,
+        selectedPoint
+      );
+
+      if (activo) {
+        setSugerencias(resultados);
+      }
+    } catch (error) {
+      console.error(
+        "❌ Error buscando direcciones:",
+        error
+      );
+
+      if (activo) {
+        setSugerencias([]);
+      }
+    } finally {
+      if (activo) {
+        setCargandoSugerencias(false);
+      }
+    }
+  }, 150);
+
+  return () => {
+    activo = false;
+    window.clearTimeout(timeout);
   };
+}, [busqueda, selectedPoint]);
 
   const seleccionarSugerencia = (sug) => {
-    setBusqueda(sug.label);
-    setDireccion(sug.label);
-    if (sug.cp) setCp(sug.cp);
-    setSelectedPoint({ lat: sug.lat, lng: sug.lng });
-    setSugerencias([]);
-  };
+  // El cambio de "busqueda" viene de una selección,
+  // no de que el usuario esté escribiendo.
+  omitirSiguienteAutocomplete.current = true;
+
+  setBusqueda(sug.label);
+  setDireccion(sug.label);
+
+  if (sug.cp) {
+    setCp(sug.cp);
+  }
+
+  setSelectedPoint({
+    lat: sug.lat,
+    lng: sug.lng,
+  });
+
+  setSugerencias([]);
+  setCargandoSugerencias(false);
+};
 
   const usarUbicacionActual = () => {
     if (!navigator.geolocation) {
@@ -207,9 +265,42 @@ export default function EstablecimientoPage() {
     );
   };
 
-  const manejarClickMapa = (punto) => {
-    setSelectedPoint(punto);
-  };
+  const manejarClickMapa = async (punto) => {
+  setSelectedPoint(punto);
+  setSugerencias([]);
+  setMensaje("");
+
+  try {
+    const rev = await reverseGeocodificar(
+      punto.lat,
+      punto.lng
+    );
+
+    if (rev) {
+      setDireccion(rev.direccion);
+      setBusqueda(rev.direccion);
+
+      if (rev.cp) {
+        setCp(rev.cp);
+      }
+
+      return;
+    }
+
+    setMensaje(
+      "Punto seleccionado. No pudimos identificar automáticamente la dirección."
+    );
+  } catch (error) {
+    console.error(
+      "❌ Error obteniendo dirección del mapa:",
+      error
+    );
+
+    setMensaje(
+      "Punto seleccionado. No pudimos identificar automáticamente la dirección."
+    );
+  }
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();

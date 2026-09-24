@@ -37,6 +37,8 @@ Mapa principal utilizado en:
 - Calcular distancias.
 - Obtener ubicación actual.
 - Buscar direcciones.
+- Autocompletar direcciones con debounce y sesgo de proximidad cuando existe un punto seleccionado.
+- Sincronizar búsqueda, geocodificación inversa y marcador seleccionado sin remontar dinámicamente `MapContainer`.
 
 ---
 

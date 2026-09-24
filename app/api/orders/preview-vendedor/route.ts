@@ -22,7 +22,10 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 1️⃣ Buscar pedido
+    // =====================================================
+    // 1. Buscar pedido
+    // =====================================================
+
     const { data: pedido, error } = await supabase
       .from("pedidos")
       .select(`
@@ -30,15 +33,8 @@ export async function POST(req: Request) {
         folio,
         estado,
         producto,
-        tamano,
         codigo_vendedor,
-        pedido_establecimientos (
-          establecimientos (
-            id,
-            nombre,
-            direccion
-          )
-        )
+        establecimiento_uuid
       `)
       .eq("folio", folio)
       .single();
@@ -50,15 +46,24 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2️⃣ VALIDACIÓN CLAVE (🔴 AQUÍ ESTABA EL ERROR)
+    // =====================================================
+    // 2. Validar estado
+    // =====================================================
+
     if (pedido.estado !== "en_transito") {
       return NextResponse.json(
-        { error: "El pedido no está en estado válido para recepción" },
+        {
+          error:
+            "El pedido no está en estado válido para recepción",
+        },
         { status: 409 }
       );
     }
 
-    // 3️⃣ Validar código del vendedor
+    // =====================================================
+    // 3. Validar código del vendedor
+    // =====================================================
+
     if (pedido.codigo_vendedor !== codigo_vendedor) {
       return NextResponse.json(
         { error: "Código de vendedor incorrecto" },
@@ -66,12 +71,54 @@ export async function POST(req: Request) {
       );
     }
 
+    // =====================================================
+    // 4. Validar establecimiento confirmado
+    // =====================================================
+
+    if (!pedido.establecimiento_uuid) {
+      return NextResponse.json(
+        { error: "El pedido no tiene establecimiento asignado" },
+        { status: 409 }
+      );
+    }
+
+    const {
+      data: establecimiento,
+      error: establecimientoError,
+    } = await supabase
+      .from("establecimientos")
+      .select("nombre")
+      .eq("uuid", pedido.establecimiento_uuid)
+      .single();
+
+    if (establecimientoError || !establecimiento) {
+      console.error(
+        "❌ Error obteniendo establecimiento:",
+        establecimientoError
+      );
+
+      return NextResponse.json(
+        { error: "Establecimiento asignado no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // =====================================================
+    // 5. Preview mínimo para recepción
+    // =====================================================
+
     return NextResponse.json({
       ok: true,
-      pedido,
+      pedido: {
+        id: pedido.id,
+        folio: pedido.folio,
+        producto: pedido.producto,
+        establecimiento_nombre: establecimiento.nombre,
+      },
     });
   } catch (err) {
     console.error("❌ ERROR PREVIEW VENDOR:", err);
+
     return NextResponse.json(
       { error: "Error interno" },
       { status: 500 }

@@ -185,28 +185,29 @@ export async function POST(req: Request) {
     // =====================================================
 
     const {
-      data: actualizado,
-      error: updateError,
-    } = await supabase
-      .from("establecimientos")
-      .update({
-  fiscal_profile_id:
-    fiscalProfile.id,
-})
-      .eq(
-        "id",
-        establecimiento.id
-      )
-      .eq(
-        "usuario_id",
-        user.id
-      )
-      .select(`
-  id,
-  nombre,
-  fiscal_profile_id
-`)
-      .single();
+  data: actualizado,
+  error: updateError,
+} = await supabase
+  .from("establecimientos")
+  .update({
+    fiscal_profile_id: fiscalProfile.id,
+    activo: true,
+  })
+  .eq(
+    "id",
+    establecimiento.id
+  )
+  .eq(
+    "usuario_id",
+    user.id
+  )
+  .select(`
+    id,
+    nombre,
+    fiscal_profile_id,
+    activo
+  `)
+  .single();
 
     if (
       updateError ||

@@ -135,14 +135,15 @@ export default function CompradorPage() {
           lat,
           lng,
           horario,
-          zona
+          zona,
+          activo
         )
       `)
       .eq("pedido_id", pedidoId)
       .then(async ({ data }) => {
         const ests = (data || [])
-          .map((r) => r.establecimientos)
-          .filter(Boolean);
+  .map((r) => r.establecimientos)
+  .filter((est) => est && est.activo === true);
 
         const { data: ratings } = await supabase
           .from("ratings_resumen")

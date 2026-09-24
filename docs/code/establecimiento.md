@@ -3,7 +3,7 @@
 > Documento Oficial  
 > Versión: 1.2  
 > Estado: En construcción  
-> Última actualización: 19/09/2026
+> Última actualización: 23/09/2026
 
 # Objetivo
 
@@ -32,7 +32,7 @@ Al aceptar:
 
 # Recepción del vendedor
 
-Valida folio y `codigo_vendedor`.
+Valida folio y `codigo_vendedor`. La captura puede ser manual o mediante QR `FOLIO|CODIGO_VENDEDOR`. Al leer un QR válido, la UI muestra confirmación visual y ejecuta automáticamente `preview-vendedor`; el usuario todavía debe confirmar la recepción física antes de llamar a `recibido`.
 
 Resultado:
 
@@ -44,7 +44,7 @@ Resultado:
 
 # Entrega al cliente
 
-Valida el código de entrega y cierra el pedido en `entregado`.
+Valida el código de entrega y cierra el pedido en `entregado`. La captura puede ser manual o mediante QR `FOLIO|CODIGO_ENTREGA`; una lectura válida ejecuta automáticamente el preview, pero la entrega final permanece detrás de la confirmación explícita del establecimiento.
 
 # Devolución al vendedor
 
@@ -71,7 +71,7 @@ Si pasan 48 horas desde `devolucion_iniciada_at`, el job cambia el estado a `cus
 
 - `/establecimiento/facturacion`: lista solicitudes y pendientes.
 - `/establecimiento/facturacion/[id]`: muestra folio, importe esperado, receptor y permite cargar XML/PDF.
-- `/establecimiento/onboarding-fiscal`: selección/creación de perfil fiscal asociado al establecimiento.
+- `/establecimiento/onboarding-fiscal`: selección/creación de perfil fiscal asociado al establecimiento. Al completar el onboarding con datos operativos y perfil fiscal válidos, la API asocia `fiscal_profile_id` y activa el establecimiento.
 
 ## Flujo
 

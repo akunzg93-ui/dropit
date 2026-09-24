@@ -82,7 +82,10 @@ function ResizeMap() {
       }, 300);
     };
 
-    document.addEventListener("visibilitychange", handleVisibility);
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibility
+    );
 
     return () => {
       active = false;
@@ -90,9 +93,35 @@ function ResizeMap() {
       window.clearTimeout(resizeTimeout);
       window.clearTimeout(visibilityTimeout);
 
-      document.removeEventListener("visibilitychange", handleVisibility);
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibility
+      );
     };
   }, [map]);
+
+  return null;
+}
+
+function SelectorUbicacion({ onLocationSelected }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!onLocationSelected) return;
+
+    const handleClick = (event) => {
+      onLocationSelected({
+        lat: event.latlng.lat,
+        lng: event.latlng.lng,
+      });
+    };
+
+    map.on("click", handleClick);
+
+    return () => {
+      map.off("click", handleClick);
+    };
+  }, [map, onLocationSelected]);
 
   return null;
 }
@@ -101,6 +130,8 @@ export default function MapaEstablecimientos({
   establecimientos = [],
   seleccionados = [],
   onMarkerClick,
+  selectedPoint = null,
+  onLocationSelected,
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -117,22 +148,23 @@ export default function MapaEstablecimientos({
     });
   }, [establecimientos]);
 
-  const center =
-    establecimientosValidos.length > 0
-      ? [
-          Number(establecimientosValidos[0].lat),
-          Number(establecimientosValidos[0].lng),
-        ]
-      : [19.432608, -99.133209];
+  const selectedPointValido =
+    selectedPoint &&
+    Number.isFinite(Number(selectedPoint.lat)) &&
+    Number.isFinite(Number(selectedPoint.lng));
 
-  const mapKey = useMemo(() => {
-    return (
-      establecimientosValidos
-        .map((est) => est.uuid || est.id)
-        .filter(Boolean)
-        .join("-") || "mapa-establecimientos"
-    );
-  }, [establecimientosValidos]);
+  const center = selectedPointValido
+    ? [
+        Number(selectedPoint.lat),
+        Number(selectedPoint.lng),
+      ]
+    : establecimientosValidos.length > 0
+    ? [
+        Number(establecimientosValidos[0].lat),
+        Number(establecimientosValidos[0].lng),
+      ]
+    : [19.432608, -99.133209];
+
 
   if (!mounted) {
     return (
@@ -142,32 +174,66 @@ export default function MapaEstablecimientos({
 
   return (
     <MapContainer
-      key={mapKey}
       center={center}
       zoom={12}
-      style={{ height: "100%", width: "100%" }}
+      style={{
+        height: "100%",
+        width: "100%",
+      }}
       scrollWheelZoom
     >
       <ResizeMap />
+
+      <SelectorUbicacion
+        onLocationSelected={onLocationSelected}
+      />
 
       <TileLayer
         attribution="© Mapbox © OpenStreetMap"
         url={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
       />
 
+      {selectedPointValido && (
+        <Marker
+          position={[
+            Number(selectedPoint.lat),
+            Number(selectedPoint.lng),
+          ]}
+          icon={CrearPin({
+            seleccionado: true,
+          })}
+        >
+          <Popup>
+            <strong>
+              Ubicación del establecimiento
+            </strong>
+            <br />
+            Punto exacto seleccionado
+          </Popup>
+        </Marker>
+      )}
+
       {establecimientosValidos.map((est) => {
-        const identificador = est.uuid || est.id;
+        const identificador =
+          est.uuid || est.id;
 
         const seleccionado = seleccionados.some(
           (seleccionadoActual) =>
-            (seleccionadoActual.uuid || seleccionadoActual.id) === identificador
+            (seleccionadoActual.uuid ||
+              seleccionadoActual.id) ===
+            identificador
         );
 
         return (
           <Marker
             key={identificador}
-            position={[Number(est.lat), Number(est.lng)]}
-            icon={CrearPin({ seleccionado })}
+            position={[
+              Number(est.lat),
+              Number(est.lng),
+            ]}
+            icon={CrearPin({
+              seleccionado,
+            })}
             eventHandlers={{
               click: () => {
                 onMarkerClick?.(est);
@@ -177,10 +243,13 @@ export default function MapaEstablecimientos({
             <Popup>
               <strong>{est.nombre}</strong>
               <br />
+
               {est.direccion}
               <br />
+
               <span className="text-xs">
-                Pequeño: {est.capacidad_small} — Mediano:{" "}
+                Pequeño: {est.capacidad_small} —
+                Mediano:{" "}
                 {est.capacidad_medium}
               </span>
             </Popup>

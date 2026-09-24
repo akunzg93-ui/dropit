@@ -14,6 +14,7 @@ type PedidoPreview = {
 
 export default function RecibirPedidoPage() {
   const router = useRouter();
+
   const [folio, setFolio] = useState("");
   const [codigo, setCodigo] = useState("");
   const [mensaje, setMensaje] = useState("");
@@ -23,10 +24,136 @@ export default function RecibirPedidoPage() {
   const [pedido, setPedido] = useState<PedidoPreview | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Feedback visual exclusivo del escaneo QR.
+  const [qrExitoso, setQrExitoso] = useState(false);
+
+  // Evita procesar varias veces el mismo QR mientras
+  // la cámara termina de detenerse.
+  const procesandoQr = useRef(false);
+
   const qrInstance = useRef<Html5Qrcode | null>(null);
+
+  const detenerScanner = async () => {
+    try {
+      if (qrInstance.current) {
+        const scanner = qrInstance.current;
+
+        if (scanner.isScanning) {
+          await scanner.stop();
+        }
+
+        await scanner.clear();
+      }
+    } catch (_) {}
+
+    setScannerActivo(false);
+  };
+
+  const validarPedido = async (
+    folioPedido: string,
+    codigoPedido: string
+  ) => {
+    if (!folioPedido || !codigoPedido) {
+      setMensaje("Ingresa folio y código");
+      return false;
+    }
+
+    setLoading(true);
+    setMensaje("");
+
+    try {
+      const res = await fetch("/api/orders/preview-vendedor", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          folio: folioPedido.trim(),
+          codigo_vendedor: codigoPedido.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMensaje(
+          data.error || "No se pudo validar el pedido"
+        );
+        return false;
+      }
+
+      setPedido(data.pedido);
+      return true;
+    } catch (err) {
+      console.error(
+        "❌ Error validando pedido:",
+        err
+      );
+
+      setMensaje("Error de red");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const procesarQr = async (decodedText: string) => {
+    if (procesandoQr.current) {
+      return;
+    }
+
+    if (!decodedText.includes("|")) {
+      setMensaje("QR inválido");
+      return;
+    }
+
+    const [folioQr, codigoQr] = decodedText.split("|");
+
+    const folioLimpio = folioQr?.trim();
+    const codigoLimpio = codigoQr?.trim();
+
+    if (!folioLimpio || !codigoLimpio) {
+      setMensaje("QR inválido");
+      return;
+    }
+
+    procesandoQr.current = true;
+
+    setFolio(folioLimpio);
+    setCodigo(codigoLimpio);
+    setMensaje("");
+
+    await detenerScanner();
+
+    // Mostramos primero confirmación visual del escaneo.
+    setQrExitoso(true);
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, 900)
+    );
+
+    // Validamos directamente con los valores obtenidos
+    // del QR para no depender de la actualización del state.
+    const valido = await validarPedido(
+      folioLimpio,
+      codigoLimpio
+    );
+
+    setQrExitoso(false);
+    procesandoQr.current = false;
+
+    // Si falla la validación, dejamos folio y código
+    // visibles para que el establecimiento pueda revisarlos.
+    if (!valido) {
+      return;
+    }
+  };
 
   const iniciarScanner = async () => {
     setMensaje("");
+    setPedido(null);
+    setQrExitoso(false);
+    procesandoQr.current = false;
 
     if (!qrInstance.current) {
       qrInstance.current = new Html5Qrcode("qr-reader");
@@ -48,24 +175,18 @@ export default function RecibirPedidoPage() {
       }
 
       const cameraId =
-        cameras.find((c) => c.label.toLowerCase().includes("back"))?.id ||
-        cameras[0].id;
+        cameras.find((c) =>
+          c.label.toLowerCase().includes("back")
+        )?.id || cameras[0].id;
 
       await scanner.start(
         cameraId,
-        { fps: 10, qrbox: 260 },
+        {
+          fps: 10,
+          qrbox: 260,
+        },
         (decodedText: string) => {
-          if (!decodedText.includes("|")) {
-            setMensaje("QR inválido");
-            return;
-          }
-
-          const [f, c] = decodedText.split("|");
-
-          setFolio(f);
-          setCodigo(c);
-
-          detenerScanner();
+          void procesarQr(decodedText);
         },
         () => {}
       );
@@ -77,112 +198,70 @@ export default function RecibirPedidoPage() {
     }
   };
 
-  const detenerScanner = async () => {
-    try {
-      if (qrInstance.current) {
-        await qrInstance.current.stop();
-        await qrInstance.current.clear();
-      }
-    } catch (_) {}
-
-    setScannerActivo(false);
+  const consultarPedido = async () => {
+    await validarPedido(folio, codigo);
   };
 
-  const consultarPedido = async () => {
-    if (!folio || !codigo) {
-      setMensaje("Ingresa folio y código");
-      return;
-    }
-
+  const confirmarRecepcion = async () => {
     setLoading(true);
     setMensaje("");
 
     try {
-      const res = await fetch("/api/orders/preview-vendedor", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          folio: folio.trim(),
-          codigo_vendedor: codigo.trim(),
-        }),
-      });
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        setMensaje(
+          "Tu sesión no es válida. Inicia sesión nuevamente."
+        );
+        return;
+      }
+
+      const res = await fetch(
+        "/api/orders/recibido",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            folio,
+            codigo_vendedor: codigo,
+          }),
+        }
+      );
 
       const data = await res.json();
 
       if (!res.ok) {
-        setMensaje(data.error || "No se pudo validar el pedido");
+        setMensaje(
+          data.error ||
+            "Error al registrar recepción"
+        );
         return;
       }
 
-      setPedido(data.pedido);
+      setShowSuccess(true);
+      setPedido(null);
+      setFolio("");
+      setCodigo("");
     } catch (err) {
+      console.error(
+        "❌ Error al registrar recepción:",
+        err
+      );
+
       setMensaje("Error de red");
     } finally {
       setLoading(false);
     }
   };
 
-  const confirmarRecepcion = async () => {
-  setLoading(true);
-  setMensaje("");
-
-  try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      setMensaje(
-        "Tu sesión no es válida. Inicia sesión nuevamente."
-      );
-      return;
-    }
-
-    const res = await fetch(
-      "/api/orders/recibido",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          folio,
-          codigo_vendedor: codigo,
-        }),
-      }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setMensaje(
-        data.error ||
-          "Error al registrar recepción"
-      );
-      return;
-    }
-
-    setShowSuccess(true);
-    setPedido(null);
-    setFolio("");
-    setCodigo("");
-  } catch (err) {
-    console.error(
-      "❌ Error al registrar recepción:",
-      err
-    );
-    setMensaje("Error de red");
-  } finally {
-    setLoading(false);
-  }
-};
-
   useEffect(() => {
     return () => {
-      detenerScanner();
+      void detenerScanner();
     };
   }, []);
 
@@ -192,6 +271,31 @@ export default function RecibirPedidoPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 px-5 py-12">
+      {/* Feedback temporal al leer correctamente el QR */}
+      {qrExitoso && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-3xl border border-emerald-100 bg-white p-8 text-center shadow-2xl">
+            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-emerald-50">
+              <div className="flex h-16 w-16 animate-[ping_0.5s_ease-out_1] items-center justify-center rounded-full bg-emerald-500 text-3xl font-bold text-white">
+                ✓
+              </div>
+            </div>
+
+            <h2 className="mt-6 text-2xl font-bold text-slate-900">
+              QR leído correctamente
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-500">
+              Estamos validando la información del pedido...
+            </p>
+
+            <div className="mx-auto mt-6 h-1.5 w-32 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full w-full animate-pulse rounded-full bg-emerald-500" />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto space-y-8">
         {showSuccess && (
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4">
@@ -242,7 +346,8 @@ export default function RecibirPedidoPage() {
             </p>
 
             <h1 className="text-4xl md:text-5xl font-bold text-[#1e3a8a] mt-3 leading-tight">
-              Recepción de pedido <span className="inline-block">📦</span>
+              Recepción de pedido{" "}
+              <span className="inline-block">📦</span>
             </h1>
 
             <p className="text-slate-600 mt-4 max-w-2xl text-lg">
@@ -271,14 +376,21 @@ export default function RecibirPedidoPage() {
           {!pedido && (
             <div className="space-y-5">
               <button
-                onClick={scannerActivo ? detenerScanner : iniciarScanner}
+                onClick={
+                  scannerActivo
+                    ? detenerScanner
+                    : iniciarScanner
+                }
+                disabled={qrExitoso}
                 className={`w-full h-12 rounded-xl font-semibold transition-all ${
                   scannerActivo
                     ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                     : "bg-gradient-to-r from-[#2563eb] to-[#1e40af] text-white shadow hover:shadow-lg"
-                }`}
+                } disabled:opacity-50`}
               >
-                {scannerActivo ? "📡 Cámara activa" : "📷 Escanear QR del vendedor"}
+                {scannerActivo
+                  ? "📡 Cámara activa"
+                  : "📷 Escanear QR del vendedor"}
               </button>
 
               <div
@@ -288,9 +400,11 @@ export default function RecibirPedidoPage() {
 
               <div className="flex items-center gap-4">
                 <div className="flex-1 h-px bg-slate-200" />
+
                 <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">
                   o ingreso manual
                 </span>
+
                 <div className="flex-1 h-px bg-slate-200" />
               </div>
 
@@ -299,23 +413,31 @@ export default function RecibirPedidoPage() {
                   className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 focus:ring-2 focus:ring-blue-100 focus:outline-none uppercase"
                   placeholder="EW-XXXXXXX"
                   value={folio}
-                  onChange={(e) => setFolio(e.target.value.toUpperCase())}
+                  onChange={(e) =>
+                    setFolio(
+                      e.target.value.toUpperCase()
+                    )
+                  }
                 />
 
                 <input
                   className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 focus:ring-2 focus:ring-blue-100 focus:outline-none"
                   placeholder="Código de 6 dígitos"
                   value={codigo}
-                  onChange={(e) => setCodigo(e.target.value)}
+                  onChange={(e) =>
+                    setCodigo(e.target.value)
+                  }
                 />
               </div>
 
               <button
                 onClick={consultarPedido}
-                disabled={loading}
+                disabled={loading || qrExitoso}
                 className="w-full h-12 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] text-white font-semibold shadow hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? "Validando..." : "Ver resumen del pedido"}
+                {loading
+                  ? "Validando..."
+                  : "Ver resumen del pedido"}
               </button>
             </div>
           )}
@@ -332,8 +454,16 @@ export default function RecibirPedidoPage() {
                 </h3>
 
                 <div className="mt-4 grid gap-3 text-sm">
-                  <InfoRow label="Folio" value={pedido.folio} />
-                  <InfoRow label="Producto" value={pedido.producto} />
+                  <InfoRow
+                    label="Folio"
+                    value={pedido.folio}
+                  />
+
+                  <InfoRow
+                    label="Producto"
+                    value={pedido.producto}
+                  />
+
                   <InfoRow
                     label="Establecimiento"
                     value={pedido.establecimiento_nombre}
@@ -351,11 +481,16 @@ export default function RecibirPedidoPage() {
                 disabled={loading}
                 className="w-full h-12 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] text-white font-semibold shadow hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? "Confirmando..." : "Confirmar recepción del paquete"}
+                {loading
+                  ? "Confirmando..."
+                  : "Confirmar recepción del paquete"}
               </button>
 
               <button
-                onClick={() => setPedido(null)}
+                onClick={() => {
+                  setPedido(null);
+                  setMensaje("");
+                }}
                 className="w-full h-12 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold transition"
               >
                 Cancelar
@@ -399,11 +534,22 @@ export default function RecibirPedidoPage() {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="flex items-start justify-between gap-4 rounded-2xl bg-white border border-blue-100 px-4 py-3">
-      <span className="text-slate-500">{label}</span>
-      <span className="font-semibold text-slate-900 text-right">{value}</span>
+      <span className="text-slate-500">
+        {label}
+      </span>
+
+      <span className="font-semibold text-slate-900 text-right">
+        {value}
+      </span>
     </div>
   );
 }

@@ -3,7 +3,7 @@
 > Documento Oficial  
 > Versión: 1.2  
 > Estado: En construcción  
-> Última actualización: 18/09/2026
+> Última actualización: 23/09/2026
 
 ---
 
@@ -20,12 +20,16 @@ Las rutas permanecen bajo `app/api/orders/` por estabilidad. No se reorganizan s
 - `rechazar-pedido`
   - Requiere Bearer token y valida propiedad del establecimiento antes de delegar a `rechazar_establecimiento_pedido`.
 - `preview-vendedor`
+  - Valida folio, `codigo_vendedor`, estado `en_transito` y establecimiento asignado.
+  - Resuelve el nombre del establecimiento mediante `establecimiento_uuid`; no modifica el pedido.
 - `recibido`
   - Requiere Bearer token y valida que el usuario autenticado sea propietario del establecimiento asignado.
   - Obtiene el valor financiero mediante `getOrderServiceValue` antes de modificar el pedido.
   - Delega recepción + creación de `balance_movimientos` a `recibir_pedido_con_balance`.
   - QR, Storage y correo ocurren después de la transacción crítica.
 - `preview`
+  - Valida folio, `codigo_entrega`, estado `pendiente_recoleccion` y establecimiento asignado.
+  - Resuelve el nombre del establecimiento mediante `establecimiento_uuid`; no modifica el pedido.
 - `entregado`
 - `notificar-vendedor`
 
@@ -70,6 +74,7 @@ Las rutas estables no se mueven únicamente para mejorar la organización de car
 - `POST /api/orders/billing/establishment-invoices/upload`
 - `POST /api/orders/billing/establishment-invoices/[id]/validate`
 - `POST /api/orders/establishments/complete-onboarding`
+  - Valida propiedad, datos operativos y perfil fiscal; al completar correctamente asocia `fiscal_profile_id` y establece `activo = true`.
 
 La validación de factura no cambia el estado de `balance_movimientos`.
 

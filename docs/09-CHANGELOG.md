@@ -8,6 +8,19 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 
 # [1.0.0] - En desarrollo
 
+## 2026-09-23
+
+### Establecimientos - mapas, disponibilidad y QR operativo
+
+- Se mejoró el autocompletado de direcciones con proximidad, debounce y selección consistente entre búsqueda, geocodificación inversa y mapa.
+- `MapaEstablecimientos` admite selección directa de ubicación sin remontar dinámicamente `MapContainer`, evitando errores de ciclo de vida de Leaflet.
+- La selección del cliente filtra establecimientos inactivos; la validación server-side de establecimiento activo se conserva como segunda barrera.
+- Completar correctamente el onboarding fiscal ahora asocia el perfil fiscal y activa el establecimiento (`activo = true`).
+- `preview-vendedor` y `preview` resuelven el establecimiento asignado mediante `establecimiento_uuid` y devuelven su nombre en el resumen.
+- Recepción admite QR `FOLIO|CODIGO_VENDEDOR`: una lectura válida muestra confirmación visual y ejecuta automáticamente el preview, sin confirmar la recepción física.
+- Entrega al cliente admite QR `FOLIO|CODIGO_ENTREGA` con el mismo patrón: lectura y preview automáticos, manteniendo la confirmación explícita antes de pasar a `entregado`.
+- El modo devolución de la pantalla de entrega conserva su comportamiento previo.
+
 ## 2026-09-19
 
 ### Autenticación - roles y aceptación legal
