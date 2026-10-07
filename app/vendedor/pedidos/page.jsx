@@ -273,27 +273,48 @@ async function cancelarPedido() {
       );
     }
 
-    if (estadoFiltro && estadoFiltro !== "todos") {
-      pedidosFiltrados = pedidosFiltrados.filter(
-        (pedido) => pedido.estado === estadoFiltro
-      );
-    }
+    if (estadoFiltro === "inicio") {
+  pedidosFiltrados = pedidosFiltrados.filter(
+    (pedido) =>
+      pedido.estado === "creado" ||
+      pedido.estado === "pendiente_aprobacion_establecimiento"
+  );
+} else if (estadoFiltro && estadoFiltro !== "todos") {
+  pedidosFiltrados = pedidosFiltrados.filter(
+    (pedido) => pedido.estado === estadoFiltro
+  );
+}
 
     setFiltered(pedidosFiltrados);
   }, [busqueda, tamanoFiltro, estadoFiltro, pedidos]);
 
   const metricas = {
-    total: pedidos.length,
-    en_transito: pedidos.filter(
-      (pedido) => pedido.estado === "en_transito"
-    ).length,
-    entregado: pedidos.filter(
-      (pedido) => pedido.estado === "entregado"
-    ).length,
-    devuelto: pedidos.filter(
-      (pedido) => pedido.estado === "devuelto"
-    ).length,
-  };
+  total: pedidos.length,
+
+  creado: pedidos.filter(
+    (pedido) => pedido.estado === "creado"
+  ).length,
+
+  en_transito: pedidos.filter(
+    (pedido) => pedido.estado === "en_transito"
+  ).length,
+
+  pendiente_recoleccion: pedidos.filter(
+    (pedido) => pedido.estado === "pendiente_recoleccion"
+  ).length,
+
+  entregado: pedidos.filter(
+    (pedido) => pedido.estado === "entregado"
+  ).length,
+
+  devuelto: pedidos.filter(
+    (pedido) => pedido.estado === "devuelto"
+  ).length,
+
+  cancelado: pedidos.filter(
+    (pedido) => pedido.estado === "cancelado"
+  ).length,
+};
 
 
   return (
@@ -310,35 +331,82 @@ async function cancelarPedido() {
           </p>
         </section>
 
-        <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <MetricCard
-            icon={<Package size={20} />}
-            label="Total"
-            value={metricas.total}
-            tone="blue"
-          />
+        {/* MINI TUBERÍA */}
+<section className="space-y-3">
+  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <PipelineMetric
+      icon={<Package size={20} />}
+      label="Creados"
+      value={metricas.creado}
+      onClick={() => setEstadoFiltro("inicio")}
+active={estadoFiltro === "inicio"}
+      first
+    />
 
-          <MetricCard
-            icon={<Truck size={20} />}
-            label="En tránsito"
-            value={metricas.en_transito}
-            tone="purple"
-          />
+    <PipelineMetric
+      icon={<Truck size={20} />}
+      label="En tránsito"
+      value={metricas.en_transito}
+      onClick={() => setEstadoFiltro("en_transito")}
+      active={estadoFiltro === "en_transito"}
+    />
 
-          <MetricCard
-            icon={<CheckCircle size={20} />}
-            label="Entregados"
-            value={metricas.entregado}
-            tone="emerald"
-          />
+    <PipelineMetric
+      icon={<Package size={20} />}
+      label="Pend. recolección"
+      value={metricas.pendiente_recoleccion}
+      onClick={() => setEstadoFiltro("pendiente_recoleccion")}
+      active={estadoFiltro === "pendiente_recoleccion"}
+    />
 
-          <MetricCard
-            icon={<RotateCcw size={20} />}
-            label="Devueltos"
-            value={metricas.devuelto}
-            tone="red"
-          />
-        </section>
+    <PipelineMetric
+      icon={<CheckCircle size={20} />}
+      label="Entregados"
+      value={metricas.entregado}
+      onClick={() => setEstadoFiltro("entregado")}
+      active={estadoFiltro === "entregado"}
+      last
+    />
+  </div>
+
+  <div className="flex flex-wrap items-center gap-3">
+    <button
+      type="button"
+      onClick={() => setEstadoFiltro("devuelto")}
+      className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+        estadoFiltro === "devuelto"
+          ? "border-red-200 bg-red-50 text-red-700"
+          : "border-slate-200 bg-white text-slate-600 hover:border-red-200"
+      }`}
+    >
+      <RotateCcw size={16} />
+      Devueltos
+      <span className="font-bold">{metricas.devuelto}</span>
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setEstadoFiltro("cancelado")}
+      className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+        estadoFiltro === "cancelado"
+          ? "border-slate-300 bg-slate-100 text-slate-800"
+          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+      }`}
+    >
+      <XCircle size={16} />
+      Cancelados
+      <span className="font-bold">{metricas.cancelado}</span>
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setEstadoFiltro("todos")}
+      className="ml-auto text-sm font-semibold text-[#2563eb] transition hover:text-[#1e40af]"
+    >
+      Ver todos ({metricas.total})
+    </button>
+  </div>
+</section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
           <div className="mb-5">
@@ -401,6 +469,10 @@ async function cancelarPedido() {
                 <SelectItem value="todos">
                   Todos los estados
                 </SelectItem>
+
+                <SelectItem value="inicio">
+  Creados / pendientes de aprobación
+</SelectItem>
 
                 <SelectItem value="creado">Creado</SelectItem>
 
@@ -869,6 +941,56 @@ async function cancelarPedido() {
         </div>
       )}
     </div>
+  );
+}
+
+function PipelineMetric({
+  icon,
+  label,
+  value,
+  onClick,
+  active = false,
+  first = false,
+  last = false,
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative rounded-2xl border p-5 text-left shadow-sm transition-all ${
+        active
+          ? "border-blue-300 bg-blue-50 shadow-md"
+          : "border-slate-200 bg-white hover:border-blue-200 hover:shadow-md"
+      }`}
+    >
+      {!last && (
+        <div className="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-blue-100 bg-blue-50 px-1.5 text-sm font-bold text-[#2563eb] md:block">
+          →
+        </div>
+      )}
+
+      <div className="flex items-start justify-between gap-3">
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-xl border ${
+            last
+              ? "border-emerald-100 bg-emerald-50 text-emerald-600"
+              : first
+                ? "border-blue-200 bg-blue-100 text-[#2563eb]"
+                : "border-blue-100 bg-blue-50 text-[#2563eb]"
+          }`}
+        >
+          {icon}
+        </div>
+
+        <span className="text-3xl font-bold text-[#1e3a8a]">
+          {value}
+        </span>
+      </div>
+
+      <p className="mt-4 text-sm font-semibold text-slate-600">
+        {label}
+      </p>
+    </button>
   );
 }
 

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import FlowGuideModal from "@/components/ui/FlowGuideModal";
 import { supabase } from "@/lib/supabaseClient";
 
 import FiscalProfileForm from "@/app/components/billing/FiscalProfileForm";
@@ -52,6 +53,8 @@ function OnboardingFiscalContent() {
     useState(false);
 
   const [error, setError] = useState("");
+  const [mostrarRegistroExitoso, setMostrarRegistroExitoso] =
+  useState(false);
 
   // =====================================================
   // Auth headers
@@ -349,9 +352,7 @@ if (profile?.role !== "establishment") {
         );
       }
 
-      router.replace(
-        "/establecimiento"
-      );
+      setMostrarRegistroExitoso(true);
     } catch (err) {
       console.error(
         "Error completando onboarding:",
@@ -395,6 +396,40 @@ if (profile?.role !== "establishment") {
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-8 lg:py-12">
+      {mostrarRegistroExitoso && (
+  <FlowGuideModal
+    title="¡Establecimiento registrado!"
+    subtitle="Guardamos correctamente la información de tu establecimiento."
+    heroLabel="Estado"
+    heroValue="Registro completado"
+    steps={[
+      {
+        emoji: "🏪",
+        title: "Conoce tu panel",
+        text: "Desde ahí podrás administrar la operación de tu establecimiento.",
+      },
+      {
+        emoji: "📦",
+        title: "Revisa tus pedidos",
+        text: "Consulta los pedidos asociados a tu establecimiento.",
+      },
+      {
+        emoji: "📲",
+        title: "Recibe y entrega",
+        text: "Dropit te guiará durante la recepción y entrega de cada paquete.",
+      },
+    ]}
+    tip="Tu panel será el punto principal para administrar la operación de tu establecimiento."
+    actions={[
+      {
+        label: "Ir al panel",
+        onClick: () => router.replace("/establecimiento/estado"),
+        variant: "primary",
+      },
+    ]}
+    onClose={() => router.replace("/establecimiento/estado")}
+  />
+)}
       <div className="mx-auto w-full max-w-2xl">
 
         <div className="mb-7 text-center">
@@ -414,9 +449,9 @@ if (profile?.role !== "establishment") {
           </h1>
 
           <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-600">
-            Registra los datos fiscales que utilizarás para
-            la facturación de los servicios de este establecimiento.
-          </p>
+  Puedes registrar ahora los datos fiscales de tu establecimiento
+  o completar esta información más adelante.
+</p>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
@@ -429,14 +464,13 @@ if (profile?.role !== "establishment") {
 
             <div>
               <p className="font-semibold text-[#1e3a8a]">
-                Información de facturación
-              </p>
+  Información fiscal
+</p>
 
-              <p className="mt-1 text-sm leading-5 text-slate-600">
-                Dropit utilizará estos datos para la
-                facturación relacionada con los servicios
-                de tu establecimiento.
-              </p>
+<p className="mt-1 text-sm leading-5 text-slate-600">
+  Estos datos se utilizarán para la facturación y configuración
+  fiscal relacionada con los servicios de tu establecimiento.
+</p>
             </div>
           </div>
 
@@ -447,28 +481,46 @@ if (profile?.role !== "establishment") {
           )}
 
           {modo === "crear" ? (
-            <FiscalProfileForm
-              nuevoPerfilFiscal={
-                nuevoPerfilFiscal
-              }
-              setNuevoPerfilFiscal={
-                setNuevoPerfilFiscal
-              }
-              guardandoPerfilFiscal={
-                guardandoPerfil
-              }
-              crearPerfilFiscal={
-                crearPerfilFiscal
-              }
-              onVolver={() => {
-                if (perfiles.length > 0) {
-                  setModo("lista");
-                } else {
-                  router.back();
-                }
-              }}
-            />
-          ) : (
+  <>
+    <FiscalProfileForm
+      nuevoPerfilFiscal={
+        nuevoPerfilFiscal
+      }
+      setNuevoPerfilFiscal={
+        setNuevoPerfilFiscal
+      }
+      guardandoPerfilFiscal={
+        guardandoPerfil
+      }
+      crearPerfilFiscal={
+        crearPerfilFiscal
+      }
+      onVolver={() => {
+        if (perfiles.length > 0) {
+          setModo("lista");
+        } else {
+          router.back();
+        }
+      }}
+    />
+
+    {perfiles.length === 0 && (
+      <div className="mt-5 border-t border-slate-100 pt-5 text-center">
+        <button
+          type="button"
+          onClick={() => setMostrarRegistroExitoso(true)}
+          className="text-sm font-semibold text-slate-500 transition hover:text-[#1e3a8a]"
+        >
+          Omitir por ahora
+        </button>
+
+        <p className="mt-2 text-xs leading-5 text-slate-400">
+          Podrás completar tus datos fiscales más adelante desde tu cuenta.
+        </p>
+      </div>
+    )}
+  </>
+) : (
             <>
               <div>
                 <p className="text-sm font-semibold text-slate-700">
@@ -508,6 +560,20 @@ if (profile?.role !== "establishment") {
               >
                 + Nuevo perfil fiscal
               </Button>
+
+              <div className="mt-4 text-center">
+  <button
+    type="button"
+    onClick={() => setMostrarRegistroExitoso(true)}
+    className="text-sm font-semibold text-slate-500 transition hover:text-[#1e3a8a]"
+  >
+    Omitir por ahora
+  </button>
+
+  <p className="mt-2 text-xs leading-5 text-slate-400">
+    Podrás completar tus datos fiscales más adelante desde tu cuenta.
+  </p>
+</div>
 
               <div className="mt-6 border-t border-slate-100 pt-6">
                 <Button

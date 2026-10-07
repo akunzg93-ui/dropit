@@ -600,3 +600,80 @@ Google OAuth añadía otro problema: crear/autenticar la cuenta no exigía una a
 - OAuth puede tener temporalmente `profiles.role = NULL`; ese estado representa un registro incompleto y no una cuenta operativa.
 - La eliminación de `/seleccionar-rol` reduce una vía de autoasignación de privilegios desde cliente.
 - QA validó los flujos de vendedor y establecimiento tanto por correo como por Google OAuth.
+
+---
+
+# ADR-017
+
+## Nombre
+
+Horarios de establecimientos normalizados e informativos.
+
+## Estado
+
+Aceptada e implementada en QA.
+
+## Contexto
+
+El campo histórico `establecimientos.horario` no representa adecuadamente horarios distintos por día, múltiples intervalos en una misma jornada ni días cerrados.
+
+Además, utilizar el horario para decidir automáticamente si un establecimiento está disponible introduciría un comportamiento de entrega inmediata que no corresponde al modelo operativo de Dropit. Dropit coordina entregas y recolecciones programadas entre vendedores, clientes y establecimientos; no funciona como un sistema de disponibilidad instantánea tipo Uber.
+
+## Decisión
+
+- Los nuevos horarios estructurados se almacenan en `establecimiento_horarios`.
+- Cada fila representa un intervalo de un día.
+- Un día puede contener múltiples intervalos.
+- Un día sin intervalos se considera cerrado.
+- Los horarios se relacionan mediante `establecimientos.uuid`.
+- La edición reemplaza la configuración mediante `reemplazar_horarios_establecimiento`.
+- `establecimientos.horario` permanece temporalmente por compatibilidad.
+- Los horarios son informativos y sirven para coordinación.
+- El horario actual no determina automáticamente la visibilidad o disponibilidad del establecimiento.
+- `activo` continúa siendo el atributo separado de participación/visibilidad mientras no exista una decisión posterior que lo sustituya.
+
+## Consecuencias
+
+- La UI puede representar horarios reales más complejos sin almacenar JSON o texto gigante.
+- Los establecimientos pueden tener varios periodos de atención en un mismo día.
+- La aplicación no debe introducir etiquetas o filtros como `Abierto ahora` para determinar disponibilidad operativa basándose únicamente en estos horarios.
+- Una futura migración puede retirar el campo legado cuando ningún flujo dependa de él.
+
+---
+
+# ADR-018
+
+## Nombre
+
+Onboarding educativo persistente y versionado por funcionalidad.
+
+## Estado
+
+Aceptada e implementada en QA.
+
+## Contexto
+
+Las nuevas funciones de Dropit necesitan explicación inicial sin mostrar repetidamente instrucciones a usuarios que ya conocen el flujo. Persistir este estado sólo en el navegador impediría compartirlo entre dispositivos y dificultaría volver a presentar una introducción cuando una funcionalidad cambie significativamente.
+
+El onboarding educativo tampoco debe confundirse con requisitos legales, fiscales u operativos.
+
+## Decisión
+
+- El estado se persiste en `user_onboarding`.
+- Se identifica mediante `user_id`, `feature` y `version`.
+- La combinación es única.
+- Los estados admitidos son `completed` y `skipped`.
+- Omitir una introducción cuenta como experiencia vista para esa versión.
+- Una nueva versión puede volver a presentar el onboarding sin eliminar el historial anterior.
+- El primer uso implementado es `establishment_panel`, versión `1`.
+- La presentación utiliza `OnboardingModal`.
+- La persistencia y reglas de negocio permanecen fuera del componente visual.
+- El onboarding educativo se mantiene independiente de configuración fiscal, aceptación legal y otras condiciones operativas.
+
+## Consecuencias
+
+- La experiencia de primera vez permanece consistente entre sesiones.
+- El usuario no recibe repetidamente instrucciones que ya completó u omitió.
+- Dropit puede introducir futuras versiones educativas de forma controlada.
+- Las pantallas pueden compartir un lenguaje visual sin acoplar la persistencia al componente.
+

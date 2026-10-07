@@ -3,21 +3,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
-
 import Link from "next/link";
-import {
-  Home,
-  Building2,
-  ClipboardList,
-  Map,
-  AlertTriangle,
-  LogOut,
-  Wallet,
-} from "lucide-react";
+import { Loader2, LogOut } from "lucide-react";
 
-// import "./admin.css";
-
-export default function AdminLayout({ children }: any) {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
@@ -51,72 +44,46 @@ export default function AdminLayout({ children }: any) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-500">Cargando admin...</p>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="flex items-center gap-2 text-sm text-slate-500">
+          <Loader2 className="h-4 w-4 animate-spin text-[#2563eb]" />
+          Cargando admin...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      {/* SIDEBAR */}
-      <aside className="w-50 bg-gradient-to-b from-blue-600 to-blue-800 text-white flex flex-col">
-        <div className="p-4">
-          <p className="text-xs text-blue-200">Dropit</p>
-          <p className="text-xl font-semibold">Admin</p>
-        </div>
+    <div className="min-h-screen bg-slate-50">
+      {/* HEADER */}
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-5 sm:px-8">
+          <Link href="/admin" className="flex items-center gap-3">
+            <span className="text-lg font-bold tracking-tight text-[#1e3a8a]">
+              Dropit
+            </span>
 
-        <nav className="flex-1 px-3 space-y-1">
-          <SidebarItem icon={<Home size={18} />} text="Dashboard" href="/admin" />
-          <SidebarItem
-            icon={<Wallet size={18} />}
-            text="Finanzas"
-            href="/admin/retiros"
-          />
-          <SidebarItem
-            icon={<Building2 size={18} />}
-            text="Establecimientos"
-            href="/admin/establecimientos"
-          />
-          <SidebarItem
-            icon={<ClipboardList size={18} />}
-            text="Pedidos"
-            href="/admin/pedidos"
-          />
-          <SidebarItem icon={<Map size={18} />} text="Mapa" href="/admin/mapa" />
-          <SidebarItem
-            icon={<AlertTriangle size={18} />}
-            text="Incidencias"
-            href="/admin/incidencias"
-          />
-        </nav>
+            <span className="h-4 w-px bg-slate-200" />
 
-        <div className="p-4 border-t border-blue-500">
-          <SidebarItem icon={<LogOut size={18} />} text="Salir" href="/logout" />
+            <span className="text-sm font-medium text-slate-500">
+              Admin
+            </span>
+          </Link>
+
+          <Link
+            href="/logout"
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-blue-50 hover:text-[#1e40af]"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Salir</span>
+          </Link>
         </div>
-      </aside>
+      </header>
 
       {/* CONTENIDO */}
-      <main className="flex-1 overflow-y-auto">
-        <header className="bg-white/90 backdrop-blur border-b border-slate-200 px-8 py-5">
-          <h1 className="text-xl font-semibold text-slate-900">
-            Panel de Administrador
-          </h1>
-        </header>
-
-        <div className="p-8">{children}</div>
+      <main className="px-5 py-8 sm:px-8 lg:py-10">
+        {children}
       </main>
     </div>
-  );
-}
-
-function SidebarItem({ icon, text, href }: any) {
-  return (
-    <Link href={href}>
-      <div className="flex items-center space-x-3 p-3 rounded-xl hover:bg-blue-500/90 cursor-pointer transition">
-        {icon}
-        <span>{text}</span>
-      </div>
-    </Link>
   );
 }

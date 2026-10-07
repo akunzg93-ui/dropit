@@ -1,9 +1,9 @@
 # Módulo Establecimiento
 
 > Documento Oficial  
-> Versión: 1.2  
+> Versión: 1.3  
 > Estado: En construcción  
-> Última actualización: 23/09/2026
+> Última actualización: 05/10/2026
 
 # Objetivo
 
@@ -19,6 +19,47 @@ El establecimiento representa el nodo físico de la red Dropit. Aprueba solicitu
 | `/establecimiento/estado` | Consultar pedidos por estado |
 | `/establecimiento/balance` | Consultar saldo y solicitar retiros |
 | `/establecimiento/datos-bancarios` | Registrar o editar la cuenta destino de retiros |
+| `/establecimiento` | Registrar un nuevo establecimiento o editar uno existente |
+| `/establecimiento/onboarding-fiscal` | Configurar o asociar información fiscal del establecimiento |
+
+
+# Registro y administración de establecimientos
+
+El registro de una nueva ubicación utiliza un flujo guiado:
+
+1. Selección de ubicación.
+2. Datos del establecimiento, horarios y capacidades.
+3. Configuración fiscal o decisión de omitirla por el momento.
+4. Confirmación de establecimiento registrado.
+5. Entrada al panel operativo.
+
+La ubicación puede definirse mediante búsqueda/autocompletado, ubicación actual o selección directa sobre el mapa.
+
+Los horarios se configuran por día y admiten múltiples intervalos. Se almacenan en `establecimiento_horarios`. Tienen propósito informativo para facilitar la coordinación entre vendedor, cliente y establecimiento y no determinan visibilidad ni disponibilidad en tiempo real.
+
+## Edición
+
+`/establecimiento` reutiliza el mismo formulario para editar establecimientos existentes. El panel puede abrir directamente la edición mediante `/establecimiento?editar=ID`.
+
+La página localiza el establecimiento perteneciente al usuario y reutiliza `editarEstablecimiento`, incluyendo la carga de sus intervalos desde `establecimiento_horarios`. La actualización de horarios utiliza `reemplazar_horarios_establecimiento`. No existe un segundo flujo independiente de edición.
+
+# Panel operativo
+
+`/establecimiento/estado` funciona como centro operativo del establecimiento.
+
+El resumen principal organiza los pedidos en Por aprobar, En tránsito, Por entregar y Entregados. Como estados secundarios muestra Devoluciones pendientes, Devueltos, Custodia vencida y Ver todos.
+
+## Tus establecimientos
+
+El panel permite administrar múltiples establecimientos pertenecientes a la misma cuenta. La sección `Tus establecimientos` permite seleccionar cuál establecimiento se está revisando, visualizar su dirección, entrar a su edición mediante `Administrar` e iniciar el registro de otra ubicación mediante `Agregar establecimiento`.
+
+Cambiar el establecimiento seleccionado actualiza los pedidos y métricas del panel utilizando la lógica existente.
+
+# Onboarding del panel
+
+La primera entrada al panel puede mostrar una introducción educativa de tres pasos: centro de operación, flujo de un pedido y recepción/entrega de paquetes.
+
+Su estado se persiste en `user_onboarding` con `feature = establishment_panel` y `version = 1`. Tanto completar como omitir la introducción evita que esa versión vuelva a mostrarse al usuario. Este onboarding es independiente del onboarding fiscal.
 
 # Aprobación
 

@@ -73,26 +73,19 @@ if (!profile?.role) {
         return;
       }
 
-    if (profile.role === "establishment") {
+   if (profile.role === "establishment") {
   const {
     data: establecimientos,
     error: establecimientoError,
   } = await supabase
     .from("establecimientos")
-    .select(`
-      id,
-      activo,
-      fiscal_profile_id,
-      created_at
-    `)
+    .select("id")
     .eq("usuario_id", user.id)
-    .order("created_at", {
-      ascending: false,
-    });
+    .limit(1);
 
   if (establecimientoError) {
     console.error(
-      "Error revisando onboarding del establecimiento:",
+      "Error revisando establecimientos:",
       establecimientoError
     );
 
@@ -109,29 +102,10 @@ if (!profile?.role) {
     return;
   }
 
-  // Si ya existe al menos un establecimiento
-  // operativo y con perfil fiscal vinculado,
-  // la cuenta ya completó onboarding.
-  const tieneEstablecimientoConfigurado =
-    establecimientos.some(
-      (establecimiento) =>
-        establecimiento.activo === true &&
-        !!establecimiento.fiscal_profile_id
-    );
-
-  if (tieneEstablecimientoConfigurado) {
-    router.replace("/establecimiento/estado");
-    return;
-  }
-
-  // Ningún establecimiento ha completado onboarding.
-  // Continuamos con el más reciente.
-  const ultimoEstablecimiento =
-    establecimientos[0];
-
-  router.replace(
-    `/establecimiento/onboarding-fiscal?establecimiento_id=${ultimoEstablecimiento.id}`
-  );
+  // Ya tiene al menos un establecimiento registrado.
+  // La configuración fiscal se administra por separado
+  // y no bloquea el acceso al panel.
+  router.replace("/establecimiento/estado");
   return;
 }
 

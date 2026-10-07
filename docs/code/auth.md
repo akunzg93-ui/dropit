@@ -81,9 +81,14 @@ Actúa como router según el rol ya existente.
 
 Para establecimiento:
 
-- sin ubicaciones → `/establecimiento`;
-- con al menos una ubicación activa y `fiscal_profile_id` → `/establecimiento/estado`;
-- con ubicaciones pero ninguna configurada → onboarding fiscal del establecimiento más reciente.
+- sin ubicaciones registradas → `/establecimiento`;
+- con al menos una ubicación registrada → `/establecimiento/estado`.
+
+La configuración fiscal no controla el acceso al panel desde `/post-login`.
+
+El onboarding fiscal se administra como una configuración independiente del establecimiento. Su omisión no provoca que `/post-login` fuerce nuevamente esa pantalla.
+
+Esta decisión de navegación no define por sí misma las reglas de activación operativa, facturación, retenciones o retiros, que se mantienen sujetas al modelo fiscal correspondiente.
 
 La antigua ruta `/seleccionar-rol` fue eliminada: ningún usuario autenticado puede autoasignarse libremente `vendor`, `establishment` o `buyer`.
 

@@ -8,6 +8,31 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 
 # [1.0.0] - En desarrollo
 
+## 2026-10-05
+
+### Establecimientos - registro, horarios y panel operativo
+
+- Se rediseñó el registro de establecimientos como flujo guiado de ubicación y datos.
+- La ubicación puede seleccionarse mediante autocompletado, geolocalización o mapa.
+- Se incorporaron horarios semanales estructurados con múltiples intervalos por día.
+- Los horarios se almacenan en `establecimiento_horarios` y su edición utiliza `reemplazar_horarios_establecimiento`.
+- Se estableció que los horarios son informativos para coordinación y no determinan disponibilidad ni visibilidad en tiempo real.
+- El flujo permite continuar a configuración fiscal u omitirla por el momento.
+- Se agregó la confirmación `¡Establecimiento registrado!` antes de entrar al panel.
+- `/post-login` ahora dirige a cuentas de establecimiento sin ubicaciones hacia `/establecimiento` y a cuentas con al menos una ubicación hacia `/establecimiento/estado`; la configuración fiscal dejó de bloquear el acceso al panel.
+- Se agregó `user_onboarding` para persistir onboarding educativo por usuario, funcionalidad y versión.
+- El panel de establecimiento incorpora una introducción inicial versionada que puede completarse u omitirse.
+- Se creó `OnboardingModal` como componente reutilizable para experiencias educativas.
+- Se consolidó `FlowGuideModal` como patrón visual para hitos y siguientes pasos.
+- El panel incorpora `Tus establecimientos`, permitiendo seleccionar una ubicación, consultar su dirección, agregar otra y administrar la seleccionada.
+- `/establecimiento?editar=ID` abre el formulario existente en modo edición y reutiliza la carga y actualización de horarios.
+- Se mantuvo separado el onboarding educativo de la configuración fiscal.
+
+### Pendiente
+
+- Definir y validar el tratamiento fiscal definitivo de establecimientos antes de convertir requisitos fiscales en reglas de activación, facturación, retenciones o retiros.
+- Planificar posteriormente la migración/retiro del campo legado `establecimientos.horario` cuando ningún flujo dependa de él.
+
 ## 2026-09-23
 
 ### Establecimientos - mapas, disponibilidad y QR operativo

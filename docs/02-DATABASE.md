@@ -296,3 +296,44 @@ El monto bruto se obtiene antes de ejecutar la RPC mediante la trazabilidad fina
 - Las API Routes usan Service Role o RPC controladas cuando corresponde.
 - RLS permanece activa.
 - QA y Producción conservan bases y variables separadas.
+
+# Horarios de establecimientos
+
+Los horarios operativos se almacenan de forma normalizada en `establecimiento_horarios`.
+
+Cada fila representa un intervalo de atención de un establecimiento:
+
+- `establecimiento_uuid` identifica el establecimiento.
+- `dia_semana` representa el día de la semana.
+- `hora_apertura` define el inicio del intervalo.
+- `hora_cierre` define el final del intervalo.
+
+Un mismo día puede contener varios intervalos. La ausencia de filas para un día significa que el establecimiento permanece cerrado ese día.
+
+Los horarios se relacionan mediante `establecimientos.uuid`. Para edición se utiliza `reemplazar_horarios_establecimiento`, que sustituye los intervalos del establecimiento por la configuración enviada.
+
+`establecimientos.horario` permanece temporalmente por compatibilidad con datos o flujos anteriores, pero no es la fuente objetivo para nuevos horarios estructurados.
+
+Los horarios son informativos y sirven para coordinar entregas y recolecciones. No determinan por sí mismos la visibilidad ni disponibilidad en tiempo real del establecimiento.
+
+# Onboarding persistente
+
+`user_onboarding` registra la finalización o descarte de experiencias educativas de primera vez.
+
+Campos conceptuales principales:
+
+- `user_id`
+- `feature`
+- `version`
+- `status`
+- `completed_at`
+- `created_at`
+
+`status` admite `completed` y `skipped`. La combinación `(user_id, feature, version)` es única.
+
+El modelo permite que una nueva versión de una funcionalidad pueda mostrar nuevamente una introducción sin eliminar el historial de versiones anteriores.
+
+El onboarding del panel de establecimientos utiliza actualmente `feature = establishment_panel` y `version = 1`.
+
+La tabla tiene RLS y cada usuario autenticado sólo puede consultar o modificar sus propios registros.
+

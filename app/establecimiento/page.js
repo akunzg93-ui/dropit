@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -17,6 +17,10 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+
+import HorariosEstablecimiento, {
+  HORARIOS_VACIOS,
+} from "../components/HorariosEstablecimiento";
 
 const MapaEstablecimientos = dynamic(
   () => import("../components/MapaEstablecimientos"),
@@ -61,8 +65,10 @@ function withTimeout(promise, ms, label = "Operación") {
   ]);
 }
 
-export default function EstablecimientoPage() {
+function EstablecimientoPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editarDesdeUrl = searchParams.get("editar");
   const [nombre, setNombre] = useState("");
   const [direccion, setDireccion] = useState("");
   const [cp, setCp] = useState("");
@@ -73,6 +79,10 @@ export default function EstablecimientoPage() {
 
   const [horaApertura, setHoraApertura] = useState("");
   const [horaCierre, setHoraCierre] = useState("");
+
+  const [horariosSemana, setHorariosSemana] = useState(() => ({
+  ...HORARIOS_VACIOS,
+}));
 
   const [capSmall, setCapSmall] = useState("");
   const [capMedium, setCapMedium] = useState("");
@@ -91,6 +101,7 @@ export default function EstablecimientoPage() {
   const [busqueda, setBusqueda] = useState("");
   const [sugerencias, setSugerencias] = useState([]);
   const [cargandoSugerencias, setCargandoSugerencias] = useState(false);
+  const [pasoRegistro, setPasoRegistro] = useState(1);
 
   const establecimientoEditando = establecimientos.find(
     (e) => e.id === editandoId
@@ -103,8 +114,18 @@ export default function EstablecimientoPage() {
     setHorario("");
     setHoraApertura("");
     setHoraCierre("");
+    setHorariosSemana({
+  1: [],
+  2: [],
+  3: [],
+  4: [],
+  5: [],
+  6: [],
+  7: [],
+});
     setCapSmall("");
     setCapMedium("");
+
     setSelectedPoint(null);
     setBusqueda("");
     setSugerencias([]);
@@ -143,6 +164,24 @@ export default function EstablecimientoPage() {
     cargar();
   }, []);
 
+useEffect(() => {
+  if (
+    !editarDesdeUrl ||
+    establecimientos.length === 0 ||
+    editandoId
+  ) {
+    return;
+  }
+
+  const establecimiento = establecimientos.find(
+    (est) => String(est.id) === String(editarDesdeUrl)
+  );
+
+  if (!establecimiento) return;
+
+  editarEstablecimiento(establecimiento);
+}, [editarDesdeUrl, establecimientos, editandoId]);
+
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
@@ -156,6 +195,41 @@ export default function EstablecimientoPage() {
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
+
+  const continuarADatos = () => {
+  setMensaje("");
+
+  if (!selectedPoint) {
+    setMensaje(
+      "Selecciona la ubicación exacta de tu establecimiento en el mapa."
+    );
+    return;
+  }
+
+  if (!direccion || !cp) {
+    setMensaje(
+      "Necesitamos identificar la dirección y el código postal antes de continuar."
+    );
+    return;
+  }
+
+  setPasoRegistro(2);
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+};
+
+const volverAUbicacion = () => {
+  setMensaje("");
+  setPasoRegistro(1);
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+};
 
   const manejarCambioBusqueda = (valor) => {
   setBusqueda(valor);
@@ -302,6 +376,27 @@ useEffect(() => {
   }
 };
 
+function horariosSemanaAFilas(horariosSemana, establecimientoUuid) {
+  const filas = [];
+
+  for (let dia = 1; dia <= 7; dia++) {
+    const intervalos = horariosSemana[dia] || [];
+
+    for (const intervalo of intervalos) {
+      if (!intervalo.apertura || !intervalo.cierre) continue;
+
+      filas.push({
+        establecimiento_uuid: establecimientoUuid,
+        dia_semana: dia,
+        hora_apertura: intervalo.apertura,
+        hora_cierre: intervalo.cierre,
+      });
+    }
+  }
+
+  return filas;
+}
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMensaje("");
@@ -390,6 +485,39 @@ useEffect(() => {
           return;
         }
 
+        const filasHorarios = horariosSemanaAFilas(
+  horariosSemana,
+  data.uuid
+);
+
+const horariosParaRpc = filasHorarios.map((fila) => ({
+  dia_semana: fila.dia_semana,
+  hora_apertura: fila.hora_apertura,
+  hora_cierre: fila.hora_cierre,
+}));
+
+const { error: horariosError } = await supabase.rpc(
+  "reemplazar_horarios_establecimiento",
+  {
+    p_establecimiento_uuid: data.uuid,
+    p_horarios: horariosParaRpc,
+  }
+);
+
+if (horariosError) {
+  console.error(
+    "❌ Error actualizando horarios:",
+    horariosError
+  );
+
+  setMensaje(
+    "Los datos del establecimiento se actualizaron, pero ocurrió un error al actualizar sus horarios: " +
+      horariosError.message
+  );
+
+  return;
+}
+
         setEstablecimientos((prev) =>
           prev.map((e) => (e.id === editandoId ? data : e))
         );
@@ -423,6 +551,31 @@ useEffect(() => {
           return;
         }
 
+const filasHorarios = horariosSemanaAFilas(
+  horariosSemana,
+  data.uuid
+);
+
+if (filasHorarios.length > 0) {
+  const { error: horariosError } = await supabase
+    .from("establecimiento_horarios")
+    .insert(filasHorarios);
+
+  if (horariosError) {
+    console.error(
+      "❌ Error guardando horarios:",
+      horariosError
+    );
+
+    setMensaje(
+      "El establecimiento se creó, pero ocurrió un error al guardar sus horarios: " +
+        horariosError.message
+    );
+
+    return;
+  }
+}
+
         setEstablecimientos((prev) => [data, ...prev]);
 
 router.push(
@@ -438,7 +591,7 @@ return;
     }
   };
 
-  const editarEstablecimiento = (est) => {
+  const editarEstablecimiento = async (est) => {
     setEditandoId(est.id);
     setNombre(est.nombre);
     setDireccion(est.direccion);
@@ -450,8 +603,51 @@ return;
     setInstruccionesLlegada(est.instrucciones_llegada || "");
     setGoogleMapsUrl(est.google_maps_url || "");
     setZona(est.zona || "");
-    setBusqueda(est.direccion || "");
-    setMensaje("");
+
+omitirSiguienteAutocomplete.current = true;
+setBusqueda(est.direccion || "");
+setSugerencias([]);
+
+setMensaje("");
+
+    const horariosIniciales = {
+  1: [],
+  2: [],
+  3: [],
+  4: [],
+  5: [],
+  6: [],
+  7: [],
+};
+
+const { data: horariosData, error: horariosError } = await supabase
+  .from("establecimiento_horarios")
+  .select("dia_semana, hora_apertura, hora_cierre")
+  .eq("establecimiento_uuid", est.uuid)
+  .order("dia_semana", { ascending: true })
+  .order("hora_apertura", { ascending: true });
+
+if (horariosError) {
+  console.error(
+    "❌ Error cargando horarios del establecimiento:",
+    horariosError
+  );
+
+  setMensaje(
+    "No fue posible cargar los horarios del establecimiento."
+  );
+
+  return;
+}
+
+(horariosData || []).forEach((fila) => {
+  horariosIniciales[fila.dia_semana].push({
+    apertura: fila.hora_apertura.slice(0, 5),
+    cierre: fila.hora_cierre.slice(0, 5),
+  });
+});
+
+setHorariosSemana(horariosIniciales);
 
     setTimeout(() => {
       if (!formRef.current) return;
@@ -544,25 +740,152 @@ return;
           </div>
         )}
 
-        <section
-          ref={formRef}
-          className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-8"
+        {!editandoId && pasoRegistro === 1 && (
+  <section className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
+    <div>
+      <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">
+        Paso 1 de 2
+      </p>
+
+      <h2 className="text-2xl md:text-3xl font-bold text-[#1e3a8a] mt-2">
+        ¿Dónde está tu establecimiento?
+      </h2>
+
+      <p className="text-slate-500 mt-2 max-w-2xl">
+        Busca la dirección o selecciona el punto exacto en el mapa.
+        Usaremos esta ubicación para que vendedores y clientes sepan dónde
+        entregar y recoger sus paquetes.
+      </p>
+    </div>
+
+    <div>
+      <label className="block text-sm font-semibold mb-2 text-slate-700">
+        Buscar dirección
+      </label>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <input
+            className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+            placeholder="Ej. Calle, colonia..."
+            value={busqueda}
+            onChange={(e) => manejarCambioBusqueda(e.target.value)}
+          />
+
+          {cargandoSugerencias && (
+            <div className="absolute right-3 top-4 text-xs text-slate-400">
+              ...
+            </div>
+          )}
+
+          {sugerencias.length > 0 && (
+            <ul className="absolute z-20 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-lg text-sm max-h-48 overflow-auto">
+              {sugerencias.map((sug) => (
+                <li
+                  key={sug.id}
+                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer"
+                  onClick={() => seleccionarSugerencia(sug)}
+                >
+                  {sug.label}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={usarUbicacionActual}
+          className="h-12 rounded-xl bg-slate-900 px-5 text-white text-sm font-semibold hover:bg-black transition"
         >
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">
-              Paso 1
-            </p>
+          Usar mi ubicación
+        </button>
+      </div>
+    </div>
 
-            <h2 className="text-2xl md:text-3xl font-bold text-[#1e3a8a] mt-2">
-              Información del establecimiento
-            </h2>
+    <div className="relative z-0 h-[320px] md:h-[420px] w-full rounded-3xl overflow-hidden border border-blue-100 shadow-sm ring-1 ring-blue-50">
+      <MapaEstablecimientos
+        establecimientos={establecimientos}
+        selectedPoint={selectedPoint}
+        onLocationSelected={manejarClickMapa}
+      />
+    </div>
 
-            <p className="text-slate-500 mt-2">
-              Agrega los datos necesarios para que los vendedores y clientes
-              identifiquen correctamente esta ubicación.
-            </p>
-          </div>
+    {selectedPoint && (
+      <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+        <p className="text-xs uppercase tracking-[0.16em] font-semibold text-[#2563eb]">
+          Ubicación seleccionada
+        </p>
 
+        <p className="mt-2 font-semibold text-slate-800">
+          {direccion || "Punto seleccionado en el mapa"}
+        </p>
+
+        {cp && (
+          <p className="mt-1 text-sm text-slate-500">
+            Código postal: {cp}
+          </p>
+        )}
+      </div>
+    )}
+
+    <button
+      type="button"
+      onClick={continuarADatos}
+      className="w-full h-12 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] text-white font-semibold shadow hover:shadow-lg transition-all"
+    >
+      Continuar
+    </button>
+  </section>
+)}
+
+        {(editandoId || pasoRegistro === 2) && (
+<section
+  ref={formRef}
+  className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-8"
+>
+         <div>
+  <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">
+    {editandoId ? "Editar establecimiento" : "Paso 2 de 2"}
+  </p>
+
+  <h2 className="text-2xl md:text-3xl font-bold text-[#1e3a8a] mt-2">
+    {editandoId
+      ? "Información del establecimiento"
+      : "Ahora cuéntanos sobre tu establecimiento"}
+  </h2>
+
+  <p className="text-slate-500 mt-2">
+    {editandoId
+      ? "Modifica los datos necesarios y guarda los cambios cuando termines."
+      : "Completa los siguientes datos para terminar de registrar tu establecimiento."}
+  </p>
+</div>
+
+{!editandoId && (
+  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="font-semibold text-emerald-800">
+          ✓ Ubicación seleccionada
+        </p>
+
+        <p className="mt-1 text-sm text-emerald-700">
+          {direccion}
+          {cp ? ` · CP ${cp}` : ""}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={volverAUbicacion}
+        className="self-start text-sm font-semibold text-emerald-800 underline underline-offset-4 hover:text-emerald-950"
+      >
+        Cambiar ubicación
+      </button>
+    </div>
+  </div>
+)}
           {editandoId && (
             <div className="rounded-3xl border border-blue-100 bg-blue-50 p-5 shadow-sm">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -596,66 +919,13 @@ return;
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">
-                Buscar dirección
-              </label>
-
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <input
-                    className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 focus:ring-2 focus:ring-blue-100 focus:outline-none"
-                    placeholder="Ej. Calle, colonia..."
-                    value={busqueda}
-                    onChange={(e) => manejarCambioBusqueda(e.target.value)}
-                  />
-
-                  {cargandoSugerencias && (
-                    <div className="absolute right-3 top-4 text-xs text-slate-400">
-                      ...
-                    </div>
-                  )}
-
-                  {sugerencias.length > 0 && (
-                    <ul className="absolute z-20 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-lg text-sm max-h-48 overflow-auto">
-                      {sugerencias.map((sug) => (
-                        <li
-                          key={sug.id}
-                          className="px-4 py-3 hover:bg-blue-50 cursor-pointer"
-                          onClick={() => seleccionarSugerencia(sug)}
-                        >
-                          {sug.label}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={usarUbicacionActual}
-                  className="h-12 rounded-xl bg-slate-900 px-5 text-white text-sm font-semibold hover:bg-black transition"
-                >
-                  Usar ubicación
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <InputDropit label="Nombre" value={nombre} onChange={setNombre} />
-
-              <InputDropit
-                label="Código Postal"
-                value={cp}
-                onChange={setCp}
-              />
-            </div>
-
+           
             <InputDropit
-              label="Dirección"
-              value={direccion}
-              onChange={setDireccion}
-            />
+  label="Nombre del establecimiento"
+  value={nombre}
+  onChange={setNombre}
+  placeholder="Ej. Papelería San Ángel"
+/>
 
             <div>
               <label className="block text-sm font-semibold mb-2 text-slate-700">
@@ -700,43 +970,14 @@ return;
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">
-                Horario
-              </label>
+            
 
-              <Select value={horario} onValueChange={setHorario}>
-                <SelectTrigger className="h-12 rounded-xl border-slate-300 bg-white focus:ring-2 focus:ring-blue-100">
-                  <SelectValue placeholder="Selecciona un horario" />
-                </SelectTrigger>
-
-                <SelectContent className="z-[9999]">
-                  {HORARIOS.map((h) => (
-                    <SelectItem key={h} value={h}>
-                      {h}
-                    </SelectItem>
-                  ))}
-
-                  <SelectItem value="custom">Horario personalizado</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {horario === "custom" && (
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <InputDropit
-                    label="Apertura"
-                    type="time"
-                    value={horaApertura}
-                    onChange={setHoraApertura}
-                  />
-
-                  <InputDropit
-                    label="Cierre"
-                    type="time"
-                    value={horaCierre}
-                    onChange={setHoraCierre}
-                  />
-                </div>
-              )}
+              <div className="mt-6 rounded-3xl border border-blue-100 bg-blue-50/30 p-4 md:p-6">
+  <HorariosEstablecimiento
+    value={horariosSemana}
+    onChange={setHorariosSemana}
+  />
+</div>
             </div>
 
             <div className="rounded-3xl border border-blue-100 bg-slate-50 p-5 text-sm text-slate-600 space-y-1">
@@ -772,9 +1013,10 @@ return;
 
               {editandoId ? "Actualizar establecimiento" : "Guardar establecimiento"}
             </button>
-          </form>
-        </section>
-
+       </form>
+</section>
+)}
+{editandoId && (
         <section className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
@@ -815,150 +1057,26 @@ return;
             />
           </div>
         </section>
+        )}
 
-        <section className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">
-              Paso 3
-            </p>
-
-            <h2 className="text-2xl md:text-3xl font-bold text-[#1e3a8a] mt-2">
-              Tus establecimientos
-            </h2>
-
-            <p className="text-slate-500 mt-2">
-              Administra las ubicaciones donde recibirás paquetes.
-            </p>
-          </div>
-
-          <div className="md:hidden space-y-4">
-            {establecimientosOrdenados.length === 0 && (
-              <div className="text-sm text-slate-500 text-center py-6">
-                No hay establecimientos registrados aún.
-              </div>
-            )}
-
-            {establecimientosOrdenados.map((est) => (
-              <div
-                key={est.id}
-                className="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm space-y-4"
-              >
-                <div>
-                  <h3 className="font-semibold text-slate-800">{est.nombre}</h3>
-
-                  <p className="text-sm text-slate-500 mt-1">{est.direccion}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <InfoMini label="Código postal" value={est.cp} />
-                  <InfoMini label="Horario" value={est.horario || "—"} />
-                  <InfoMini label="Zona" value={est.zona || "—"} />
-                  <InfoMini
-                    label="Distancia"
-                    value={
-                      est.distanciaKm != null
-                        ? `${est.distanciaKm.toFixed(2)} km`
-                        : "—"
-                    }
-                  />
-                  <InfoMini label="Pequeño" value={est.capacidad_small ?? "—"} />
-                  <InfoMini label="Mediano" value={est.capacidad_medium ?? "—"} />
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => editarEstablecimiento(est)}
-                    className="flex-1 h-11 rounded-xl bg-[#2563eb] text-white text-sm font-semibold shadow-sm"
-                  >
-                    Editar
-                  </button>
-
-                  <button
-                    onClick={() => eliminarEstablecimiento(est.id)}
-                    disabled={eliminandoId === est.id}
-                    className="flex-1 h-11 rounded-xl bg-slate-200 text-slate-700 text-sm font-semibold disabled:opacity-60"
-                  >
-                    {eliminandoId === est.id ? "Eliminando..." : "Eliminar"}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="hidden md:block overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="text-left text-slate-500 border-b">
-                  <th className="pb-3">Nombre</th>
-                  <th className="pb-3">Dirección</th>
-                  <th className="pb-3">CP</th>
-                  <th className="pb-3">Horario</th>
-                  <th className="pb-3">Zona</th>
-                  <th className="pb-3">Capacidades</th>
-                  <th className="pb-3">Distancia</th>
-                  <th className="pb-3">Acciones</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y">
-                {establecimientosOrdenados.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="py-6 text-center text-slate-500">
-                      No hay establecimientos registrados aún.
-                    </td>
-                  </tr>
-                )}
-
-                {establecimientosOrdenados.map((est) => (
-                  <tr key={est.id} className="hover:bg-slate-50 transition">
-                    <td className="py-4 font-semibold text-slate-800">
-                      {est.nombre}
-                    </td>
-
-                    <td className="text-slate-700 max-w-xs">{est.direccion}</td>
-                    <td className="text-slate-700">{est.cp}</td>
-                    <td className="text-slate-700">{est.horario || "—"}</td>
-                    <td className="text-slate-700">{est.zona || "—"}</td>
-
-                    <td>
-                      <div className="text-xs text-slate-600">
-                        Pequeño: {est.capacidad_small ?? "—"} <br />
-                        Mediano: {est.capacidad_medium ?? "—"}
-                      </div>
-                    </td>
-
-                    <td className="text-slate-700">
-                      {est.distanciaKm != null
-                        ? `${est.distanciaKm.toFixed(2)} km`
-                        : "—"}
-                    </td>
-
-                    <td className="py-4">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => editarEstablecimiento(est)}
-                          className="px-3 py-2 text-xs bg-[#2563eb] text-white rounded-xl hover:bg-[#1e40af] transition shadow-sm"
-                        >
-                          Editar
-                        </button>
-
-                        <button
-                          onClick={() => eliminarEstablecimiento(est.id)}
-                          disabled={eliminandoId === est.id}
-                          className="px-3 py-2 text-xs bg-slate-200 text-slate-700 rounded-xl hover:bg-slate-300 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          {eliminandoId === est.id ? "Eliminando..." : "Eliminar"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
       </div>
     </div>
+  );
+}
+
+export default function EstablecimientoPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+          <p className="text-slate-500">
+            Cargando establecimiento...
+          </p>
+        </div>
+      }
+    >
+      <EstablecimientoPageContent />
+    </Suspense>
   );
 }
 
