@@ -9,7 +9,12 @@ export type CfdiData = {
   rfcReceptor: string;
   nombreReceptor?: string;
 
+  // Datos fiscales del comprobante
+  serie?: string;
+  folio?: string;
+
   subtotal: number;
+  impuestos: number;
   total: number;
 
   fecha: string;
@@ -144,6 +149,15 @@ export function parseCfdiXml(
         comprobante.SubTotal
       );
 
+    // Impuestos trasladados declarados en el CFDI.
+    // Mantiene el criterio de invoices.impuestos
+    // utilizado por la facturación de Dropit.
+    const impuestos =
+      numero(
+        comprobante.Impuestos
+          ?.TotalImpuestosTrasladados ?? 0
+      );
+
     if (total <= 0) {
       errors.push(
         "El total del CFDI no es válido"
@@ -187,7 +201,22 @@ export function parseCfdiXml(
             receptor.Nombre
           ),
 
+        // ==========================================
+        // Serie y folio
+        // ==========================================
+
+        serie:
+          textoOpcional(
+            comprobante.Serie
+          ),
+
+        folio:
+          textoOpcional(
+            comprobante.Folio
+          ),
+
         subtotal,
+        impuestos,
         total,
 
         fecha:

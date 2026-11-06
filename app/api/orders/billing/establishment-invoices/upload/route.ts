@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { randomUUID } from "node:crypto";
 import { getBillingUser } from "@/lib/billing/auth";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -63,7 +64,10 @@ export async function POST(req: Request) {
       );
     }
 
+    // =====================================================
     // 1. Obtener solicitud
+    // =====================================================
+
     const { data: invoiceRequest, error: requestError } =
       await supabase
         .from("invoice_requests")
@@ -78,34 +82,41 @@ export async function POST(req: Request) {
       );
     }
 
+    // =====================================================
     // 2. Obtener pedido
+    // =====================================================
+
     const { data: pedido, error: pedidoError } =
-  await supabase
-    .from("pedidos")
-    .select("id, establecimiento_uuid")
-    .eq("id", invoiceRequest.pedido_id)
-    .single();
+      await supabase
+        .from("pedidos")
+        .select("id, establecimiento_uuid")
+        .eq("id", invoiceRequest.pedido_id)
+        .single();
 
-if (
-  pedidoError ||
-  !pedido ||
-  !pedido.establecimiento_uuid
-) {
-  return NextResponse.json(
-    { error: "Pedido o establecimiento no encontrado" },
-    { status: 404 }
-  );
-}
+    if (
+      pedidoError ||
+      !pedido ||
+      !pedido.establecimiento_uuid
+    ) {
+      return NextResponse.json(
+        { error: "Pedido o establecimiento no encontrado" },
+        { status: 404 }
+      );
+    }
 
-    // 3. Confirmar que el usuario autenticado
-    //    controla ese establecimiento
-    const { data: establecimiento, error: establecimientoError } =
-  await supabase
-    .from("establecimientos")
-    .select("id, uuid, usuario_id, fiscal_profile_id")
-    .eq("uuid", pedido.establecimiento_uuid)
-    .eq("usuario_id", user.id)
-    .single();
+    // =====================================================
+    // 3. Verificar propiedad del establecimiento
+    // =====================================================
+
+    const {
+      data: establecimiento,
+      error: establecimientoError,
+    } = await supabase
+      .from("establecimientos")
+      .select("id, uuid, usuario_id, fiscal_profile_id")
+      .eq("uuid", pedido.establecimiento_uuid)
+      .eq("usuario_id", user.id)
+      .single();
 
     if (establecimientoError || !establecimiento) {
       return NextResponse.json(
@@ -114,21 +125,24 @@ if (
       );
     }
 
-if (!establecimiento.fiscal_profile_id) {
-  return NextResponse.json(
-    {
-      error:
-        "Configura los datos fiscales del establecimiento antes de subir la factura",
-    },
-    { status: 409 }
-  );
-}
+    if (!establecimiento.fiscal_profile_id) {
+      return NextResponse.json(
+        {
+          error:
+            "Configura los datos fiscales del establecimiento antes de subir la factura",
+        },
+        { status: 409 }
+      );
+    }
 
-    // 4. Obtener invoice del establecimiento
+    // =====================================================
+    // 4. Obtener factura y versión actual
+    // =====================================================
+
     const { data: invoice, error: invoiceError } =
       await supabase
         .from("invoices")
-        .select("id, estado")
+        .select("id, estado, updated_at")
         .eq("invoice_request_id", invoiceRequestId)
         .eq("tipo_emisor", "establecimiento")
         .single();
@@ -140,28 +154,38 @@ if (!establecimiento.fiscal_profile_id) {
       );
     }
 
+    // Solo se permite cargar o corregir documentos
+    // antes de una validación exitosa.
     if (
-      invoice.estado === "emitida" ||
-      invoice.estado === "cancelada"
+      invoice.estado !== "pendiente" &&
+      invoice.estado !== "error"
     ) {
       return NextResponse.json(
         {
           error:
-            "La factura ya no admite nuevos documentos",
+            "La factura no admite nuevos documentos en su estado actual",
         },
         { status: 409 }
       );
     }
 
-    // 5. Rutas privadas
+    // =====================================================
+    // 5. Generar rutas únicas por carga
+    // =====================================================
+
+    const uploadId = randomUUID();
+
     const basePath =
       `${invoiceRequest.pedido_id}` +
-      `/establecimiento/${invoiceRequestId}`;
+      `/establecimiento/${invoiceRequestId}/${uploadId}`;
 
     const xmlPath = `${basePath}/factura.xml`;
     const pdfPath = `${basePath}/factura.pdf`;
 
+    // =====================================================
     // 6. Convertir archivos
+    // =====================================================
+
     const xmlBuffer = Buffer.from(
       await xml.arrayBuffer()
     );
@@ -170,19 +194,35 @@ if (!establecimiento.fiscal_profile_id) {
       await pdf.arrayBuffer()
     );
 
+    // Limpia exclusivamente los archivos de esta carga.
+    async function limpiarCarga() {
+      const { error } = await supabase.storage
+        .from("billing-documents")
+        .remove([xmlPath, pdfPath]);
+
+      if (error) {
+        console.error(
+          "Error limpiando documentos de carga fallida:",
+          {
+            invoiceId: invoice.id,
+            uploadId,
+            error,
+          }
+        );
+      }
+    }
+
+    // =====================================================
     // 7. Subir XML
+    // =====================================================
+
     const { error: xmlUploadError } =
       await supabase.storage
         .from("billing-documents")
-        .upload(
-          xmlPath,
-          xmlBuffer,
-          {
-            contentType:
-              xml.type || "application/xml",
-            upsert: true,
-          }
-        );
+        .upload(xmlPath, xmlBuffer, {
+          contentType: xml.type || "application/xml",
+          upsert: false,
+        });
 
     if (xmlUploadError) {
       console.error(
@@ -196,18 +236,17 @@ if (!establecimiento.fiscal_profile_id) {
       );
     }
 
+    // =====================================================
     // 8. Subir PDF
+    // =====================================================
+
     const { error: pdfUploadError } =
       await supabase.storage
         .from("billing-documents")
-        .upload(
-          pdfPath,
-          pdfBuffer,
-          {
-            contentType: "application/pdf",
-            upsert: true,
-          }
-        );
+        .upload(pdfPath, pdfBuffer, {
+          contentType: "application/pdf",
+          upsert: false,
+        });
 
     if (pdfUploadError) {
       console.error(
@@ -215,10 +254,7 @@ if (!establecimiento.fiscal_profile_id) {
         pdfUploadError
       );
 
-      // Evitar dejar XML huérfano.
-      await supabase.storage
-        .from("billing-documents")
-        .remove([xmlPath]);
+      await limpiarCarga();
 
       return NextResponse.json(
         { error: "No se pudo guardar el PDF" },
@@ -226,30 +262,44 @@ if (!establecimiento.fiscal_profile_id) {
       );
     }
 
-    // 9. Registrar archivos.
-    // Todavía NO se marca como emitida:
-    // falta validar fiscalmente el CFDI.
-    const { error: updateError } =
-      await supabase
-        .from("invoices")
-        .update({
-          estado: "procesando",
-          emisor_id: user.id,
-          xml_path: xmlPath,
-          pdf_path: pdfPath,
-          error_mensaje: null,
-        })
-        .eq("id", invoice.id);
+    // =====================================================
+    // 9. Registrar documentos de forma atómica
+    // =====================================================
 
-    if (updateError) {
-      console.error(
-        "Error actualizando invoice:",
-        updateError
+    const { error: registerError } =
+      await supabase.rpc(
+        "registrar_documentos_cfdi_establecimiento",
+        {
+          p_invoice_id: invoice.id,
+          p_emisor_id: user.id,
+          p_xml_path: xmlPath,
+          p_pdf_path: pdfPath,
+          p_updated_at_original: invoice.updated_at,
+        }
       );
 
-      await supabase.storage
-        .from("billing-documents")
-        .remove([xmlPath, pdfPath]);
+    if (registerError) {
+      console.error(
+        "Error registrando documentos CFDI:",
+        registerError
+      );
+
+      // No borrar archivos de otras cargas.
+      await limpiarCarga();
+
+      if (
+        registerError.message.includes(
+          "CFDI_DOCUMENTOS_NO_PERMITIDOS_O_VERSION_CAMBIADA"
+        )
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "La factura cambió mientras se cargaban los documentos. Actualiza la página e inténtalo nuevamente.",
+          },
+          { status: 409 }
+        );
+      }
 
       return NextResponse.json(
         {
@@ -260,10 +310,14 @@ if (!establecimiento.fiscal_profile_id) {
       );
     }
 
+    // =====================================================
+    // 10. Documentos registrados
+    // =====================================================
+
     return NextResponse.json({
       ok: true,
       invoice_id: invoice.id,
-      estado: "procesando",
+      estado: "pendiente",
       message:
         "Documentos recibidos y pendientes de validación",
     });

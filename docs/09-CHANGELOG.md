@@ -8,6 +8,16 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 
 # [1.0.0] - En desarrollo
 
+## 2026-10-20
+
+### Billing V2 — liberación financiera y política semanal
+
+- En QA se creó y probó `liberar_movimiento_financiero_v2(bigint)`, ejecutable solo por `service_role`, para cambiar `pending → available` tras determinación fiscal V2.
+- Se validaron seis escenarios mediante `BEGIN/ROLLBACK`: rechazo V1, rechazo fiscal pendiente, liberación determinada, doble liberación, integridad de importes/snapshot y caso `no_sujeto` documentado.
+- Se acordó como objetivo V2 el corte lunes-domingo y solicitudes habilitadas los lunes; CFDI pendiente bloquea solo movimientos afectados. **Todavía no implementado en retiros ni desplegado en Producción.**
+- Se acordó liquidación semanal por establecimiento y CFDI de comisiones Dropit separado; detalles fiscales y de timbrado sujetos a validación.
+- Se documentó ADR-019. V1 conserva su esquema mensual vigente.
+
 ## 2026-10-05
 
 ### Establecimientos - registro, horarios y panel operativo
@@ -307,3 +317,13 @@ El formato utilizado sigue el estándar **Keep a Changelog** adaptado a Dropit.
 - Se definió que el establecimiento emite externamente su CFDI y Dropit no emite en su nombre.
 - Se definió como arquitectura objetivo un CFDI mensual consolidado de comisión Dropit por establecimiento, pendiente de validación final con contador.
 - Se documentó ADR-011.
+
+## 2026-11-05
+
+### Facturación F1 — cierre de prueba QA de CFDI del establecimiento
+
+- Se probó el pedido 85 (`EW-LOG65P6Z`) con un CFDI timbrado en SW Test por `$60.00 MXN`.
+- La carga de XML/PDF y la validación automática terminaron correctamente; la factura quedó `emitida` con UUID, serie, folio y rutas de ambos archivos persistidos en Supabase QA.
+- Se agregó a la pantalla de facturación del establecimiento el historial desplegable de **Facturas entregadas**, contadores de pendientes/entregadas/total y acceso a **Ver factura**; verificado en QA.
+- `invoice_requests.estado` permaneció `solicitada` en la verificación; no se modificó el contrato de estados.
+- Sin cambios de backend, base de datos ni lógica financiera para el historial. Prueba exitosa del camino positivo; escenarios negativos y conciliación fuera de este cierre.

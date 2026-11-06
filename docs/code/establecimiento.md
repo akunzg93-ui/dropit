@@ -135,3 +135,9 @@ La cuenta bancaria se administra en `/establecimiento/datos-bancarios` y pertene
 Balance consulta preventivamente si existen datos bancarios. Si faltan, muestra un aviso con acceso al registro; si aun así se intenta solicitar, el backend responde `DATOS_BANCARIOS_REQUIRED` y la UI muestra el error con CTA y desplazamiento suave hacia el mensaje.
 
 En navegación desktop, Balance y Datos bancarios se agrupan bajo `Finanzas` para mantener acceso visible sin saturar el navbar.
+
+## Facturación — historial de entregadas (QA, 05/11/2026)
+
+En `/establecimiento/facturacion` se muestran contadores **Pendientes**, **Entregadas** y **Total solicitudes**. Las facturas cuyo `invoices.estado = emitida` ya no desaparecen del listado: se agrupan en **Facturas entregadas**, una sección desplegable inicialmente cerrada. La tarjeta indica «Factura entregada y validada», conserva los datos fiscales relevantes y ofrece **Ver factura**, que navega a `/establecimiento/facturacion/[id]`.
+
+Se reutiliza la respuesta existente de `GET /api/orders/billing/establishment-invoices`, sin nuevos estados ni cambios de API/BD. El historial y los contadores se verificaron manualmente en QA después de validar el CFDI del pedido 85.

@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-} from "react";
-import {
-  useParams,
-  useRouter,
-} from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 
 import {
   ReceiptText,
@@ -17,6 +11,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   ArrowLeft,
+  RefreshCw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -51,12 +46,27 @@ type InvoiceDetail = {
   } | null;
 };
 
+type ValidationResult = {
+  ok?: boolean;
+  stage?: string;
+  errors?: string[];
+  error?: string;
+  invoice_id?: string;
+  cfdi?: {
+    uuid?: string;
+    rfcEmisor?: string;
+    rfcReceptor?: string;
+    subtotal?: number;
+    total?: number;
+    fecha?: string;
+  };
+};
+
 export default function FacturaEstablecimientoDetallePage() {
   const router = useRouter();
   const params = useParams();
 
-  const invoiceRequestId =
-    String(params?.id || "");
+  const invoiceRequestId = String(params?.id || "");
 
   const [factura, setFactura] =
     useState<InvoiceDetail | null>(null);
@@ -79,6 +89,10 @@ export default function FacturaEstablecimientoDetallePage() {
   const [mensaje, setMensaje] =
     useState("");
 
+  // =====================================================
+  // 1. Sesión
+  // =====================================================
+
   async function getSessionToken() {
     const {
       data: { session },
@@ -91,28 +105,28 @@ export default function FacturaEstablecimientoDetallePage() {
     return session.access_token;
   }
 
+  // =====================================================
+  // 2. Cargar información de la factura
+  // =====================================================
+
   async function cargarFactura() {
     try {
       setLoading(true);
-      setError("");
 
-      const token =
-        await getSessionToken();
+      const token = await getSessionToken();
 
       const response = await fetch(
         "/api/orders/billing/establishment-invoices",
         {
           method: "GET",
           headers: {
-            Authorization:
-              `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
           cache: "no-store",
         }
       );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -121,12 +135,13 @@ export default function FacturaEstablecimientoDetallePage() {
         );
       }
 
-      const encontrada =
-        (data?.invoices || []).find(
-          (item: InvoiceDetail) =>
-            item.invoice_request_id ===
-            invoiceRequestId
-        );
+      const encontrada = (
+        data?.invoices || []
+      ).find(
+        (item: InvoiceDetail) =>
+          item.invoice_request_id ===
+          invoiceRequestId
+      );
 
       if (!encontrada) {
         throw new Error(
@@ -135,6 +150,8 @@ export default function FacturaEstablecimientoDetallePage() {
       }
 
       setFactura(encontrada);
+
+      return encontrada as InvoiceDetail;
     } catch (err) {
       console.error(
         "Error cargando factura:",
@@ -148,7 +165,8 @@ export default function FacturaEstablecimientoDetallePage() {
         router.replace(
           "/establecimiento/login"
         );
-        return;
+
+        return null;
       }
 
       setError(
@@ -156,6 +174,8 @@ export default function FacturaEstablecimientoDetallePage() {
           ? err.message
           : "No se pudo cargar la factura"
       );
+
+      return null;
     } finally {
       setLoading(false);
     }
@@ -166,6 +186,48 @@ export default function FacturaEstablecimientoDetallePage() {
 
     cargarFactura();
   }, [invoiceRequestId]);
+
+  // =====================================================
+  // 3. Validación fiscal
+  // =====================================================
+
+  async function validarFactura(
+    token: string
+  ): Promise<ValidationResult> {
+    const response = await fetch(
+      `/api/orders/billing/establishment-invoices/${invoiceRequestId}/validate`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data: ValidationResult =
+      await response.json();
+
+    if (!response.ok) {
+      const mensajeError =
+        data?.errors?.join(" | ") ||
+        data?.error ||
+        "No fue posible validar el CFDI";
+
+      throw new Error(mensajeError);
+    }
+
+    if (!data.ok) {
+      throw new Error(
+        "La validación no pudo completarse"
+      );
+    }
+
+    return data;
+  }
+
+  // =====================================================
+  // 4. Subir XML y PDF + validar automáticamente
+  // =====================================================
 
   async function subirFactura() {
     if (!factura) return;
@@ -192,40 +254,30 @@ export default function FacturaEstablecimientoDetallePage() {
       const token =
         await getSessionToken();
 
-      // ===================================================
-      // 1. Upload XML + PDF
-      // ===================================================
+      // ================================================
+      // 4.1 Subir documentos
+      // ================================================
 
-      const formData =
-        new FormData();
+      const formData = new FormData();
 
       formData.append(
         "invoice_request_id",
         factura.invoice_request_id
       );
 
-      formData.append(
-        "xml",
-        xml
-      );
+      formData.append("xml", xml);
+      formData.append("pdf", pdf);
 
-      formData.append(
-        "pdf",
-        pdf
+      const uploadResponse = await fetch(
+        "/api/orders/billing/establishment-invoices/upload",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
       );
-
-      const uploadResponse =
-        await fetch(
-          "/api/orders/billing/establishment-invoices/upload",
-          {
-            method: "POST",
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
-            body: formData,
-          }
-        );
 
       const uploadData =
         await uploadResponse.json();
@@ -237,55 +289,44 @@ export default function FacturaEstablecimientoDetallePage() {
         );
       }
 
-      // ===================================================
-      // 2. Validación local CFDI
-      // ===================================================
-
-      const validateResponse =
-        await fetch(
-          `/api/orders/billing/establishment-invoices/${factura.invoice_request_id}/validate`,
-          {
-            method: "POST",
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
-          }
-        );
-
-      const validateData =
-        await validateResponse.json();
-
-      if (!validateResponse.ok) {
-        const validationErrors =
-          Array.isArray(
-            validateData?.errors
-          )
-            ? validateData.errors.join(
-                " · "
-              )
-            : validateData?.error;
-
-        throw new Error(
-          validationErrors ||
-            "La factura no pasó la validación"
-        );
-      }
-
-      setMensaje(
-        validateData
-          ?.requires_sat_validation
-          ? "Documentos recibidos. La factura pasó la validación inicial y quedó pendiente de validación fiscal."
-          : "Factura validada correctamente."
-      );
+      // Los documentos ya están registrados.
+      // No deben volver a subirse si falla la validación.
 
       setXml(null);
       setPdf(null);
 
-      await cargarFactura();
+      // ================================================
+      // 4.2 Validar automáticamente
+      // ================================================
+
+      try {
+        const resultado =
+          await validarFactura(token);
+
+        await cargarFactura();
+
+        setMensaje(
+          resultado.cfdi?.uuid
+            ? `CFDI validado correctamente. UUID: ${resultado.cfdi.uuid}`
+            : "CFDI validado correctamente."
+        );
+      } catch (validationError) {
+        console.error(
+          "Error validando CFDI:",
+          validationError
+        );
+
+        await cargarFactura();
+
+        setError(
+          validationError instanceof Error
+            ? validationError.message
+            : "No fue posible validar el CFDI"
+        );
+      }
     } catch (err) {
       console.error(
-        "Error procesando factura:",
+        "Error subiendo factura:",
         err
       );
 
@@ -298,6 +339,53 @@ export default function FacturaEstablecimientoDetallePage() {
       setSubiendo(false);
     }
   }
+
+  // =====================================================
+  // 5. Reintentar validación sin volver a subir archivos
+  // =====================================================
+
+  async function reintentarValidacion() {
+    if (!factura) return;
+
+    try {
+      setSubiendo(true);
+      setError("");
+      setMensaje("");
+
+      const token =
+        await getSessionToken();
+
+      const resultado =
+        await validarFactura(token);
+
+      await cargarFactura();
+
+      setMensaje(
+        resultado.cfdi?.uuid
+          ? `CFDI validado correctamente. UUID: ${resultado.cfdi.uuid}`
+          : "CFDI validado correctamente."
+      );
+    } catch (err) {
+      console.error(
+        "Error reintentando validación:",
+        err
+      );
+
+      await cargarFactura();
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No fue posible validar el CFDI"
+      );
+    } finally {
+      setSubiendo(false);
+    }
+  }
+
+  // =====================================================
+  // 6. Pantalla de carga
+  // =====================================================
 
   if (loading) {
     return (
@@ -315,6 +403,10 @@ export default function FacturaEstablecimientoDetallePage() {
       </main>
     );
   }
+
+  // =====================================================
+  // 7. Factura no encontrada
+  // =====================================================
 
   if (!factura) {
     return (
@@ -349,9 +441,39 @@ export default function FacturaEstablecimientoDetallePage() {
     );
   }
 
+  // =====================================================
+  // 8. Estados y permisos de la interfaz
+  // =====================================================
+
+  const estadoFactura =
+    factura.invoice?.estado || "pendiente";
+
+  const permiteCarga =
+    estadoFactura === "pendiente" ||
+    estadoFactura === "error";
+
+  const tieneDocumentos =
+    Boolean(factura.invoice?.xml_path) &&
+    Boolean(factura.invoice?.pdf_path);
+
+  const puedeReintentar =
+    permiteCarga && tieneDocumentos;
+
+  const facturaEmitida =
+    estadoFactura === "emitida";
+
+  const facturaProcesando =
+    estadoFactura === "procesando";
+
+  // =====================================================
+  // 9. Interfaz principal
+  // =====================================================
+
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-8 pb-32 lg:py-12">
       <div className="mx-auto w-full max-w-3xl space-y-6">
+
+        {/* Volver */}
 
         <button
           type="button"
@@ -365,6 +487,10 @@ export default function FacturaEstablecimientoDetallePage() {
           <ArrowLeft size={16} />
           Volver a facturación
         </button>
+
+        {/* =============================================
+            Información de la factura
+        ============================================= */}
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
           <div className="flex items-start gap-4">
@@ -394,19 +520,14 @@ export default function FacturaEstablecimientoDetallePage() {
               label="Importe esperado"
               value={
                 factura.monto_esperado != null
-                  ? `$${factura.monto_esperado.toFixed(
-                      2
-                    )} MXN`
+                  ? `$${factura.monto_esperado.toFixed(2)} MXN`
                   : "No disponible"
               }
             />
 
             <InfoItem
               label="Estado"
-              value={
-                factura.invoice?.estado ||
-                "pendiente"
-              }
+              value={estadoFactura}
             />
 
             <InfoItem
@@ -420,13 +541,16 @@ export default function FacturaEstablecimientoDetallePage() {
             <InfoItem
               label="Razón social"
               value={
-                factura.receptor
-                  ?.razon_social ||
+                factura.receptor?.razon_social ||
                 "No disponible"
               }
             />
           </div>
         </section>
+
+        {/* =============================================
+            Perfil fiscal faltante
+        ============================================= */}
 
         {!factura.fiscal_profile_id ? (
           <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6">
@@ -442,7 +566,8 @@ export default function FacturaEstablecimientoDetallePage() {
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-amber-800">
-                  Antes de subir una factura debes asociar un perfil fiscal a este establecimiento.
+                  Antes de subir una factura debes asociar
+                  un perfil fiscal a este establecimiento.
                 </p>
               </div>
             </div>
@@ -450,9 +575,7 @@ export default function FacturaEstablecimientoDetallePage() {
             <Button
               className="mt-5 h-11 rounded-xl bg-amber-600 text-white hover:bg-amber-700"
               onClick={() => {
-                if (
-                  factura.establecimiento_id
-                ) {
+                if (factura.establecimiento_id) {
                   router.push(
                     `/establecimiento/onboarding-fiscal?establecimiento_id=${factura.establecimiento_id}`
                   );
@@ -464,15 +587,24 @@ export default function FacturaEstablecimientoDetallePage() {
           </section>
         ) : (
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+
+            {/* Encabezado */}
+
             <div className="mb-6">
               <h2 className="text-xl font-bold text-[#1e3a8a]">
-                Subir CFDI
+                Facturación del establecimiento
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Carga el XML y PDF correspondientes a esta operación. Dropit verificará los datos antes de aceptar la factura.
+                Carga el XML y PDF correspondientes a esta
+                operación. Dropit verificará los datos
+                fiscales antes de aceptar la factura.
               </p>
             </div>
+
+            {/* =========================================
+                Mensajes
+            ========================================= */}
 
             {error && (
               <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
@@ -486,59 +618,214 @@ export default function FacturaEstablecimientoDetallePage() {
                   size={18}
                   className="mt-0.5 shrink-0"
                 />
-                {mensaje}
+
+                <span>{mensaje}</span>
               </div>
             )}
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FileSelector
-                label="XML del CFDI"
-                accept=".xml,text/xml,application/xml"
-                file={xml}
-                onChange={setXml}
-              />
+            {/* =========================================
+                Factura emitida
+            ========================================= */}
 
-              <FileSelector
-                label="PDF de la factura"
-                accept=".pdf,application/pdf"
-                file={pdf}
-                onChange={setPdf}
-              />
-            </div>
+            {facturaEmitida && (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2
+                    size={24}
+                    className="shrink-0 text-emerald-600"
+                  />
 
-            <Button
-              disabled={
-                subiendo ||
-                !xml ||
-                !pdf
-              }
-              className="mt-6 h-12 w-full rounded-xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] font-bold text-white"
-              onClick={subirFactura}
-            >
-              {subiendo ? (
-                <>
+                  <div>
+                    <h3 className="font-bold text-emerald-900">
+                      Factura validada correctamente
+                    </h3>
+
+                    <p className="mt-2 text-sm leading-6 text-emerald-800">
+                      El CFDI fue validado y registrado
+                      correctamente en Dropit.
+                    </p>
+
+                    {factura.invoice?.uuid_fiscal && (
+                      <p className="mt-3 break-all text-xs font-medium text-emerald-800">
+                        UUID: {factura.invoice.uuid_fiscal}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* =========================================
+                Factura en procesamiento
+            ========================================= */}
+
+            {facturaProcesando && (
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+                <div className="flex items-start gap-3">
                   <Loader2
-                    size={18}
-                    className="mr-2 animate-spin"
+                    size={22}
+                    className="shrink-0 animate-spin text-blue-600"
                   />
-                  Procesando...
-                </>
-              ) : (
-                <>
-                  <Upload
-                    size={18}
-                    className="mr-2"
+
+                  <div>
+                    <h3 className="font-bold text-blue-900">
+                      Validación en proceso
+                    </h3>
+
+                    <p className="mt-2 text-sm leading-6 text-blue-800">
+                      La factura está siendo validada.
+                      Actualiza la página posteriormente
+                      para consultar su estado.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* =========================================
+                Carga de documentos
+            ========================================= */}
+
+            {permiteCarga && (
+              <>
+                {tieneDocumentos && (
+                  <div className="mb-5 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <FileText
+                        size={20}
+                        className="mt-0.5 shrink-0 text-blue-600"
+                      />
+
+                      <div>
+                        <p className="text-sm font-bold text-blue-900">
+                          Documentos registrados
+                        </p>
+
+                        <p className="mt-1 text-sm leading-6 text-blue-800">
+                          Ya existen archivos XML y PDF
+                          asociados a esta factura.
+                          Puedes reintentar su validación
+                          sin volver a cargarlos.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {estadoFactura === "error" &&
+                  factura.invoice?.error_mensaje && (
+                    <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle
+                          size={20}
+                          className="mt-0.5 shrink-0 text-amber-600"
+                        />
+
+                        <div>
+                          <p className="text-sm font-bold text-amber-900">
+                            La factura requiere atención
+                          </p>
+
+                          <p className="mt-1 text-sm leading-6 text-amber-800">
+                            {factura.invoice.error_mensaje}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Selectores */}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FileSelector
+                    label="XML del CFDI"
+                    accept=".xml,text/xml,application/xml"
+                    file={xml}
+                    onChange={setXml}
                   />
-                  Subir y validar factura
-                </>
-              )}
-            </Button>
+
+                  <FileSelector
+                    label="PDF de la factura"
+                    accept=".pdf,application/pdf"
+                    file={pdf}
+                    onChange={setPdf}
+                  />
+                </div>
+
+                {/* Botón principal */}
+
+                <Button
+                  disabled={
+                    subiendo ||
+                    !xml ||
+                    !pdf
+                  }
+                  className="mt-6 h-12 w-full rounded-xl bg-gradient-to-r from-[#2563eb] to-[#1e40af] font-bold text-white"
+                  onClick={subirFactura}
+                >
+                  {subiendo ? (
+                    <>
+                      <Loader2
+                        size={18}
+                        className="mr-2 animate-spin"
+                      />
+                      Procesando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload
+                        size={18}
+                        className="mr-2"
+                      />
+                      Subir y validar factura
+                    </>
+                  )}
+                </Button>
+
+                {/* =====================================
+                    Reintento de validación
+                ===================================== */}
+
+                {puedeReintentar && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-3 h-12 w-full rounded-xl border-blue-300 font-semibold text-blue-700 hover:bg-blue-50"
+                    disabled={subiendo}
+                    onClick={reintentarValidacion}
+                  >
+                    {subiendo ? (
+                      <>
+                        <Loader2
+                          size={18}
+                          className="mr-2 animate-spin"
+                        />
+                        Validando...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw
+                          size={18}
+                          className="mr-2"
+                        />
+                        Reintentar validación
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
+            )}
+
           </section>
         )}
       </div>
     </main>
   );
 }
+
+// =====================================================
+// Selector de archivos
+// =====================================================
 
 function FileSelector({
   label,
@@ -549,9 +836,7 @@ function FileSelector({
   label: string;
   accept: string;
   file: File | null;
-  onChange: (
-    file: File | null
-  ) => void;
+  onChange: (file: File | null) => void;
 }) {
   return (
     <label className="block cursor-pointer rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 transition hover:border-blue-300 hover:bg-blue-50/40">
@@ -576,14 +861,17 @@ function FileSelector({
         className="hidden"
         onChange={(event) =>
           onChange(
-            event.target.files?.[0] ||
-              null
+            event.target.files?.[0] || null
           )
         }
       />
     </label>
   );
 }
+
+// =====================================================
+// Elemento de información
+// =====================================================
 
 function InfoItem({
   label,

@@ -677,3 +677,34 @@ El onboarding educativo tampoco debe confundirse con requisitos legales, fiscale
 - Dropit puede introducir futuras versiones educativas de forma controlada.
 - Las pantallas pueden compartir un lenguaje visual sin acoplar la persistencia al componente.
 
+
+
+---
+
+# ADR-019
+
+## Nombre
+
+Separación de liberación fiscal V2 y elegibilidad semanal de retiros.
+
+## Estado
+
+Aceptada como decisión funcional. Liberación financiera implementada y probada en QA; periodicidad semanal, control CFDI y facturación consolidada pendientes de implementación y validación fiscal. **No desplegada en Producción.**
+
+## Contexto
+
+ADR-011 y ADR-012 definieron facturación desacoplada y retiros posteriores al cierre mensual. El modelo V2 determina retenciones por pedido y necesita distinguir saldo financieramente determinado de saldo elegible para solicitar retiro. Producto acordó habilitación semanal los lunes, sin permitir solicitar retiros de pedidos con CFDI requerido todavía pendiente.
+
+## Decisión
+
+1. `determinar_fiscalmente_movimiento_v2` fija importes fiscales y snapshot sin liberar el estado financiero.
+2. `liberar_movimiento_financiero_v2` permite `pending → available` solo en V2 fiscalmente `determinado` o `no_sujeto` documentado; no verifica CFDI ni corte semanal.
+3. El retiro V2 tendrá cortes lunes-domingo (hora `America/Mexico_City`) y será solicitable desde el lunes siguiente; los CFDI requeridos no validados bloquean solo sus movimientos. Validaciones posteriores al corte habilitan el movimiento en el lunes siguiente.
+4. V1 conserva su elegibilidad mensual; la implementación actual de `crear_retiro_desde_movimientos` continúa mensual hasta una modificación explícita y probada.
+5. Dropit generará liquidación semanal detallada por establecimiento; se propone CFDI semanal consolidado **de comisiones Dropit**, separado del documento de liquidación y de los CFDI de custodia emitidos por establecimientos. Confirmar tratamiento con contador antes de automatizar timbrado.
+6. Las retenciones se determinan por pedido con reglas vigentes parametrizadas y se concilian mensualmente para declaración y entero al SAT. Para 2027 se crearán nuevas vigencias, conservando snapshots históricos.
+7. Tres CFDI vencidos y no regularizados motivarán suspensión operativa y solicitud de reingreso mediante soporte; definición exacta de conteo, notificación y regularización pendiente.
+
+## Alcance y consecuencias
+
+Esta ADR **reemplaza para V2 como objetivo** la periodicidad mensual de ADR-011/ADR-012, sin invalidar su implementación V1 existente ni su trazabilidad por movimientos. La decisión semanal **no está aún desplegada**. Se requiere adaptar backend, SQL de retiro, controles de aprobación/pago, conciliación, UI, pruebas end-to-end y documentación legal. No se asume que el CFDI semanal de comisiones sea el CFDI del pago al establecimiento.

@@ -118,6 +118,42 @@ export async function POST(
           { status: 409 }
         );
 
+        case "CFDI_VALIDATION_CLAIM_FAILED":
+  return NextResponse.json(
+    {
+      error:
+        "La factura ya está siendo validada o no está disponible para validación. Actualiza la página e inténtalo nuevamente.",
+    },
+    { status: 409 }
+  );
+
+case "CFDI_VALIDATION_TOKEN_LOST":
+  return NextResponse.json(
+    {
+      error:
+        "La validación fue reemplazada por otro proceso. Actualiza la página para consultar el estado actual.",
+    },
+    { status: 409 }
+  );
+
+case "XML_DOWNLOAD_ERROR":
+  return NextResponse.json(
+    {
+      error:
+        "No fue posible recuperar el XML de la factura.",
+    },
+    { status: 500 }
+  );
+
+case "INVOICE_UPDATE_ERROR":
+  return NextResponse.json(
+    {
+      error:
+        "No fue posible actualizar el estado de la factura.",
+    },
+    { status: 500 }
+  );
+
       default:
         console.error(
           "Error validando CFDI establecimiento:",

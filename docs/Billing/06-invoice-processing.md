@@ -45,3 +45,11 @@ Resultado inválido:
 ## Separación financiera
 
 Este proceso no libera ni paga `balance_movimientos`. La conciliación mensual es un proceso independiente.
+
+## Evidencia de prueba integral QA — 05/11/2026
+
+Pedido `85` (`EW-LOG65P6Z`), importe `$60.00 MXN`, receptor RFC `KAHO641101B39`. Se timbró un CFDI de prueba con SW Test, se cargaron XML y PDF desde la pantalla del establecimiento y la UI confirmó «CFDI validado correctamente» y «Factura validada correctamente».
+
+Consulta posterior en Supabase QA: `invoices.estado = emitida`, UUID `76C82B00-7655-46CB-9F87-6A367757111E`, serie `QA`, folio `EST85-1793925191537`; rutas `xml_path` y `pdf_path` presentes en almacenamiento privado. El establecimiento confirmó que el registro aparece en el historial de facturas entregadas.
+
+Esta prueba confirma el **camino exitoso**. No constituye evidencia de cobertura de reintentos, CFDI rechazados, cancelación fiscal o conciliación/pago.

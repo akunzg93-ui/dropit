@@ -142,7 +142,10 @@ export default function CrearPedido() {
     const { data: userData } = await supabase.auth.getUser();
     const vendedorId = userData?.user?.id;
 
-    const { data, error } = await supabase.from("establecimientos").select("*");
+    const { data, error } = await supabase
+  .from("establecimientos")
+  .select("*")
+  .eq("activo", true);
 
     if (error) {
       setMensaje("Error cargando establecimientos");

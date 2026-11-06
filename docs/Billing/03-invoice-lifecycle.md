@@ -37,3 +37,9 @@ La factura puede reintentarse con documentos corregidos mientras el estado permi
 ## Independencia del pago
 
 `emitida` significa que el CFDI fue aceptado fiscalmente por Dropit. No significa que el saldo del establecimiento haya sido pagado ni liberado.
+
+## Verificación QA adicional — 05/11/2026 (pedido 85)
+
+En QA se comprobó la transición de la factura del establecimiento a `emitida` tras cargar XML/PDF y validar el CFDI con SW Test. El UUID persistido fue `76C82B00-7655-46CB-9F87-6A367757111E`, serie `QA`, folio `EST85-1793925191537`.
+
+La solicitud asociada (`invoice_requests.estado`) permaneció en `solicitada` mientras `invoices.estado` quedó en `emitida`. Se documenta como comportamiento observado, **sin asumir que deba cambiarse el estado de la solicitud**; revisar el contrato de estados antes de alterar esa relación.

@@ -75,13 +75,16 @@ export default function AdminCoinsPage() {
     setLoadingResumen(true);
     setMensaje("");
 
-    const adminId = await obtenerAdminId();
+    const {
+  data: { session },
+  error: sessionError,
+} = await supabase.auth.getSession();
 
-    if (!adminId) {
-      setMensaje("No se pudo validar la sesión del admin.");
-      setLoadingResumen(false);
-      return;
-    }
+if (sessionError || !session?.access_token) {
+  setMensaje("No se pudo validar la sesión del admin.");
+  setLoadingResumen(false);
+  return;
+}
 
     try {
       const res = await fetch("/api/orders/coins/admin-resumen", {
@@ -89,7 +92,7 @@ export default function AdminCoinsPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ admin_id: adminId }),
+        body: JSON.stringify({ admin_id: session.user.id }),
       });
 
       const data = await res.json();
@@ -146,29 +149,32 @@ export default function AdminCoinsPage() {
       return;
     }
 
-    const adminId = await obtenerAdminId();
+    const {
+  data: { session },
+  error: sessionError,
+} = await supabase.auth.getSession();
 
-    if (!adminId) {
-      setMensaje("No se pudo validar la sesión del admin.");
-      return;
-    }
+if (sessionError || !session?.access_token) {
+  setMensaje("No se pudo validar la sesión del admin.");
+  return;
+}
 
     actualizarAsignacion(vendedor.user_id, "loading", true);
 
     try {
       const res = await fetch("/api/orders/coins/admin-asignar", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          admin_id: adminId,
-          email_vendedor: vendedor.email,
-          coin_tipo: asignacion.coinTipo,
-          cantidad: Number(asignacion.cantidad),
-          motivo: asignacion.motivo.trim(),
-        }),
-      });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session.access_token}`,
+  },
+  body: JSON.stringify({
+    email_vendedor: vendedor.email,
+    coin_tipo: asignacion.coinTipo,
+    cantidad: Number(asignacion.cantidad),
+    motivo: asignacion.motivo.trim(),
+  }),
+});
 
       const data = await res.json();
 

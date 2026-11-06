@@ -36,3 +36,9 @@ Para la prueba QA se comprobó la generación de representación PDF a partir de
 ## Seguridad
 
 Credenciales, tokens y CSD nunca deben exponerse al cliente ni persistirse en documentación. Toda interacción con PAC se ejecuta en servidor mediante variables de entorno.
+
+## Prueba de SW Test — 05/11/2026
+
+Se utilizó el script QA existente `scripts/qa/emitir-cfdi-establecimiento-test.ts` con `BILLING_PAC_ENV=test` y `BILLING_PAC_PROVIDER=sw` para timbrar un comprobante de prueba destinado al pedido 85. Resultado: UUID `76C82B00-7655-46CB-9F87-6A367757111E`, XML `EST85-1793925191537.xml` y total `$60.00 MXN`.
+
+La ejecución independiente del script requiere acceso a las variables de autenticación `SW_USER` y `SW_PASSWORD` en el proceso Node. No registrar credenciales ni tokens en documentación. La emisión de este CFDI fue una **preparación manual de prueba QA**, no una emisión automática del establecimiento dentro de Dropit.

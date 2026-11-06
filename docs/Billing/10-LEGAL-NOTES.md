@@ -136,3 +136,15 @@ Estado:
 ## Principio
 
 Ninguna modificación a los Términos y Condiciones deberá realizarse sin que previamente exista una decisión documentada en este archivo y validada con el asesor fiscal correspondiente.
+
+---
+
+## LN-007 — Política de retiros semanales V2 (decisión de producto, 20/10/2026)
+
+- Corte lunes-domingo, hora `America/Mexico_City`; movimientos elegibles se solicitan desde el lunes siguiente.
+- CFDI de custodia requerido pero no validado: el pedido no es elegible para retiro; no bloquea otros movimientos del mismo establecimiento. Validación posterior al corte: siguiente lunes.
+- Liquidación semanal consolidada por establecimiento, distinta del CFDI de comisión que Dropit emite por sus ingresos y de los CFDI del servicio de custodia.
+- Tres CFDI vencidos no regularizados: suspensión operativa y reingreso vía soporte, sujeto a definir plazos, notificaciones y tratamiento de saldos.
+- Las retenciones se calculan por operación, con porcentajes vigentes confirmados operativamente con el contador; su declaración/entero se concilia mensualmente. Cambios 2027 se gestionarán por vigencias sin alterar snapshots anteriores.
+
+**Estado:** decisión funcional aceptada, **no implementada** en el flujo de retiros. La aplicación exacta de reglas fiscales, CFDI consolidados y cláusulas legales requiere validación/documentación formal con contador y asesor legal. V1 permanece mensual.

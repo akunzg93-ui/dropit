@@ -1,47 +1,210 @@
-# Billing - API Contracts
+# Protección financiera V2 — Recepción y retiros
 
-> Última actualización: 27/08/2026
+Estado: Implementado y validado en QA
+Ambiente: QA
+Producción: Pendiente
+Fecha de cierre: 2026-10-15
 
-Las rutas permanecen bajo `app/api/orders` conforme ADR-003.
+## 1. Objetivo
 
-## Solicitud del vendedor
+Garantizar que la introducción del modelo financiero V2 no
+modifique los movimientos históricos V1 y que ningún saldo V2
+pueda retirarse mientras su determinación fiscal esté pendiente.
 
-### `POST /api/orders/billing/invoice-requests`
+## 2. Versionamiento financiero
 
-Body: `pedido_id`, `fiscal_profile_id`.
+Las tablas `coin_lotes` y `balance_movimientos` incorporan
+`modelo_financiero_version`.
 
-Valida usuario, propiedad del pedido, inicio del servicio, perfil fiscal, periodo permitido y duplicados. Crea `invoice_requests`, snapshot fiscal y factura pendiente del establecimiento.
+Versiones:
 
-### `GET /api/orders/billing/invoice-requests`
+- V1: modelo financiero histórico.
+- V2: servicio con IVA desglosado, comisión sobre subtotal
+  y determinación fiscal independiente.
 
-Consulta el estado persistente de facturación, opcionalmente por `pedido_id`.
+Los registros históricos conservan V1.
 
-## Establecimiento
+## 3. Recepción de pedidos
 
-### `GET /api/orders/billing/establishment-invoices`
+Función:
 
-Devuelve solicitudes asociadas a los establecimientos del usuario autenticado, importe esperado desde `balance_movimientos` y `pending_count` para el panel.
+`public.recibir_pedido_con_balance(bigint,text,numeric)`
 
-### `POST /api/orders/billing/establishment-invoices/upload`
+La versión financiera se determina a partir del lote
+de Coins utilizado por el pedido.
 
-Multipart: `invoice_request_id`, `xml`, `pdf`.
+### V1
 
-Valida propiedad, archivos y almacena documentos privados. Deja la factura en `procesando`.
+Se conserva el cálculo histórico.
 
-### `POST /api/orders/billing/establishment-invoices/[id]/validate`
+Ejemplo Small:
 
-Ejecuta `validateEstablishmentCfdi` para la solicitud indicada. Valida operación, datos fiscales y estado fiscal PAC/SAT. Éxito: `emitida`. Error: `error` con mensaje.
+- Monto bruto: $60.00
+- Comisión Dropit: $6.00
+- IVA comisión: $0.96
+- Neto establecimiento: $53.04
+- Estado: available
 
-## Onboarding fiscal de establecimiento
+### V2
 
-### `POST /api/orders/establishments/complete-onboarding`
+Ejemplo Small:
 
-Asocia un `fiscal_profile_id` al establecimiento después de verificar que ambos pertenecen al usuario autenticado.
+- Servicio subtotal: $60.00
+- IVA servicio: $9.60
+- Servicio total: $69.60
+- Comisión Dropit: $6.00
+- IVA comisión: $0.96
+- Neto preliminar: $62.64
+- Determinación fiscal: pendiente
+- Estado: pending
 
-## PAC
+El neto preliminar no constituye un saldo liquidable.
 
-La integración no se invoca desde el frontend. Se ejecuta exclusivamente desde servicios de servidor.
+Las retenciones fiscales todavía no se encuentran implementadas.
 
-## Seguridad
+## 4. Solicitud de retiros
 
-Todas las rutas sensibles deben validar sesión, propiedad del recurso y estado permitido. Los documentos se almacenan en bucket privado y las operaciones administrativas usan servidor/service role cuando corresponde.
+Función:
+
+`public.crear_retiro_desde_movimientos(uuid,bigint[])`
+
+Reglas:
+
+- Solo acepta movimientos con status = available.
+- Para V2 exige determinación fiscal:
+  determinado o no_sujeto.
+- Para V2 exige neto_establecimiento positivo.
+- Conserva validaciones de titularidad, cierre mensual,
+  movimientos duplicados, retiros activos y datos bancarios.
+- Conserva retiros multiestablecimiento.
+
+## 5. Administración de retiros
+
+Función:
+
+`public.actualizar_retiro_admin(uuid,uuid,text,text)`
+
+Se mantienen las transiciones:
+
+- pending → approved
+- pending → reversed
+- approved → paid
+
+Antes de aprobar o pagar:
+
+- Los movimientos deben estar available.
+- Los movimientos V2 deben tener determinación fiscal resuelta.
+- Los movimientos V2 deben tener neto positivo.
+- Los importes aplicados deben coincidir con los netos actuales.
+- El total aplicado debe coincidir con el retiro.
+- No pueden existir movimientos incompletos.
+
+El pago continúa exigiendo referencia bancaria.
+
+## 6. Seguridad
+
+Las funciones de retiros fueron verificadas en QA.
+
+Permisos:
+
+- anon: sin EXECUTE
+- authenticated: sin EXECUTE
+- service_role: EXECUTE permitido
+
+Se restringieron también las funciones:
+
+- fn_marcar_balance_pagado(uuid)
+- fn_marcar_balance_pagado(uuid,text)
+
+Ambas tenían permisos excesivos.
+
+El cambio de permisos está aplicado únicamente en QA.
+
+## 7. Pruebas ejecutadas
+
+### Recepción V1
+
+Pedido 79:
+
+- Versión 1
+- Bruto $60.00
+- Comisión $6.00
+- IVA comisión $0.96
+- Neto $53.04
+- Estado available
+
+Resultado: correcto.
+
+### Recepción V2
+
+Pedido 79 con versión de lote simulada temporalmente:
+
+- Versión 2
+- Subtotal $60.00
+- IVA servicio $9.60
+- Total $69.60
+- Comisión $6.00
+- IVA comisión $0.96
+- Neto preliminar $62.64
+- Determinación pendiente
+- Estado pending
+
+Resultado: correcto.
+
+### Solicitud de retiro V2
+
+Movimiento 52:
+
+- Versión 2 simulada
+- Estado pending
+- Determinación pendiente
+
+Resultado:
+
+MOVIMIENTO_NO_ELEGIBLE
+
+### Aprobación administrativa
+
+Movimiento 51 y retiro temporal:
+
+Resultado:
+
+MOVIMIENTO_NO_ELEGIBLE
+
+### Pago administrativo
+
+Movimiento 51 y retiro temporal:
+
+Resultado:
+
+MOVIMIENTO_NO_ELEGIBLE
+
+Todas las pruebas se ejecutaron con transacciones
+revertidas mediante ROLLBACK.
+
+## 8. Limitaciones actuales
+
+Las protecciones están implementadas, pero V2 no debe
+activarse todavía.
+
+Pendientes:
+
+1. Implementar determinación fiscal y retenciones.
+2. Definir liberación de saldos V2.
+3. Implementar compra de Coins V2.
+4. Adaptar Stripe y acreditación de lotes.
+5. Conciliar pagos, descuentos y subsidios Dropit.
+6. Validar tratamiento fiscal con especialista SAT.
+7. Probar integralmente el flujo V2.
+8. Planear despliegue controlado a producción.
+
+## 9. Criterio de cierre
+
+Se considera completada en QA la etapa de:
+
+PROTECCIÓN FINANCIERA V2
+
+No se considera completada la implementación integral
+del modelo financiero V2.
+
+No se autoriza todavía la activación de V2 en producción.
